@@ -2052,71 +2052,92 @@ async function openSandbox() {
 
 async function fetchWiki(title) {
   try {
-    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { mode: 'cors' });
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 2500);
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { mode: 'cors', signal: ctrl.signal });
+    clearTimeout(tid);
     if (!r.ok) throw new Error('http ' + r.status);
     const j = await r.json();
     return j.extract || '';
   } catch { return ''; }
 }
 
-async function generateTestData() {
-  toast('Generating test data…');
-  const apps = ['[TEST] Whokna Design','[TEST] Whokna Database','[TEST] Reference'];
-  const root = await State.vault.readLinks(null, null);
-  const appIds = [];
-  for (const name of apps) {
-    let id = root.order.find(x => State.index.items[x]?.displayName === name);
-    if (!id) {
-      id = makeItem('app', name, { isTest: true });
-      root.order.push(id);
-    } else {
-      State.index.items[id].isTest = true;
-    }
-    appIds.push(id);
-  }
-  await State.vault.writeLinks(null, null, root);
+function showProgress(msg) {
+  toastEl.textContent = msg;
+  toastEl.className = 'show';
+  clearTimeout(toastT);
+}
 
-  const topics = TEST_TOPICS.slice(0, 27);
-  let topicIdx = 0;
-  const allSubs = [];
-  for (let a = 0; a < appIds.length; a++) {
-    const appId = appIds[a];
-    for (let c = 0; c < 3; c++) {
-      const chapName = ['Foundations','Components','Workflows'][c];
-      const chapId = await ensureChild(appId, 'app', 'chapter', chapName);
-      State.index.items[chapId].isTest = true;
-      for (let s = 0; s < 3; s++) {
-        const tp = topics[topicIdx % topics.length]; topicIdx++;
-        const subName = tp[0];
-        const subId = await ensureChild(chapId, 'chapter', 'sub', subName);
-        State.index.items[subId].isTest = true;
-        const noteId = makeItem('note', `${subName} notes`, { isTest: true });
-        await addChild(subId, 'sub', noteId);
-        const summary = await fetchWiki(tp[1]);
-        const blob = new Blob([PLACEHOLDER_SVG], { type: 'image/svg+xml' });
-        const aid = makeItem('asset', `${subName} diagram.svg`, { isTest: true, ext: 'svg', mime: 'image/svg+xml', originalName: `${subName}.svg` });
-        await State.vault.writeAsset(aid, 'svg', blob);
-        await addChild(subId, 'sub', aid);
-        const noteTxt = `# ${subName}\n\n${summary || `_(offline placeholder for ${subName})_`}\n\n![diagram](_assets/${aid}.svg)\n`;
-        await State.vault.writeNote(noteId, noteTxt);
-        State.noteTextCache.set(noteId, noteTxt);
-        allSubs.push({ subId, chapId, appId, aid, noteId });
+async function generateTestData() {
+  try {
+    showProgress('Generating test data…');
+    const apps = ['[TEST] Whokna Design','[TEST] Whokna Database','[TEST] Reference'];
+    const root = await State.vault.readLinks(null, null);
+    const appIds = [];
+    for (const name of apps) {
+      let id = root.order.find(x => State.index.items[x]?.displayName === name);
+      if (!id) {
+        id = makeItem('app', name, { isTest: true });
+        root.order.push(id);
+      } else {
+        State.index.items[id].isTest = true;
+      }
+      appIds.push(id);
+    }
+    await State.vault.writeLinks(null, null, root);
+    await persistIndex();
+    await renderTree();
+
+    const topics = TEST_TOPICS.slice(0, 27);
+    const total = appIds.length * 3 * 3;
+    let topicIdx = 0, done = 0;
+    const allSubs = [];
+    for (let a = 0; a < appIds.length; a++) {
+      const appId = appIds[a];
+      State.expanded.add(appId);
+      for (let c = 0; c < 3; c++) {
+        const chapName = ['Foundations','Components','Workflows'][c];
+        const chapId = await ensureChild(appId, 'app', 'chapter', chapName);
+        State.index.items[chapId].isTest = true;
+        for (let s = 0; s < 3; s++) {
+          const tp = topics[topicIdx % topics.length]; topicIdx++;
+          const subName = tp[0];
+          const subId = await ensureChild(chapId, 'chapter', 'sub', subName);
+          State.index.items[subId].isTest = true;
+          const noteId = makeItem('note', `${subName} notes`, { isTest: true });
+          await addChild(subId, 'sub', noteId);
+          const blob = new Blob([PLACEHOLDER_SVG], { type: 'image/svg+xml' });
+          const aid = makeItem('asset', `${subName} diagram.svg`, { isTest: true, ext: 'svg', mime: 'image/svg+xml', originalName: `${subName}.svg` });
+          await State.vault.writeAsset(aid, 'svg', blob);
+          await addChild(subId, 'sub', aid);
+          const summary = await fetchWiki(tp[1]);
+          const noteTxt = `# ${subName}\n\n${summary || `_(offline placeholder for ${subName})_`}\n\n![diagram](_assets/${aid}.svg)\n`;
+          await State.vault.writeNote(noteId, noteTxt);
+          State.noteTextCache.set(noteId, noteTxt);
+          allSubs.push({ subId, chapId, appId, aid, noteId });
+          done++;
+          showProgress(`Generating test data… ${done}/${total}`);
+        }
+        await renderTree();
       }
     }
+    await persistIndex();
+    if (allSubs.length >= 4) {
+      const a = allSubs[1], b = allSubs[2];
+      await addChild(b.subId, 'sub', a.aid);
+      await addChild(a.subId, 'sub', b.aid);
+    }
+    if (allSubs.length >= 5) {
+      const s = allSubs[3];
+      const targetChapter = allSubs[allSubs.length - 1].chapId;
+      if (s.chapId !== targetChapter) await addChild(targetChapter, 'chapter', s.subId);
+    }
+    await renderTree();
+    toast(`Test data ready (${total} sub-chapters)`, 'ok');
+  } catch (e) {
+    console.error('generateTestData failed:', e);
+    toast('Test data failed: ' + e.message, 'error');
   }
-  await persistIndex();
-  if (allSubs.length >= 4) {
-    const a = allSubs[1], b = allSubs[2];
-    await addChild(b.subId, 'sub', a.aid);
-    await addChild(a.subId, 'sub', b.aid);
-  }
-  if (allSubs.length >= 5) {
-    const s = allSubs[3];
-    const targetChapter = allSubs[allSubs.length - 1].chapId;
-    if (s.chapId !== targetChapter) await addChild(targetChapter, 'chapter', s.subId);
-  }
-  await renderTree();
-  toast('Test data ready', 'ok');
 }
 
 async function deleteTestData() {
