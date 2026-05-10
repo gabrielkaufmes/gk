@@ -557,17 +557,10 @@
    The selected folder handle is persisted in IndexedDB.
    ========================================================= */
 
-// -------- Browser support gate --------
-const supported = typeof window.showDirectoryPicker === "function";
-if (!supported) {
-  document.body.innerHTML = `
-    <div style="padding:40px;font-family:Segoe UI,sans-serif;color:#e6e8ee;background:#1f2430;height:100vh">
-      <h2>Browser not supported</h2>
-      <p>This app needs the File System Access API.</p>
-      <p>Please open <code>whokna-helper.html</code> in <b>Microsoft Edge</b> or <b>Google Chrome</b> on Windows.</p>
-    </div>`;
-  throw new Error("File System Access API not available.");
-}
+// -------- Browser feature detection --------
+// Desktop Chrome/Edge get the File System Access API ("real folder" mode).
+// Mobile / Firefox fall back to the in-browser sandbox (IndexedDB-backed).
+const fsSupported = typeof window.showDirectoryPicker === "function";
 
 // -------- Tiny IndexedDB wrapper for handle persistence --------
 const DB_NAME = "whokna-helper", STORE = "kv";
@@ -598,6 +591,141 @@ async function idbSet(key, val) {
   });
 }
 
+// =================== In-browser sandbox vault ====================
+// Mimics the FileSystemDirectoryHandle / FileSystemFileHandle API just enough
+// for the rest of the app to use it transparently. Backed by IndexedDB.
+class MemFileHandle {
+  constructor(parent, name) {
+    this.kind = "file";
+    this.name = name;
+    this._parent = parent;
+  }
+  async getFile() {
+    const ent = this._parent._entries.get(this.name);
+    if (!ent || ent.kind !== "file") throw new DOMException("Not found", "NotFoundError");
+    return new File([ent.blob], this.name, {
+      type: ent.blob.type || "",
+      lastModified: ent.lastModified,
+    });
+  }
+  async createWritable() {
+    const parent = this._parent, name = this.name;
+    const chunks = [];
+    return {
+      async write(data) {
+        if (data == null) return;
+        if (data instanceof Blob) chunks.push(data);
+        else if (typeof data === "string") chunks.push(new Blob([data], { type: "text/plain" }));
+        else chunks.push(new Blob([data]));
+      },
+      async close() {
+        const blob = new Blob(chunks);
+        parent._entries.set(name, { kind: "file", blob, lastModified: Date.now() });
+        parent._touched();
+      },
+    };
+  }
+}
+
+class MemDirHandle {
+  constructor(name, root = null, parent = null) {
+    this.kind = "directory";
+    this.name = name;
+    this._entries = new Map();
+    this._parent = parent;
+    this._root = root || this;
+  }
+  _touched() {
+    if (typeof this._root._scheduleSave === "function") this._root._scheduleSave();
+  }
+  async getDirectoryHandle(name, opts = {}) {
+    const ent = this._entries.get(name);
+    if (ent) {
+      if (ent.kind !== "dir") throw new DOMException("Not a directory: " + name, "TypeMismatchError");
+      return ent.handle;
+    }
+    if (!opts.create) throw new DOMException("Not found: " + name, "NotFoundError");
+    const child = new MemDirHandle(name, this._root, this);
+    this._entries.set(name, { kind: "dir", handle: child });
+    this._touched();
+    return child;
+  }
+  async getFileHandle(name, opts = {}) {
+    const ent = this._entries.get(name);
+    if (ent) {
+      if (ent.kind !== "file") throw new DOMException("Not a file: " + name, "TypeMismatchError");
+      return new MemFileHandle(this, name);
+    }
+    if (!opts.create) throw new DOMException("Not found: " + name, "NotFoundError");
+    this._entries.set(name, { kind: "file", blob: new Blob([]), lastModified: Date.now() });
+    this._touched();
+    return new MemFileHandle(this, name);
+  }
+  async *entries() {
+    for (const [name, ent] of this._entries) {
+      if (ent.kind === "dir") yield [name, ent.handle];
+      else yield [name, new MemFileHandle(this, name)];
+    }
+  }
+  async removeEntry(name) {
+    if (!this._entries.has(name)) throw new DOMException("Not found: " + name, "NotFoundError");
+    this._entries.delete(name);
+    this._touched();
+  }
+  async queryPermission() { return "granted"; }
+  async requestPermission() { return "granted"; }
+}
+
+class MemVault extends MemDirHandle {
+  constructor(name = "Android Sandbox") {
+    super(name);
+    this._dirty = false;
+    this._timer = null;
+  }
+  _scheduleSave() {
+    this._dirty = true;
+    if (this._timer) return;
+    this._timer = setTimeout(async () => {
+      this._timer = null;
+      if (!this._dirty) return;
+      this._dirty = false;
+      try {
+        await idbSet("memVaultData", serializeMemVault(this));
+      } catch (e) {
+        console.warn("Sandbox save failed", e);
+        this._dirty = true;
+      }
+    }, 350);
+  }
+}
+
+function serializeMemVault(dir) {
+  const entries = {};
+  for (const [name, ent] of dir._entries) {
+    if (ent.kind === "dir") entries[name] = { kind: "dir", value: serializeMemVault(ent.handle) };
+    else entries[name] = { kind: "file", blob: ent.blob, lastModified: ent.lastModified };
+  }
+  return { name: dir.name, entries };
+}
+
+function deserializeMemVault(obj) {
+  const root = new MemVault(obj.name || "Android Sandbox");
+  loadDirEntries(root, obj.entries || {});
+  return root;
+}
+
+function loadDirEntries(dir, entries) {
+  for (const [name, ent] of Object.entries(entries)) {
+    if (ent.kind === "dir") {
+      const child = new MemDirHandle(name, dir._root, dir);
+      dir._entries.set(name, { kind: "dir", handle: child });
+      loadDirEntries(child, (ent.value && ent.value.entries) || {});
+    } else {
+      dir._entries.set(name, { kind: "file", blob: ent.blob, lastModified: ent.lastModified });
+    }
+  }
+}
+
 // -------- State --------
 let vaultHandle = null;        // FileSystemDirectoryHandle
 let tree = [];                 // [{name, handle, children:[{name,handle,children:[{name,handle}]}]}]
@@ -622,21 +750,34 @@ function showToast(msg, kind = "") {
 // -------- Vault connection --------
 async function connectVault(handle) {
   vaultHandle = handle;
+  const isMem = handle instanceof MemVault;
   const label = document.getElementById("vaultLabel");
-  label.textContent = "Folder: " + handle.name;
+  label.textContent = (isMem ? "Sandbox (in-browser): " : "Folder: ") + handle.name;
   label.className = "vault connected";
+  // Remove any leftover "Reconnect" button from a previous boot
+  document.querySelectorAll("header .actions button.reconnect-btn").forEach(b => b.remove());
   await refreshTree();
-  // Pre-seed if empty
-  if (tree.length === 0) {
+  // Pre-seed real folders only; sandboxes start empty so the user can decide.
+  if (tree.length === 0 && !isMem) {
     await ensureDir(vaultHandle, "Whokna Design");
     await ensureDir(vaultHandle, "Whokna Database");
     await refreshTree();
     showToast("Created starter apps: Whokna Design, Whokna Database", "ok");
   }
-  await idbSet("vaultHandle", handle);
+  if (isMem) {
+    await idbSet("memVaultActive", true);
+  } else {
+    await idbSet("memVaultActive", false);
+    await idbSet("vaultHandle", handle);
+  }
 }
 
 async function pickVault() {
+  if (!fsSupported) {
+    showToast("Folder picker is desktop-only. Use Test data… → Start Android sandbox.", "error");
+    openTestModal();
+    return;
+  }
   try {
     const handle = await window.showDirectoryPicker({ mode: "readwrite", id: "whokna-vault" });
     await connectVault(handle);
@@ -646,6 +787,22 @@ async function pickVault() {
 }
 
 async function tryRestoreVault() {
+  // Sandbox mode wins if active.
+  const memActive = await idbGet("memVaultActive");
+  if (memActive) {
+    const data = await idbGet("memVaultData");
+    if (data) {
+      try {
+        await connectVault(deserializeMemVault(data));
+        return;
+      } catch (e) { console.warn("Sandbox restore failed", e); }
+    }
+  }
+  if (!fsSupported) {
+    const label = document.getElementById("vaultLabel");
+    label.textContent = "Mobile browser detected — open Test data… to start a sandbox";
+    return;
+  }
   const handle = await idbGet("vaultHandle");
   if (!handle) return;
   try {
@@ -657,7 +814,7 @@ async function tryRestoreVault() {
       label.className = "vault error";
       const btn = document.createElement("button");
       btn.textContent = "Reconnect";
-      btn.className = "primary";
+      btn.className = "primary reconnect-btn";
       btn.onclick = async () => {
         const p = await handle.requestPermission({ mode: "readwrite" });
         if (p === "granted") {
@@ -1955,35 +2112,101 @@ async function deleteTestData() {
   return names;
 }
 
+async function startAndroidSandbox() {
+  // Resume existing sandbox if data exists; else start fresh.
+  let v;
+  const existing = await idbGet("memVaultData");
+  if (existing) {
+    try { v = deserializeMemVault(existing); } catch { v = new MemVault(); }
+  } else {
+    v = new MemVault();
+    await idbSet("memVaultData", serializeMemVault(v));
+  }
+  await connectVault(v);
+}
+
+async function exitAndroidSandbox() {
+  vaultHandle = null;
+  selected = null;
+  tree = [];
+  contentCache.clear();
+  contentMatches.clear();
+  await idbSet("memVaultActive", false);
+  await idbSet("memVaultData", null);
+  const label = document.getElementById("vaultLabel");
+  label.textContent = fsSupported
+    ? "No folder connected"
+    : "Mobile browser detected — open Test data… to start a sandbox";
+  label.className = "vault";
+  showSummaryEmpty();
+  updateBreadcrumb();
+  renderTree();
+}
+
 document.getElementById("testBtn").addEventListener("click", openTestModal);
 
 async function openTestModal() {
-  if (!vaultHandle) { showToast("Pick a folder first", "error"); return; }
-  const existing = await listTestApps();
+  const isMem = vaultHandle instanceof MemVault;
+  const haveVault = !!vaultHandle;
+  const existing = haveVault ? await listTestApps() : [];
+
   const back = document.createElement("div");
   back.className = "modal-backdrop";
   back.innerHTML = `
-    <div class="modal" style="max-width:560px;">
-      <h3>Test data sandbox</h3>
+    <div class="modal" style="max-width:620px;">
+      <h3>Test data &amp; sandbox</h3>
+
       <p class="hint">
         Test data is created as separate top-level apps whose names start with
         <code>${escapeHtml(TEST_PREFIX)}</code>. <b>Delete test data</b> only
         removes apps with that prefix, so your real projects can never be touched.
       </p>
-      ${existing.length
-        ? `<p>Currently in vault: <b>${existing.length}</b> test app(s):</p>
-           <pre>${existing.map(escapeHtml).join("\n")}</pre>`
-        : `<p class="hint">No test apps in vault yet.</p>`}
+
+      ${haveVault
+        ? (existing.length
+            ? `<p>Currently in vault: <b>${existing.length}</b> test app(s):</p>
+               <pre>${existing.map(escapeHtml).join("\n")}</pre>`
+            : `<p class="hint">No test apps in current vault.</p>`)
+        : `<p class="hint" style="color:var(--warn);">No vault is connected. Pick a folder (desktop) or start the Android sandbox below.</p>`}
+
       <p class="hint">
         Generate creates ~${countSubs()} sub-chapters across ${Object.keys(TEST_STRUCTURE).length} apps,
         each with a <code>notes.md</code> populated from a live Wikipedia summary
-        (with a built-in fallback if you're offline) plus a sample SVG attachment.
+        (offline fallback included) plus a sample SVG attachment.
       </p>
+
       <div id="testStatus" style="color:var(--muted);font-size:12px;min-height:1em;"></div>
-      <div class="actions">
+
+      <div class="actions" style="margin-bottom:16px;">
+        <button id="testDelete" class="danger" ${haveVault && existing.length ? "" : "disabled"}>Delete test data</button>
+        <button id="testGenerate" class="primary" ${haveVault ? "" : "disabled"}>Generate test data</button>
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:18px -20px 0;padding:14px 20px 0;">
+        <h3 style="margin-top:0;">Android / mobile sandbox</h3>
+        <p class="hint">
+          Mobile browsers don't have the folder picker. The sandbox stores
+          everything in this browser's IndexedDB on this device — refresh-safe,
+          but not synced anywhere. All other features (notes, paste screenshots,
+          drag-drop attachments, search, drag-reorder, generate/delete test data)
+          work the same.
+        </p>
+        <p>
+          Status: <b>${isMem
+            ? "Active — sandbox &ldquo;" + escapeHtml(vaultHandle.name) + "&rdquo;"
+            : "Not active"}</b>
+          ${!fsSupported && !isMem ? '<span style="color:var(--warn);"> (recommended on this browser)</span>' : ""}
+        </p>
+        <div class="actions">
+          <button id="exitSandbox" class="danger" ${isMem ? "" : "disabled"}>Exit sandbox &amp; wipe</button>
+          <button id="startSandbox" class="primary" ${isMem ? "disabled" : ""}>${
+            (await idbGet("memVaultData")) ? "Resume Android sandbox" : "Start Android sandbox"
+          }</button>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:18px;">
         <button id="testCancel">Close</button>
-        <button id="testDelete" class="danger" ${existing.length ? "" : "disabled"}>Delete test data</button>
-        <button id="testGenerate" class="primary">Generate test data</button>
       </div>
     </div>`;
   document.body.appendChild(back);
@@ -1992,6 +2215,7 @@ async function openTestModal() {
   back.querySelector("#testCancel").onclick = close;
 
   back.querySelector("#testGenerate").onclick = async () => {
+    if (!vaultHandle) { showToast("Start a sandbox or pick a folder first", "error"); return; }
     back.querySelector("#testGenerate").disabled = true;
     back.querySelector("#testDelete").disabled = true;
     try {
@@ -2023,13 +2247,11 @@ async function openTestModal() {
     back.querySelector("#testDelete").disabled = true;
     try {
       const removed = await deleteTestData();
-      // If selection was inside a deleted test app, clear it
       if (selected && typeof selected.appName === "string" && selected.appName.startsWith(TEST_PREFIX)) {
         selected = null;
         showSummaryEmpty();
         updateBreadcrumb();
       }
-      // Drop any cached content for removed apps
       for (const k of [...contentCache.keys()]) {
         if (removed.some(n => k.startsWith(n + "|"))) contentCache.delete(k);
       }
@@ -2041,6 +2263,44 @@ async function openTestModal() {
       showToast("Delete failed: " + e.message, "error");
       back.querySelector("#testGenerate").disabled = false;
       back.querySelector("#testDelete").disabled = false;
+    }
+  };
+
+  back.querySelector("#startSandbox").onclick = async () => {
+    if (vaultHandle && !(vaultHandle instanceof MemVault)) {
+      if (!confirm(
+        "Switch to the in-browser sandbox?\n\n" +
+        "Your real folder stays on disk untouched. The app will reconnect to the sandbox; " +
+        "use Pick learning folder… later to return to your folder."
+      )) return;
+    }
+    back.querySelector("#startSandbox").disabled = true;
+    try {
+      await startAndroidSandbox();
+      showToast("Sandbox started", "ok");
+      close();
+    } catch (e) {
+      status.textContent = "Failed: " + e.message;
+      showToast("Sandbox failed: " + e.message, "error");
+      back.querySelector("#startSandbox").disabled = false;
+    }
+  };
+
+  back.querySelector("#exitSandbox").onclick = async () => {
+    if (!confirm(
+      "Exit sandbox and WIPE all sandbox data?\n\n" +
+      "This removes only the in-browser sandbox. Any real folder you connected " +
+      "before is on disk and untouched."
+    )) return;
+    back.querySelector("#exitSandbox").disabled = true;
+    try {
+      await exitAndroidSandbox();
+      showToast("Sandbox wiped", "ok");
+      close();
+    } catch (e) {
+      status.textContent = "Failed: " + e.message;
+      showToast("Exit failed: " + e.message, "error");
+      back.querySelector("#exitSandbox").disabled = false;
     }
   };
 }
@@ -2070,6 +2330,7 @@ document.getElementById("helpBtn").addEventListener("click", () => {
         <li><b>Import structure</b> from Markdown headings or CSV (Excel: <i>Save As → CSV</i>).</li>
         <li><b>Backup:</b> just copy the folder, or sync it with OneDrive / Dropbox.</li>
         <li><b>Test data…</b> creates a sandbox with apps prefixed <code>[TEST]</code> (Wikipedia summaries + sample diagrams). The matching <i>Delete</i> only removes apps with that prefix — your real projects are safe.</li>
+        <li><b>Android / mobile:</b> the folder picker is desktop-only. Open <i>Test data…</i> and tap <i>Start Android sandbox</i> to use an in-browser vault — every other feature works the same.</li>
       </ul>
       <p class="hint">Saves are automatic ~0.6s after you stop typing. Status shows top-right of the editor.</p>
       <div class="actions">
