@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Whokna Learning Helper</title>
+<style>
+  :root {
+    --bg: #1f2430;
+    --panel: #262b3a;
+    --panel-2: #2e3446;
+    --border: #3a4159;
+    --text: #e6e8ee;
+    --muted: #9aa0b4;
+    --accent: #4f8cff;
+    --accent-2: #7aa8ff;
+    --danger: #e26464;
+    --ok: #6cc380;
+    --warn: #e2b164;
+    --code-bg: #1a1e29;
+    --shadow: 0 4px 14px rgba(0,0,0,.35);
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+  }
+  button, input, select, textarea {
+    font: inherit;
+    color: inherit;
+  }
+  button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  button:hover { background: #353c52; border-color: #4a5170; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+  button.danger { color: var(--danger); border-color: #553a44; }
+  button.danger:hover { background: #3a2730; }
+  button.icon { padding: 4px 8px; font-size: 12px; }
+  input[type=text], input[type=search], textarea, select {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    width: 100%;
+  }
+  input[type=text]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  #app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-wrap: wrap;
+  }
+  header .brand {
+    font-weight: 600;
+    font-size: 15px;
+    margin-right: 8px;
+  }
+  header .vault {
+    color: var(--muted);
+    font-size: 12px;
+    flex: 1;
+    min-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  header .vault.connected { color: var(--ok); }
+  header .vault.error { color: var(--danger); }
+  header .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ===== Tree ===== */
+  #sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .sidebar-head {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .sidebar-head input { padding: 4px 8px; }
+  #treeWrap {
+    overflow: auto;
+    flex: 1;
+    padding: 6px 0;
+  }
+  .tree-empty {
+    color: var(--muted);
+    padding: 16px;
+    font-size: 13px;
+    text-align: center;
+  }
+  .node { user-select: none; }
+  .node-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 1px 4px;
+    font-size: 13px;
+  }
+  .node-row:hover { background: #2f3548; }
+  .node-row.selected { background: #3a4880; }
+  .node-row .twist {
+    width: 14px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 10px;
+  }
+  .node-row .twist.empty { visibility: hidden; }
+  .node-row .icon {
+    width: 14px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .node-row .label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .node-row .row-actions {
+    display: none;
+    gap: 2px;
+  }
+  .node-row:hover .row-actions { display: flex; }
+  .node-row .row-actions button {
+    padding: 2px 5px;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+  }
+  .node-row .row-actions button:hover {
+    background: #1c2030;
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .node-children { margin-left: 14px; }
+  .level-0 > .node-row { font-weight: 600; }
+  .level-1 > .node-row { font-weight: 500; }
+
+  /* ===== Content area ===== */
+  #content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--bg);
+  }
+  #breadcrumb {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  #breadcrumb .crumb { color: var(--text); }
+  #breadcrumb .sep { color: var(--muted); }
+  #breadcrumb .actions { margin-left: auto; display: flex; gap: 6px; }
+
+  #editorPane {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    padding: 40px;
+    text-align: center;
+    gap: 12px;
+    height: 100%;
+  }
+  .empty-state h2 { color: var(--text); margin: 0; }
+  .empty-state code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .empty-state ul { text-align: left; max-width: 540px; }
+
+  .editor-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 6px 10px 0 10px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .editor-tabs button {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    color: var(--muted);
+    padding: 6px 12px;
+  }
+  .editor-tabs button.active {
+    background: var(--panel);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .editor-tabs .save-status {
+    margin-left: auto;
+    align-self: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding-right: 8px;
+  }
+  .editor-tabs .save-status.dirty { color: var(--warn); }
+  .editor-tabs .save-status.saved { color: var(--ok); }
+
+  .editor-body {
+    overflow: auto;
+    background: var(--panel);
+    min-height: 0;
+  }
+  #notesEditor {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 0;
+    background: var(--panel);
+    padding: 14px 18px;
+    font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    resize: none;
+    color: var(--text);
+  }
+  #notesEditor:focus { outline: none; }
+
+  #preview {
+    padding: 14px 22px;
+    color: var(--text);
+    overflow: auto;
+    height: 100%;
+  }
+  #preview h1 { font-size: 22px; margin: 0 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  #preview h2 { font-size: 18px; margin: 18px 0 8px; }
+  #preview h3 { font-size: 16px; margin: 14px 0 6px; }
+  #preview p { margin: 8px 0; }
+  #preview code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+  #preview pre { background: var(--code-bg); padding: 10px 12px; border-radius: 6px; overflow: auto; }
+  #preview pre code { background: transparent; padding: 0; }
+  #preview a { color: var(--accent-2); }
+  #preview img { max-width: 100%; border-radius: 6px; box-shadow: var(--shadow); margin: 6px 0; cursor: zoom-in; }
+  #preview ul, #preview ol { margin: 8px 0 8px 22px; }
+  #preview blockquote { border-left: 3px solid var(--accent); padding: 4px 12px; color: var(--muted); margin: 8px 0; }
+  #preview audio, #preview video { max-width: 100%; margin: 6px 0; border-radius: 6px; }
+
+  /* ===== Attachments ===== */
+  #attachments {
+    border-top: 1px solid var(--border);
+    background: var(--panel-2);
+    padding: 8px 12px;
+    max-height: 220px;
+    overflow: auto;
+  }
+  #attachments h3 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #attachments .attach-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .att {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    cursor: pointer;
+    max-width: 260px;
+  }
+  .att:hover { border-color: var(--accent); }
+  .att .att-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .att .att-size { color: var(--muted); font-size: 11px; }
+  .att .att-del {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 0 4px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .att .att-del:hover { color: var(--danger); }
+
+  /* Drop overlay */
+  .drop-active::after {
+    content: "Drop files to attach";
+    position: absolute;
+    inset: 0;
+    background: rgba(79, 140, 255, .15);
+    border: 2px dashed var(--accent);
+    color: var(--accent-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 50;
+  }
+  #content { position: relative; }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    min-width: 380px;
+    max-width: 92vw;
+    box-shadow: var(--shadow);
+  }
+  .modal h3 { margin: 0 0 12px; }
+  .modal .row { margin: 8px 0; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .modal .hint { color: var(--muted); font-size: 12px; }
+  .modal pre { background: var(--code-bg); padding: 10px; border-radius: 6px; overflow: auto; font-size: 12px; max-height: 200px; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .25s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  #toast.show { opacity: 1; }
+  #toast.error { border-color: var(--danger); color: var(--danger); }
+  #toast.ok { border-color: var(--ok); color: var(--ok); }
+
+  /* Lightbox */
+  #lightbox {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 150;
+    cursor: zoom-out;
+  }
+  #lightbox.show { display: flex; }
+  #lightbox img, #lightbox video {
+    max-width: 92vw;
+    max-height: 92vh;
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.6);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">Whokna Learning Helper</div>
+    <div id="vaultLabel" class="vault">No folder connected</div>
+    <div class="actions">
+      <button id="pickFolderBtn" class="primary">Pick learning folder…</button>
+      <button id="importBtn" title="Import structure from Markdown or CSV">Import structure…</button>
+      <button id="exportBtn" title="Export tree as Markdown">Export tree</button>
+      <button id="helpBtn">Help</button>
+    </div>
+  </header>
+  <main>
+    <aside id="sidebar">
+      <div class="sidebar-head">
+        <input id="searchBox" type="search" placeholder="Filter…">
+        <button id="addAppBtn" title="Add a top-level app">+ App</button>
+      </div>
+      <div id="treeWrap">
+        <div class="tree-empty">Pick a folder to begin.</div>
+      </div>
+    </aside>
+    <section id="content">
+      <div id="breadcrumb"><span class="crumb">No selection</span></div>
+      <div id="editorPane">
+        <div class="empty-state" id="emptyState">
+          <h2>Nothing open yet</h2>
+          <p>Pick a sub-chapter on the left, or click <code>+ App</code> to start a structure.</p>
+          <ul>
+            <li><b>Notes:</b> markdown in the editor, live preview on the right tab.</li>
+            <li><b>Screenshots:</b> press <code>Win+Shift+S</code> in Windows, then <code>Ctrl+V</code> in the editor.</li>
+            <li><b>Audio / video / pdf / docx:</b> drag-drop into the editor or attachments panel.</li>
+            <li><b>Import:</b> Markdown headings (<code>#</code> App, <code>##</code> Chapter, <code>###</code> Sub-chapter) or CSV (<code>App,Chapter,Sub-chapter</code>).</li>
+          </ul>
+        </div>
+        <div id="editorWrap" style="display:none; flex-direction:column; height:100%;">
+          <div class="editor-tabs">
+            <button data-tab="edit" class="active">Edit</button>
+            <button data-tab="preview">Preview</button>
+            <button data-tab="split">Split</button>
+            <span class="save-status" id="saveStatus">—</span>
+          </div>
+          <div class="editor-body" id="editorBody">
+            <textarea id="notesEditor" placeholder="Start typing your notes in markdown…&#10;&#10;Paste screenshots with Ctrl+V. Drop audio/video/pdf to attach."></textarea>
+          </div>
+        </div>
+      </div>
+      <div id="attachments" style="display:none;">
+        <h3>
+          <span>Attachments</span>
+          <span>
+            <button id="addAttachBtn" class="icon">+ Add files</button>
+          </span>
+        </h3>
+        <div class="attach-list" id="attachList"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div id="toast"></div>
+<div id="lightbox"></div>
+
+<script>
+"use strict";
+
+/* =========================================================
+   Whokna Learning Helper — single-file local app
+   Storage layout in the user's chosen folder:
+     <vault>/<App>/<Chapter>/<SubChapter>/notes.md
+     <vault>/<App>/<Chapter>/<SubChapter>/attachments/...
+   The selected folder handle is persisted in IndexedDB.
+   ========================================================= */
+
+// -------- Browser support gate --------
+const supported = typeof window.showDirectoryPicker === "function";
+if (!supported) {
+  document.body.innerHTML = `
+    <div style="padding:40px;font-family:Segoe UI,sans-serif;color:#e6e8ee;background:#1f2430;height:100vh">
+      <h2>Browser not supported</h2>
+      <p>This app needs the File System Access API.</p>
+      <p>Please open <code>whokna-helper.html</code> in <b>Microsoft Edge</b> or <b>Google Chrome</b> on Windows.</p>
+    </div>`;
+  throw new Error("File System Access API not available.");
+}
+
+// -------- Tiny IndexedDB wrapper for handle persistence --------
+const DB_NAME = "whokna-helper", STORE = "kv";
+function idb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+async function idbSet(key, val) {
+  const db = await idb();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+// -------- State --------
+let vaultHandle = null;        // FileSystemDirectoryHandle
+let tree = [];                 // [{name, handle, children:[{name,handle,children:[{name,handle}]}]}]
+let selected = null;           // {appName, chapterName, subName, dirHandle, type:'sub'|'chapter'|'app'}
+let dirty = false;
+let saveTimer = null;
+let blobUrls = [];             // track to revoke
+
+// -------- Toast --------
+const toast = document.getElementById("toast");
+function showToast(msg, kind = "") {
+  toast.textContent = msg;
+  toast.className = "show " + kind;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.className = kind, 2200);
+}
+
+// -------- Vault connection --------
+async function connectVault(handle) {
+  vaultHandle = handle;
+  const label = document.getElementById("vaultLabel");
+  label.textContent = "Folder: " + handle.name;
+  label.className = "vault connected";
+  await refreshTree();
+  // Pre-seed if empty
+  if (tree.length === 0) {
+    await ensureDir(vaultHandle, "Whokna Design");
+    await ensureDir(vaultHandle, "Whokna Database");
+    await refreshTree();
+    showToast("Created starter apps: Whokna Design, Whokna Database", "ok");
+  }
+  await idbSet("vaultHandle", handle);
+}
+
+async function pickVault() {
+  try {
+    const handle = await window.showDirectoryPicker({ mode: "readwrite", id: "whokna-vault" });
+    await connectVault(handle);
+  } catch (e) {
+    if (e.name !== "AbortError") showToast("Folder pick failed: " + e.message, "error");
+  }
+}
+
+async function tryRestoreVault() {
+  const handle = await idbGet("vaultHandle");
+  if (!handle) return;
+  try {
+    let perm = await handle.queryPermission({ mode: "readwrite" });
+    if (perm !== "granted") {
+      // Show a banner-like state and require a click; permission can only be requested from a user gesture
+      const label = document.getElementById("vaultLabel");
+      label.textContent = `Last folder: ${handle.name} — click "Reconnect" to grant access`;
+      label.className = "vault error";
+      const btn = document.createElement("button");
+      btn.textContent = "Reconnect";
+      btn.className = "primary";
+      btn.onclick = async () => {
+        const p = await handle.requestPermission({ mode: "readwrite" });
+        if (p === "granted") {
+          btn.remove();
+          await connectVault(handle);
+        } else {
+          showToast("Permission denied", "error");
+        }
+      };
+      document.querySelector("header .actions").prepend(btn);
+      return;
+    }
+    await connectVault(handle);
+  } catch (e) {
+    console.warn("Restore failed", e);
+  }
+}
+
+// -------- File system helpers --------
+async function ensureDir(parent, name) {
+  return await parent.getDirectoryHandle(name, { create: true });
+}
+async function readFileText(dirHandle, name) {
+  try {
+    const fh = await dirHandle.getFileHandle(name);
+    const f = await fh.getFile();
+    return await f.text();
+  } catch (e) {
+    if (e.name === "NotFoundError") return "";
+    throw e;
+  }
+}
+async function writeFileText(dirHandle, name, text) {
+  const fh = await dirHandle.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(text);
+  await w.close();
+}
+async function writeFileBlob(dirHandle, name, blob) {
+  const fh = await dirHandle.getFileHandle(name, { create: true });
+  const w = await fh.createWritable();
+  await w.write(blob);
+  await w.close();
+}
+async function listDirs(dirHandle) {
+  const out = [];
+  for await (const [name, entry] of dirHandle.entries()) {
+    if (entry.kind === "directory") out.push({ name, handle: entry });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+  return out;
+}
+async function listFiles(dirHandle) {
+  const out = [];
+  for await (const [name, entry] of dirHandle.entries()) {
+    if (entry.kind === "file") out.push({ name, handle: entry });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+  return out;
+}
+async function removeEntry(parent, name) {
+  await parent.removeEntry(name, { recursive: true });
+}
+function safeName(name) {
+  // Windows-friendly: strip <>:"/\|?* and trim spaces/dots
+  return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "").replace(/\s+/g, " ").trim().replace(/\.+$/, "");
+}
+
+// -------- Tree refresh & render --------
+async function refreshTree() {
+  tree = [];
+  if (!vaultHandle) return renderTree();
+  const apps = await listDirs(vaultHandle);
+  for (const app of apps) {
+    if (app.name.startsWith(".") || app.name === "_attachments") continue;
+    const chapters = await listDirs(app.handle);
+    const chArr = [];
+    for (const ch of chapters) {
+      if (ch.name === "attachments") continue;
+      const subs = await listDirs(ch.handle);
+      const subArr = subs
+        .filter(s => s.name !== "attachments")
+        .map(s => ({ name: s.name, handle: s.handle }));
+      chArr.push({ name: ch.name, handle: ch.handle, children: subArr });
+    }
+    tree.push({ name: app.name, handle: app.handle, children: chArr });
+  }
+  renderTree();
+}
+
+function nodeKey(appName, chName, subName) {
+  return [appName, chName, subName].filter(Boolean).join(" › ");
+}
+
+function renderTree() {
+  const wrap = document.getElementById("treeWrap");
+  if (!vaultHandle) {
+    wrap.innerHTML = `<div class="tree-empty">Pick a folder to begin.</div>`;
+    return;
+  }
+  if (tree.length === 0) {
+    wrap.innerHTML = `<div class="tree-empty">Empty. Click <b>+ App</b> above.</div>`;
+    return;
+  }
+  const filter = document.getElementById("searchBox").value.trim().toLowerCase();
+  const matches = (s) => !filter || s.toLowerCase().includes(filter);
+
+  const html = tree.map(app => {
+    const appMatch = matches(app.name);
+    const chHtml = app.children.map(ch => {
+      const chMatch = matches(ch.name);
+      const subHtml = ch.children
+        .filter(s => !filter || matches(s.name) || chMatch || appMatch)
+        .map(s => nodeRow({
+          level: 2, name: s.name,
+          path: { app: app.name, ch: ch.name, sub: s.name, type: "sub" }
+        })).join("");
+      const visible = !filter || chMatch || appMatch || ch.children.some(s => matches(s.name));
+      if (!visible) return "";
+      return `
+        <div class="node level-1">
+          ${nodeRow({ level: 1, name: ch.name, hasChildren: ch.children.length > 0,
+                      path: { app: app.name, ch: ch.name, type: "chapter" } })}
+          <div class="node-children">${subHtml}</div>
+        </div>`;
+    }).join("");
+    const visible = !filter || appMatch || app.children.some(ch =>
+      matches(ch.name) || ch.children.some(s => matches(s.name)));
+    if (!visible) return "";
+    return `
+      <div class="node level-0">
+        ${nodeRow({ level: 0, name: app.name, hasChildren: app.children.length > 0,
+                    path: { app: app.name, type: "app" } })}
+        <div class="node-children">${chHtml}</div>
+      </div>`;
+  }).join("");
+
+  wrap.innerHTML = html || `<div class="tree-empty">No matches.</div>`;
+
+  wrap.querySelectorAll(".node-row").forEach(row => {
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".row-actions")) return;
+      const path = JSON.parse(row.dataset.path);
+      selectNode(path);
+    });
+  });
+  wrap.querySelectorAll(".row-actions [data-act]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const row = btn.closest(".node-row");
+      const path = JSON.parse(row.dataset.path);
+      const act = btn.dataset.act;
+      if (act === "add")    await onAddChild(path);
+      if (act === "rename") await onRename(path);
+      if (act === "delete") await onDelete(path);
+    });
+  });
+
+  // Re-mark selection
+  if (selected) {
+    const sel = nodeKey(selected.appName, selected.chapterName, selected.subName);
+    wrap.querySelectorAll(".node-row").forEach(r => {
+      if (r.dataset.key === sel) r.classList.add("selected");
+    });
+  }
+}
+
+function nodeRow({ level, name, path, hasChildren = true }) {
+  const icon = level === 0 ? "▣" : level === 1 ? "▤" : "📄";
+  const key = nodeKey(path.app, path.ch, path.sub);
+  const addLabel = level === 0 ? "+ Chapter" : level === 1 ? "+ Sub-chapter" : "";
+  const actions = `
+    <span class="row-actions">
+      ${level < 2 ? `<button data-act="add" title="${addLabel}">＋</button>` : ""}
+      <button data-act="rename" title="Rename">✎</button>
+      <button data-act="delete" title="Delete">🗑</button>
+    </span>`;
+  return `
+    <div class="node-row" data-path='${escapeAttr(JSON.stringify(path))}' data-key="${escapeAttr(key)}">
+      <span class="twist empty">▾</span>
+      <span class="icon">${icon}</span>
+      <span class="label">${escapeHtml(name)}</span>
+      ${actions}
+    </div>`;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+// -------- Selection / loading content --------
+async function selectNode(path) {
+  // Save anything pending first
+  await flushSave();
+  revokeBlobUrls();
+  if (path.type === "sub") {
+    const app = tree.find(a => a.name === path.app);
+    const ch = app?.children.find(c => c.name === path.ch);
+    const sub = ch?.children.find(s => s.name === path.sub);
+    if (!sub) { showToast("Not found", "error"); return; }
+    const dir = sub.handle;
+    selected = { appName: path.app, chapterName: path.ch, subName: path.sub, dirHandle: dir, type: "sub" };
+    showSubEditor();
+    const text = await readFileText(dir, "notes.md");
+    document.getElementById("notesEditor").value = text;
+    setDirty(false);
+    await renderAttachments();
+  } else {
+    // app or chapter — show a simple summary view
+    selected = { appName: path.app, chapterName: path.ch, subName: null, dirHandle: null, type: path.type };
+    showSummary();
+  }
+  updateBreadcrumb();
+  renderTree(); // update selected highlight
+}
+
+function showSubEditor() {
+  document.getElementById("emptyState").style.display = "none";
+  document.getElementById("editorWrap").style.display = "flex";
+  document.getElementById("attachments").style.display = "block";
+}
+
+function showSummary() {
+  document.getElementById("editorWrap").style.display = "none";
+  document.getElementById("attachments").style.display = "none";
+  const empty = document.getElementById("emptyState");
+  empty.style.display = "flex";
+  const what = selected.type === "app" ? "app" : "chapter";
+  const childKind = selected.type === "app" ? "chapters" : "sub-chapters";
+  empty.innerHTML = `
+    <h2>${escapeHtml(selected.appName)}${selected.chapterName ? " › " + escapeHtml(selected.chapterName) : ""}</h2>
+    <p>This is an ${what}. Notes live in <b>sub-chapters</b>.</p>
+    <p>Use the <b>＋</b> button on this row in the tree to add ${childKind}, or click an existing one to open it.</p>`;
+}
+
+function updateBreadcrumb() {
+  const bc = document.getElementById("breadcrumb");
+  if (!selected) { bc.innerHTML = `<span class="crumb">No selection</span>`; return; }
+  const parts = [selected.appName, selected.chapterName, selected.subName].filter(Boolean);
+  const crumbs = parts.map(p => `<span class="crumb">${escapeHtml(p)}</span>`).join(`<span class="sep">›</span>`);
+  bc.innerHTML = `${crumbs}<div class="actions">${
+    selected.type === "sub" ? `<button id="openInExplorerHint" title="Files are in the folder you picked">📁 On disk</button>` : ""
+  }</div>`;
+}
+
+// -------- Editor: tabs, autosave, paste, drop --------
+const editor = document.getElementById("notesEditor");
+const editorBody = document.getElementById("editorBody");
+const saveStatus = document.getElementById("saveStatus");
+
+editor.addEventListener("input", () => {
+  setDirty(true);
+  scheduleSave();
+});
+
+function setDirty(d) {
+  dirty = d;
+  saveStatus.textContent = d ? "● unsaved" : "saved";
+  saveStatus.className = "save-status " + (d ? "dirty" : "saved");
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 600);
+}
+
+async function flushSave() {
+  clearTimeout(saveTimer);
+  if (!dirty || !selected || selected.type !== "sub") return;
+  try {
+    await writeFileText(selected.dirHandle, "notes.md", editor.value);
+    setDirty(false);
+  } catch (e) {
+    showToast("Save failed: " + e.message, "error");
+  }
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (dirty) { e.preventDefault(); e.returnValue = ""; }
+});
+
+// Tabs
+document.querySelectorAll(".editor-tabs button[data-tab]").forEach(b => {
+  b.addEventListener("click", () => switchTab(b.dataset.tab));
+});
+
+async function switchTab(tab) {
+  document.querySelectorAll(".editor-tabs button[data-tab]").forEach(b =>
+    b.classList.toggle("active", b.dataset.tab === tab));
+  editorBody.innerHTML = "";
+  if (tab === "edit") {
+    editorBody.appendChild(editor);
+    editorBody.style.display = "block";
+  } else if (tab === "preview") {
+    const div = document.createElement("div");
+    div.id = "preview";
+    div.innerHTML = await renderMarkdown(editor.value);
+    editorBody.appendChild(div);
+    bindPreviewClicks(div);
+  } else if (tab === "split") {
+    editorBody.style.display = "grid";
+    editorBody.style.gridTemplateColumns = "1fr 1fr";
+    editorBody.appendChild(editor);
+    const div = document.createElement("div");
+    div.id = "preview";
+    div.style.borderLeft = "1px solid var(--border)";
+    div.innerHTML = await renderMarkdown(editor.value);
+    editorBody.appendChild(div);
+    bindPreviewClicks(div);
+  }
+  if (tab !== "split") editorBody.style.display = "block";
+}
+
+// -------- Markdown rendering (small, safe-ish) --------
+async function renderMarkdown(src) {
+  if (!src) return `<p style="color:var(--muted)">Empty. Switch to Edit to start writing.</p>`;
+  const lines = src.split(/\r?\n/);
+  let html = "";
+  let inCode = false, codeBuf = [];
+  let listType = null; // 'ul' | 'ol' | null
+  const flushList = () => { if (listType) { html += `</${listType}>`; listType = null; } };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith("```")) {
+      if (!inCode) { inCode = true; codeBuf = []; }
+      else { html += `<pre><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`; inCode = false; }
+      continue;
+    }
+    if (inCode) { codeBuf.push(line); continue; }
+
+    if (/^\s*$/.test(line)) { flushList(); continue; }
+
+    let m;
+    if ((m = /^(#{1,6})\s+(.*)$/.exec(line))) {
+      flushList();
+      const lvl = m[1].length;
+      html += `<h${lvl}>${inline(m[2])}</h${lvl}>`;
+      continue;
+    }
+    if ((m = /^>\s?(.*)$/.exec(line))) {
+      flushList();
+      html += `<blockquote>${inline(m[1])}</blockquote>`;
+      continue;
+    }
+    if ((m = /^(\s*)[-*]\s+(.*)$/.exec(line))) {
+      if (listType !== "ul") { flushList(); html += "<ul>"; listType = "ul"; }
+      html += `<li>${inline(m[2])}</li>`;
+      continue;
+    }
+    if ((m = /^(\s*)\d+\.\s+(.*)$/.exec(line))) {
+      if (listType !== "ol") { flushList(); html += "<ol>"; listType = "ol"; }
+      html += `<li>${inline(m[2])}</li>`;
+      continue;
+    }
+    flushList();
+    html += `<p>${inline(line)}</p>`;
+  }
+  flushList();
+  if (inCode) html += `<pre><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`;
+
+  // Resolve attachments/* references to blob URLs
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const tasks = [];
+  for (const el of tmp.querySelectorAll("img, a, video, audio, source")) {
+    const attr = el.tagName === "A" ? "href" : "src";
+    const v = el.getAttribute(attr);
+    if (v && v.startsWith("attachments/")) {
+      tasks.push((async () => {
+        try {
+          const url = await getAttachmentUrl(decodeURIComponent(v.slice("attachments/".length)));
+          if (!url) return;
+          el.setAttribute(attr, url);
+          // Auto-upgrade: if a markdown link points to an audio/video/pdf, convert <a> to a player
+          if (el.tagName === "A") {
+            const ext = v.split(".").pop().toLowerCase();
+            if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) {
+              const a = document.createElement("audio"); a.controls = true; a.src = url;
+              el.replaceWith(a);
+            } else if (["mp4","webm","mov","mkv"].includes(ext)) {
+              const v2 = document.createElement("video"); v2.controls = true; v2.src = url;
+              v2.style.maxWidth = "100%";
+              el.replaceWith(v2);
+            } else if (ext === "pdf") {
+              const f = document.createElement("iframe"); f.src = url;
+              f.style.width = "100%"; f.style.height = "520px"; f.style.border = "1px solid var(--border)";
+              f.style.borderRadius = "6px";
+              el.replaceWith(f);
+            }
+          }
+        } catch (e) { console.warn(e); }
+      })());
+    }
+  }
+  await Promise.all(tasks);
+  return tmp.innerHTML;
+}
+
+function inline(s) {
+  // images first
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_,alt,src)=>`<img alt="${escapeHtml(alt)}" src="${escapeHtml(src)}">`);
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_,t,h)=>`<a href="${escapeHtml(h)}" target="_blank" rel="noopener">${inline(t)}</a>`);
+  s = s.replace(/`([^`]+)`/g, (_,c)=>`<code>${escapeHtml(c)}</code>`);
+  s = s.replace(/\*\*([^*]+)\*\*/g, (_,c)=>`<strong>${c}</strong>`);
+  s = s.replace(/(^|[^*])\*([^*]+)\*/g, (_,p,c)=>`${p}<em>${c}</em>`);
+  // Don't escape the produced tags; raw line text should already be safe enough for our local notes.
+  return s;
+}
+
+function bindPreviewClicks(root) {
+  root.querySelectorAll("img").forEach(img => {
+    img.addEventListener("click", () => openLightbox(img.src, "img"));
+  });
+}
+
+// -------- Attachments --------
+async function getAttachmentsDir(create = false) {
+  if (!selected || selected.type !== "sub") return null;
+  return await selected.dirHandle.getDirectoryHandle("attachments", { create });
+}
+
+async function getAttachmentUrl(name) {
+  const dir = await getAttachmentsDir(false);
+  if (!dir) return null;
+  try {
+    const fh = await dir.getFileHandle(name);
+    const f = await fh.getFile();
+    const url = URL.createObjectURL(f);
+    blobUrls.push(url);
+    return url;
+  } catch (e) {
+    return null;
+  }
+}
+
+function revokeBlobUrls() {
+  for (const u of blobUrls) URL.revokeObjectURL(u);
+  blobUrls = [];
+}
+
+async function renderAttachments() {
+  const list = document.getElementById("attachList");
+  list.innerHTML = "";
+  if (!selected || selected.type !== "sub") return;
+  let dir;
+  try { dir = await getAttachmentsDir(false); } catch { dir = null; }
+  if (!dir) { list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No attachments yet. Drop files into the editor or use “+ Add files”.</div>`; return; }
+  const files = await listFiles(dir);
+  if (files.length === 0) {
+    list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No attachments yet.</div>`;
+    return;
+  }
+  for (const f of files) {
+    const file = await f.handle.getFile();
+    const div = document.createElement("div");
+    div.className = "att";
+    const ico = iconFor(f.name);
+    div.innerHTML = `
+      <span>${ico}</span>
+      <span class="att-name" title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</span>
+      <span class="att-size">${humanSize(file.size)}</span>
+      <button class="att-del" title="Delete">✕</button>`;
+    div.addEventListener("click", async (e) => {
+      if (e.target.closest(".att-del")) return;
+      const url = URL.createObjectURL(file);
+      blobUrls.push(url);
+      const ext = f.name.split(".").pop().toLowerCase();
+      if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext)) openLightbox(url, "img");
+      else if (["mp4","webm","mov","mkv"].includes(ext)) openLightbox(url, "video");
+      else if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) {
+        const a = new Audio(url); a.controls = true;
+        openLightbox(url, "audio");
+      } else {
+        // pdf, docx, etc. — open in new tab
+        window.open(url, "_blank");
+      }
+    });
+    div.querySelector(".att-del").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm(`Delete attachment "${f.name}"?`)) return;
+      await dir.removeEntry(f.name);
+      await renderAttachments();
+      showToast("Deleted " + f.name, "ok");
+    });
+    list.appendChild(div);
+  }
+}
+
+function iconFor(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext)) return "🖼";
+  if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) return "🎵";
+  if (["mp4","webm","mov","mkv"].includes(ext)) return "🎬";
+  if (ext === "pdf") return "📕";
+  if (["doc","docx","odt","rtf","txt"].includes(ext)) return "📄";
+  if (["xls","xlsx","csv","ods"].includes(ext)) return "📊";
+  if (["ppt","pptx","odp"].includes(ext)) return "📽";
+  if (["zip","7z","rar","tar","gz"].includes(ext)) return "🗜";
+  return "📎";
+}
+
+function humanSize(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1024*1024) return (n/1024).toFixed(1) + " KB";
+  if (n < 1024*1024*1024) return (n/1024/1024).toFixed(1) + " MB";
+  return (n/1024/1024/1024).toFixed(2) + " GB";
+}
+
+// -------- Drop & paste handlers --------
+const contentEl = document.getElementById("content");
+let dragDepth = 0;
+contentEl.addEventListener("dragenter", (e) => {
+  if (!selected || selected.type !== "sub") return;
+  if (!e.dataTransfer.types.includes("Files")) return;
+  e.preventDefault();
+  dragDepth++;
+  contentEl.classList.add("drop-active");
+});
+contentEl.addEventListener("dragleave", () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) contentEl.classList.remove("drop-active");
+});
+contentEl.addEventListener("dragover", (e) => {
+  if (!selected || selected.type !== "sub") return;
+  e.preventDefault();
+});
+contentEl.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  dragDepth = 0;
+  contentEl.classList.remove("drop-active");
+  if (!selected || selected.type !== "sub") return;
+  const files = [...e.dataTransfer.files];
+  if (!files.length) return;
+  await attachFiles(files);
+});
+
+editor.addEventListener("paste", async (e) => {
+  if (!selected || selected.type !== "sub") return;
+  const items = e.clipboardData?.items || [];
+  const imgs = [];
+  for (const it of items) {
+    if (it.kind === "file") {
+      const f = it.getAsFile();
+      if (f) imgs.push(f);
+    }
+  }
+  if (imgs.length) {
+    e.preventDefault();
+    await attachFiles(imgs, /*fromPaste*/true);
+  }
+});
+
+document.getElementById("addAttachBtn").addEventListener("click", async () => {
+  if (!selected || selected.type !== "sub") return;
+  try {
+    const handles = await window.showOpenFilePicker({ multiple: true });
+    const files = await Promise.all(handles.map(h => h.getFile()));
+    await attachFiles(files);
+  } catch (e) {
+    if (e.name !== "AbortError") showToast("Pick failed: " + e.message, "error");
+  }
+});
+
+async function attachFiles(files, fromPaste = false) {
+  const dir = await getAttachmentsDir(true);
+  const inserted = [];
+  for (let f of files) {
+    let name = f.name;
+    if (!name || fromPaste) {
+      // pasted screenshot — synthesize a name
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      const ext = (f.type && f.type.split("/")[1]) || "png";
+      name = `screenshot-${ts}.${ext}`;
+    }
+    name = uniquify(safeName(name) || `file-${Date.now()}`);
+    await writeFileBlob(dir, name, f);
+    inserted.push(name);
+  }
+  // Insert markdown reference at cursor position
+  insertAtCursor(editor, inserted.map(n => mdRefFor(n)).join("\n") + "\n");
+  setDirty(true);
+  scheduleSave();
+  await renderAttachments();
+  showToast(`Attached ${inserted.length} file${inserted.length>1?"s":""}`, "ok");
+}
+
+function uniquify(name) {
+  // very simple — append timestamp if needed; we don't read existing list to keep it cheap.
+  return name;
+}
+
+function mdRefFor(name) {
+  const ext = name.split(".").pop().toLowerCase();
+  const enc = encodeURI(name);
+  if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext))
+    return `![${name}](attachments/${enc})`;
+  return `[${name}](attachments/${enc})`;
+}
+
+function insertAtCursor(ta, text) {
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + text.length;
+  ta.focus();
+}
+
+// -------- Lightbox --------
+const lightbox = document.getElementById("lightbox");
+function openLightbox(url, kind) {
+  lightbox.innerHTML = "";
+  let el;
+  if (kind === "img") { el = document.createElement("img"); el.src = url; }
+  else if (kind === "video") { el = document.createElement("video"); el.src = url; el.controls = true; el.autoplay = true; }
+  else if (kind === "audio") { el = document.createElement("audio"); el.src = url; el.controls = true; el.autoplay = true; el.style.background = "var(--panel)"; el.style.padding = "20px"; el.style.borderRadius = "8px"; }
+  lightbox.appendChild(el);
+  lightbox.classList.add("show");
+}
+lightbox.addEventListener("click", () => { lightbox.classList.remove("show"); lightbox.innerHTML = ""; });
+
+// -------- Tree mutation actions --------
+async function onAddChild(path) {
+  if (!vaultHandle) return;
+  let promptLabel, parentHandle;
+  if (path.type === "app") {
+    const app = tree.find(a => a.name === path.app);
+    promptLabel = "New chapter name:";
+    parentHandle = app.handle;
+  } else if (path.type === "chapter") {
+    const app = tree.find(a => a.name === path.app);
+    const ch = app.children.find(c => c.name === path.ch);
+    promptLabel = "New sub-chapter name:";
+    parentHandle = ch.handle;
+  } else return;
+  const raw = prompt(promptLabel);
+  if (!raw) return;
+  const name = safeName(raw);
+  if (!name) { showToast("Invalid name", "error"); return; }
+  try {
+    await ensureDir(parentHandle, name);
+    await refreshTree();
+    showToast("Created " + name, "ok");
+  } catch (e) { showToast("Create failed: " + e.message, "error"); }
+}
+
+async function onRename(path) {
+  if (!vaultHandle) return;
+  let parentHandle, oldName;
+  if (path.type === "sub") {
+    const app = tree.find(a => a.name === path.app);
+    const ch = app.children.find(c => c.name === path.ch);
+    parentHandle = ch.handle; oldName = path.sub;
+  } else if (path.type === "chapter") {
+    const app = tree.find(a => a.name === path.app);
+    parentHandle = app.handle; oldName = path.ch;
+  } else if (path.type === "app") {
+    parentHandle = vaultHandle; oldName = path.app;
+  }
+  const raw = prompt("Rename to:", oldName);
+  if (!raw || raw === oldName) return;
+  const newName = safeName(raw);
+  if (!newName) { showToast("Invalid name", "error"); return; }
+  try {
+    await renameDir(parentHandle, oldName, newName);
+    await refreshTree();
+    // Adjust selection if affected
+    if (selected) {
+      if (selected.appName === oldName && path.type === "app") selected.appName = newName;
+      if (selected.chapterName === oldName && path.type === "chapter") selected.chapterName = newName;
+      if (selected.subName === oldName && path.type === "sub") selected.subName = newName;
+      // Re-find directory handle
+      await reSelect();
+    }
+    showToast("Renamed", "ok");
+  } catch (e) { showToast("Rename failed: " + e.message, "error"); }
+}
+
+async function reSelect() {
+  if (!selected) return;
+  const app = tree.find(a => a.name === selected.appName);
+  if (!app) { selected = null; updateBreadcrumb(); showSummaryEmpty(); return; }
+  if (selected.type === "app") {
+    selected.dirHandle = null;
+    showSummary();
+  } else if (selected.type === "chapter") {
+    const ch = app.children.find(c => c.name === selected.chapterName);
+    if (!ch) { selected = null; showSummaryEmpty(); return; }
+    selected.dirHandle = null;
+    showSummary();
+  } else if (selected.type === "sub") {
+    const ch = app.children.find(c => c.name === selected.chapterName);
+    const sub = ch?.children.find(s => s.name === selected.subName);
+    if (!sub) { selected = null; showSummaryEmpty(); return; }
+    selected.dirHandle = sub.handle;
+    document.getElementById("notesEditor").value = await readFileText(sub.handle, "notes.md");
+    setDirty(false);
+    await renderAttachments();
+  }
+  updateBreadcrumb();
+  renderTree();
+}
+
+function showSummaryEmpty() {
+  document.getElementById("editorWrap").style.display = "none";
+  document.getElementById("attachments").style.display = "none";
+  const empty = document.getElementById("emptyState");
+  empty.style.display = "flex";
+  empty.innerHTML = `<h2>Nothing open</h2><p>Pick a sub-chapter on the left.</p>`;
+}
+
+// File System Access API has no native rename; copy+remove
+async function renameDir(parent, oldName, newName) {
+  if (oldName === newName) return;
+  // Try the modern move API if available
+  const oldHandle = await parent.getDirectoryHandle(oldName);
+  if (typeof oldHandle.move === "function") {
+    await oldHandle.move(newName);
+    return;
+  }
+  // Fallback: deep copy then remove
+  const newHandle = await parent.getDirectoryHandle(newName, { create: true });
+  await copyDir(oldHandle, newHandle);
+  await parent.removeEntry(oldName, { recursive: true });
+}
+async function copyDir(src, dst) {
+  for await (const [name, entry] of src.entries()) {
+    if (entry.kind === "directory") {
+      const sub = await dst.getDirectoryHandle(name, { create: true });
+      await copyDir(entry, sub);
+    } else {
+      const f = await entry.getFile();
+      await writeFileBlob(dst, name, f);
+    }
+  }
+}
+
+async function onDelete(path) {
+  if (!vaultHandle) return;
+  const what = path.type === "app" ? `app "${path.app}" and ALL chapters inside`
+            : path.type === "chapter" ? `chapter "${path.ch}" and ALL sub-chapters inside`
+            : `sub-chapter "${path.sub}"`;
+  if (!confirm(`Delete ${what}? This cannot be undone.`)) return;
+  try {
+    if (path.type === "app") await removeEntry(vaultHandle, path.app);
+    else if (path.type === "chapter") {
+      const app = tree.find(a => a.name === path.app);
+      await removeEntry(app.handle, path.ch);
+    } else {
+      const app = tree.find(a => a.name === path.app);
+      const ch = app.children.find(c => c.name === path.ch);
+      await removeEntry(ch.handle, path.sub);
+    }
+    if (selected) {
+      if (path.type === "app" && selected.appName === path.app) selected = null;
+      if (path.type === "chapter" && selected.chapterName === path.ch && selected.appName === path.app) selected = null;
+      if (path.type === "sub" && selected.subName === path.sub) selected = null;
+      if (!selected) showSummaryEmpty();
+    }
+    await refreshTree();
+    updateBreadcrumb();
+    showToast("Deleted", "ok");
+  } catch (e) { showToast("Delete failed: " + e.message, "error"); }
+}
+
+// -------- + App button --------
+document.getElementById("addAppBtn").addEventListener("click", async () => {
+  if (!vaultHandle) { showToast("Pick a folder first", "error"); return; }
+  const raw = prompt("New app name (e.g. Whokna Design):");
+  if (!raw) return;
+  const name = safeName(raw);
+  if (!name) { showToast("Invalid name", "error"); return; }
+  try {
+    await ensureDir(vaultHandle, name);
+    await refreshTree();
+    showToast("Created " + name, "ok");
+  } catch (e) { showToast("Create failed: " + e.message, "error"); }
+});
+
+// -------- Search filter --------
+document.getElementById("searchBox").addEventListener("input", () => renderTree());
+
+// -------- Import structure (Markdown / CSV) --------
+document.getElementById("importBtn").addEventListener("click", () => openImportModal());
+
+function openImportModal() {
+  if (!vaultHandle) { showToast("Pick a folder first", "error"); return; }
+  const back = document.createElement("div");
+  back.className = "modal-backdrop";
+  back.innerHTML = `
+    <div class="modal">
+      <h3>Import structure</h3>
+      <p class="hint">
+        <b>Markdown:</b> use heading levels — <code># App</code>, <code>## Chapter</code>, <code>### Sub-chapter</code>.<br>
+        <b>CSV:</b> 3 columns — <code>App,Chapter,Sub-chapter</code>. First row may be a header.<br>
+        Existing nodes are kept; new ones are created.
+      </p>
+      <div class="row">
+        <input type="file" id="importFile" accept=".md,.txt,.csv">
+      </div>
+      <div class="row">
+        <p style="margin:6px 0;color:var(--muted)">Or paste content here:</p>
+        <textarea id="importText" rows="8" placeholder="# Whokna Design&#10;## Getting Started&#10;### Interface tour&#10;### Toolbars"></textarea>
+      </div>
+      <div class="actions">
+        <button id="importCancel">Cancel</button>
+        <button id="importGo" class="primary">Import</button>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+  back.querySelector("#importCancel").onclick = () => back.remove();
+  back.querySelector("#importGo").onclick = async () => {
+    const fEl = back.querySelector("#importFile");
+    const txEl = back.querySelector("#importText");
+    let text = txEl.value, fname = "pasted.md";
+    if (fEl.files[0]) { text = await fEl.files[0].text(); fname = fEl.files[0].name; }
+    if (!text.trim()) { showToast("Nothing to import", "error"); return; }
+    const isCsv = fname.toLowerCase().endsWith(".csv") || (text.includes(",") && !text.trim().startsWith("#"));
+    try {
+      const tree = isCsv ? parseCsvStructure(text) : parseMarkdownStructure(text);
+      const created = await applyStructure(tree);
+      back.remove();
+      await refreshTree();
+      showToast(`Imported. Created ${created} new node${created!==1?"s":""}.`, "ok");
+    } catch (e) {
+      showToast("Import failed: " + e.message, "error");
+    }
+  };
+}
+
+function parseMarkdownStructure(text) {
+  const out = [];
+  let app = null, chapter = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trimEnd();
+    let m;
+    if ((m = /^#\s+(.+)$/.exec(line))) {
+      app = { name: safeName(m[1]), children: [] };
+      out.push(app); chapter = null;
+    } else if ((m = /^##\s+(.+)$/.exec(line))) {
+      if (!app) { app = { name: "Untitled app", children: [] }; out.push(app); }
+      chapter = { name: safeName(m[1]), children: [] };
+      app.children.push(chapter);
+    } else if ((m = /^###\s+(.+)$/.exec(line))) {
+      if (!app) { app = { name: "Untitled app", children: [] }; out.push(app); }
+      if (!chapter) { chapter = { name: "Untitled chapter", children: [] }; app.children.push(chapter); }
+      chapter.children.push({ name: safeName(m[1]) });
+    }
+  }
+  return out;
+}
+
+function parseCsvStructure(text) {
+  const rows = [];
+  // minimalist CSV: handles "quoted, fields" and commas
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+  for (const line of lines) {
+    const fields = parseCsvLine(line);
+    rows.push(fields);
+  }
+  // skip header if first row looks like one
+  if (rows.length && /app/i.test(rows[0][0]||"") && /chapter/i.test(rows[0][1]||"")) rows.shift();
+  const apps = new Map();
+  for (const r of rows) {
+    const [a,c,s] = [safeName(r[0]||""), safeName(r[1]||""), safeName(r[2]||"")];
+    if (!a) continue;
+    if (!apps.has(a)) apps.set(a, { name: a, children: [], _ch: new Map() });
+    const app = apps.get(a);
+    if (!c) continue;
+    if (!app._ch.has(c)) {
+      const ch = { name: c, children: [] };
+      app._ch.set(c, ch); app.children.push(ch);
+    }
+    const ch = app._ch.get(c);
+    if (s) ch.children.push({ name: s });
+  }
+  return [...apps.values()].map(a => ({ name: a.name, children: a.children }));
+}
+function parseCsvLine(line) {
+  const out = []; let cur = ""; let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (q) {
+      if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
+      else if (c === '"') q = false;
+      else cur += c;
+    } else {
+      if (c === ',') { out.push(cur); cur = ""; }
+      else if (c === '"') q = true;
+      else cur += c;
+    }
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+
+async function applyStructure(struct) {
+  let created = 0;
+  for (const app of struct) {
+    if (!app.name) continue;
+    const before = (await listDirs(vaultHandle)).some(d => d.name === app.name);
+    const appH = await ensureDir(vaultHandle, app.name);
+    if (!before) created++;
+    for (const ch of app.children || []) {
+      if (!ch.name) continue;
+      const beforeC = (await listDirs(appH)).some(d => d.name === ch.name);
+      const chH = await ensureDir(appH, ch.name);
+      if (!beforeC) created++;
+      for (const sub of ch.children || []) {
+        if (!sub.name) continue;
+        const beforeS = (await listDirs(chH)).some(d => d.name === sub.name);
+        await ensureDir(chH, sub.name);
+        if (!beforeS) created++;
+      }
+    }
+  }
+  return created;
+}
+
+// -------- Export tree as Markdown --------
+document.getElementById("exportBtn").addEventListener("click", async () => {
+  if (!vaultHandle) { showToast("Pick a folder first", "error"); return; }
+  await refreshTree();
+  let md = `# ${vaultHandle.name}\n\n`;
+  for (const app of tree) {
+    md += `# ${app.name}\n`;
+    for (const ch of app.children) {
+      md += `## ${ch.name}\n`;
+      for (const sub of ch.children) {
+        md += `### ${sub.name}\n`;
+      }
+    }
+    md += "\n";
+  }
+  const blob = new Blob([md], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "structure.md";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+
+// -------- Help --------
+document.getElementById("helpBtn").addEventListener("click", () => {
+  const back = document.createElement("div");
+  back.className = "modal-backdrop";
+  back.innerHTML = `
+    <div class="modal">
+      <h3>Quick help</h3>
+      <ul>
+        <li><b>Pick learning folder…</b> — choose any folder (e.g. <code>Documents/Whokna</code>). All notes &amp; attachments live there.</li>
+        <li><b>+ App</b>, then ＋ on a row to add chapters and sub-chapters.</li>
+        <li><b>Notes</b> use markdown. Switch tabs <i>Edit / Preview / Split</i>.</li>
+        <li><b>Screenshots:</b> press <code>Win + Shift + S</code>, capture, then <code>Ctrl + V</code> in the editor.</li>
+        <li><b>Other files:</b> drag-drop into the editor or use <i>+ Add files</i>.</li>
+        <li><b>Import structure</b> from Markdown headings or CSV (Excel: <i>Save As → CSV</i>).</li>
+        <li><b>Backup:</b> just copy the folder, or sync it with OneDrive / Dropbox.</li>
+      </ul>
+      <p class="hint">Saves are automatic ~0.6s after you stop typing. Status shows top-right of the editor.</p>
+      <div class="actions">
+        <button id="helpClose" class="primary">Got it</button>
+      </div>
+    </div>`;
+  document.body.appendChild(back);
+  back.querySelector("#helpClose").onclick = () => back.remove();
+});
+
+// -------- Folder picker button --------
+document.getElementById("pickFolderBtn").addEventListener("click", pickVault);
+
+// -------- Keyboard --------
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    flushSave().then(() => showToast("Saved", "ok"));
+  }
+  if (e.key === "Escape" && lightbox.classList.contains("show")) {
+    lightbox.classList.remove("show"); lightbox.innerHTML = "";
+  }
+});
+
+// -------- Boot --------
+tryRestoreVault();
+
+</script>
+</body>
+</html>
