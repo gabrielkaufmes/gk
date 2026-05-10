@@ -507,7 +507,7 @@
 <body>
   <div id="app">
     <header>
-      <div class="brand">📚 Whokna Helper</div>
+      <div class="brand">📚 Whokna Helper <span id="buildStamp" style="font-weight:400;color:var(--muted);font-size:11px"></span></div>
       <div id="vaultStatus" class="vault">No vault selected.</div>
       <div class="actions">
         <button id="btnOpenVault" class="primary">Open Vault…</button>
@@ -622,32 +622,87 @@ function newId() {
   return `t-${t}-${r}`;
 }
 
+const BUILD_ID = 'v2.4-debug';
 const IDB_NAME = 'whokna-helper';
-const IDB_VER = 3;
+const IDB_VER = 4;
+const REQUIRED_STORES = ['kv', 'sandbox', 'handles'];
 let _idb;
-function idbOpen() {
-  if (_idb) return Promise.resolve(_idb);
+
+function idbOpenAt(version) {
   return new Promise((res, rej) => {
-    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    const req = indexedDB.open(IDB_NAME, version);
     req.onupgradeneeded = () => {
       const db = req.result;
-      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
-      if (!db.objectStoreNames.contains('sandbox')) db.createObjectStore('sandbox');
-      if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
+      for (const s of REQUIRED_STORES) {
+        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s);
+      }
     };
-    req.onsuccess = () => { _idb = req.result; res(_idb); };
+    req.onblocked = () => {
+      toast('IDB upgrade blocked — close other tabs of this app and reload', 'error');
+    };
+    req.onsuccess = () => res(req.result);
     req.onerror = () => rej(req.error);
   });
 }
+
+async function idbDeleteEntirely() {
+  if (_idb) { try { _idb.close(); } catch {} _idb = null; }
+  return new Promise((res, rej) => {
+    const req = indexedDB.deleteDatabase(IDB_NAME);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+    req.onblocked = () => rej(new Error('Delete blocked — close other tabs'));
+  });
+}
+
+async function idbOpen() {
+  if (_idb) return _idb;
+  let db = await idbOpenAt(IDB_VER);
+  // Self-heal: if any required store is missing, force-bump version
+  const missing = REQUIRED_STORES.filter(s => !db.objectStoreNames.contains(s));
+  if (missing.length) {
+    console.warn('IDB missing stores after open:', missing, '— forcing upgrade');
+    const ver = db.version;
+    db.close();
+    db = await idbOpenAt(ver + 1);
+  }
+  _idb = db;
+  // If browser silently closes the connection (e.g. another tab upgrades), reset cache
+  _idb.onversionchange = () => { try { _idb.close(); } catch {} _idb = null; };
+  _idb.onclose = () => { _idb = null; };
+  return _idb;
+}
+
 function idbReq(store, mode, fn) {
   return idbOpen().then(db => new Promise((res, rej) => {
-    const tx = db.transaction(store, mode);
-    const s = tx.objectStore(store);
-    const r = fn(s);
-    tx.oncomplete = () => res(r && 'result' in r ? r.result : undefined);
-    tx.onerror = () => rej(tx.error);
-    tx.onabort = () => rej(tx.error);
-  }));
+    let r;
+    try {
+      const tx = db.transaction(store, mode);
+      const s = tx.objectStore(store);
+      r = fn(s);
+      tx.oncomplete = () => res(r && 'result' in r ? r.result : undefined);
+      tx.onerror = () => rej(tx.error || new Error('idb tx error'));
+      tx.onabort = () => rej(tx.error || new Error('idb tx aborted'));
+    } catch (e) { rej(e); }
+  })).catch(async e => {
+    // Self-heal: store missing → reopen with bumped version once, retry
+    if (e && /object stores? was not found/i.test(e.message)) {
+      console.warn('Store missing — self-healing:', e.message);
+      if (_idb) { try { _idb.close(); } catch {} _idb = null; }
+      const probe = await idbOpenAt(IDB_VER);
+      const ver = probe.version; probe.close();
+      _idb = await idbOpenAt(ver + 1);
+      return new Promise((res, rej) => {
+        const tx = _idb.transaction(store, mode);
+        const s = tx.objectStore(store);
+        const r = fn(s);
+        tx.oncomplete = () => res(r && 'result' in r ? r.result : undefined);
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+      });
+    }
+    throw e;
+  });
 }
 const sbxGet = k => idbReq('sandbox', 'readonly', s => s.get(k));
 const sbxSet = (k, v) => idbReq('sandbox', 'readwrite', s => s.put(v, k));
@@ -956,6 +1011,19 @@ async function getRootOrder() {
 }
 
 async function renderTree() {
+  try { return await renderTreeInner(); }
+  catch (e) {
+    console.error('renderTree failed:', e);
+    treeWrap.innerHTML = '';
+    treeWrap.appendChild(el('div', { class: 'tree-empty', style: { color: 'var(--danger)' } },
+      'Tree error: ' + e.message,
+      el('br'), el('br'),
+      el('button', { class: 'danger', onclick: () => resetEverything() }, 'Reset sandbox & reload')
+    ));
+  }
+}
+
+async function renderTreeInner() {
   treeWrap.innerHTML = '';
   if (!State.vault) {
     treeWrap.appendChild(el('div', { class: 'tree-empty' }, 'No vault open.'));
@@ -1886,6 +1954,8 @@ $('#btnTools').addEventListener('click', e => {
   m.appendChild(el('button', { onclick: () => { m.remove(); importStructure(); } }, '⇪ Import structure'));
   m.appendChild(el('div', { class: 'sep' }));
   m.appendChild(el('button', { onclick: () => { m.remove(); garbageCollect(); } }, '🧹 GC orphan files'));
+  m.appendChild(el('div', { class: 'sep' }));
+  m.appendChild(el('button', { onclick: () => { m.remove(); resetEverything(); }, style: { color: 'var(--danger)' } }, '⚠ Reset everything (wipe IDB)'));
   document.body.appendChild(m);
   setTimeout(() => {
     document.addEventListener('click', function once(ev) {
@@ -2273,6 +2343,29 @@ function applyMobile() {
 }
 window.addEventListener('resize', applyMobile);
 applyMobile();
+
+async function resetEverything() {
+  if (!confirm('Wipe all local data (sandbox + saved folder handle) and reload?')) return;
+  try {
+    await idbDeleteEntirely();
+    location.reload();
+  } catch (e) {
+    toast('Reset failed: ' + e.message, 'error');
+  }
+}
+
+// Surface any unhandled error/rejection as a toast
+window.addEventListener('error', e => {
+  console.error('window error:', e.error || e.message);
+  toast('Error: ' + (e.error?.message || e.message), 'error');
+});
+window.addEventListener('unhandledrejection', e => {
+  console.error('unhandled rejection:', e.reason);
+  const msg = e.reason?.message || String(e.reason || 'unknown');
+  toast('Promise error: ' + msg, 'error');
+});
+
+document.getElementById('buildStamp').textContent = BUILD_ID;
 
 (async function bootstrap() {
   await idbOpen();
