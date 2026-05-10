@@ -178,6 +178,9 @@
   .node-children { margin-left: 14px; }
   .level-0 > .node-row { font-weight: 600; }
   .level-1 > .node-row { font-weight: 500; }
+  .att-row .label { color: var(--muted); font-style: italic; }
+  .att-row:hover .label { color: var(--text); }
+  .att-row { font-size: 12.5px; }
 
   /* ===== Content area ===== */
   #content {
@@ -969,6 +972,18 @@ async function listFiles(dirHandle) {
   out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
   return out;
 }
+async function listAttachments(parentDirHandle) {
+  // Returns [{ name }] sorted; empty array if no attachments folder yet.
+  try {
+    const att = await parentDirHandle.getDirectoryHandle("attachments");
+    const out = [];
+    for await (const [name, entry] of att.entries()) {
+      if (entry.kind === "file") out.push({ name });
+    }
+    out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+    return out;
+  } catch { return []; }
+}
 async function removeEntry(parent, name) {
   await parent.removeEntry(name, { recursive: true });
 }
@@ -989,10 +1004,14 @@ async function refreshTree() {
     for (const ch of chapters) {
       if (ch.name === "attachments") continue;
       const subs = await listOrderedDirs(ch.handle);
-      const subArr = subs
-        .filter(s => s.name !== "attachments")
-        .map(s => ({ name: s.name, handle: s.handle }));
-      chArr.push({ name: ch.name, handle: ch.handle, children: subArr });
+      const subArr = [];
+      for (const s of subs) {
+        if (s.name === "attachments") continue;
+        const subAtts = await listAttachments(s.handle);
+        subArr.push({ name: s.name, handle: s.handle, attachments: subAtts });
+      }
+      const chAtts = await listAttachments(ch.handle);
+      chArr.push({ name: ch.name, handle: ch.handle, children: subArr, attachments: chAtts });
     }
     tree.push({ name: app.name, handle: app.handle, children: chArr });
   }
@@ -1018,10 +1037,13 @@ function renderTree() {
   const filter = document.getElementById("searchBox").value.trim().toLowerCase();
   const matchesName = (s) => !filter || s.toLowerCase().includes(filter);
   const subContent = (a, c, s) => contentMatches.has(`${a}|${c}|${s}`);
+  const matchAtt = (atts) => filter && (atts || []).some(a => a.name.toLowerCase().includes(filter));
   const isSubVisible = (a, ch, s) =>
-    !filter || matchesName(a.name) || matchesName(ch.name) || matchesName(s.name) || subContent(a.name, ch.name, s.name);
+    !filter || matchesName(a.name) || matchesName(ch.name) || matchesName(s.name)
+    || subContent(a.name, ch.name, s.name) || matchAtt(s.attachments);
   const isChVisible = (a, ch) =>
-    !filter || matchesName(a.name) || matchesName(ch.name) || ch.children.some(s => isSubVisible(a, ch, s));
+    !filter || matchesName(a.name) || matchesName(ch.name)
+    || ch.children.some(s => isSubVisible(a, ch, s)) || matchAtt(ch.attachments);
   const isAppVisible = (a) =>
     !filter || matchesName(a.name) || a.children.some(ch => isChVisible(a, ch));
 
@@ -1029,15 +1051,27 @@ function renderTree() {
     const chHtml = app.children.filter(ch => isChVisible(app, ch)).map(ch => {
       const subHtml = ch.children
         .filter(s => isSubVisible(app, ch, s))
-        .map(s => nodeRow({
-          level: 2, name: s.name,
-          path: { app: app.name, ch: ch.name, sub: s.name, type: "sub" }
-        })).join("");
+        .map(s => {
+          const subAttHtml = (s.attachments || [])
+            .filter(a => !filter || matchesName(a.name) || matchesName(s.name) || matchesName(ch.name) || matchesName(app.name))
+            .map(a => attachmentRow({ app: app.name, ch: ch.name, sub: s.name, name: a.name }))
+            .join("");
+          return `
+            <div class="node level-2">
+              ${nodeRow({ level: 2, name: s.name,
+                          path: { app: app.name, ch: ch.name, sub: s.name, type: "sub" } })}
+              ${subAttHtml ? `<div class="node-children">${subAttHtml}</div>` : ""}
+            </div>`;
+        }).join("");
+      const chAttHtml = (ch.attachments || [])
+        .filter(a => !filter || matchesName(a.name) || matchesName(ch.name) || matchesName(app.name))
+        .map(a => attachmentRow({ app: app.name, ch: ch.name, sub: null, name: a.name }))
+        .join("");
       return `
         <div class="node level-1">
           ${nodeRow({ level: 1, name: ch.name, hasChildren: ch.children.length > 0,
                       path: { app: app.name, ch: ch.name, type: "chapter" } })}
-          <div class="node-children">${subHtml}</div>
+          <div class="node-children">${subHtml}${chAttHtml}</div>
         </div>`;
     }).join("");
     return `
@@ -1051,6 +1085,7 @@ function renderTree() {
   wrap.innerHTML = html || `<div class="tree-empty">No matches.</div>`;
 
   wrap.querySelectorAll(".node-row").forEach(row => {
+    if (row.classList.contains("att-row")) return; // handled separately
     row.addEventListener("click", (e) => {
       if (e.target.closest(".row-actions") || e.target.closest(".grip")) return;
       const path = JSON.parse(row.dataset.path);
@@ -1062,11 +1097,28 @@ function renderTree() {
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const row = btn.closest(".node-row");
-      const path = JSON.parse(row.dataset.path);
       const act = btn.dataset.act;
+      if (act === "del-att") {
+        const path = JSON.parse(row.dataset.attPath);
+        const name = row.dataset.attName;
+        if (!confirm(`Delete attachment "${name}"?`)) return;
+        try {
+          await deleteAttachmentByPath(path, name);
+          showToast("Deleted " + name, "ok");
+        } catch (err) { showToast("Delete failed: " + err.message, "error"); }
+        return;
+      }
+      const path = JSON.parse(row.dataset.path);
       if (act === "add")    await onAddChild(path);
       if (act === "rename") await onRename(path);
       if (act === "delete") await onDelete(path);
+    });
+  });
+  wrap.querySelectorAll(".att-row").forEach(row => {
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".row-actions")) return;
+      const path = JSON.parse(row.dataset.attPath);
+      openAttachmentByPath(path, row.dataset.attName);
     });
   });
 
@@ -1105,6 +1157,64 @@ function renderMatchPanel(filter) {
   panel.querySelectorAll(".match-row").forEach(r => {
     r.addEventListener("click", () => selectNode(JSON.parse(r.dataset.path)));
   });
+}
+
+function attachmentRow({ app, ch, sub, name }) {
+  const path = JSON.stringify({ app, ch, sub: sub || null });
+  return `
+    <div class="node-row att-row" data-att-path='${escapeAttr(path)}' data-att-name='${escapeAttr(name)}' title="Open ${escapeAttr(name)}">
+      <span class="grip" style="visibility:hidden">⋮⋮</span>
+      <span class="twist empty">▾</span>
+      <span class="icon">${iconFor(name)}</span>
+      <span class="label">${escapeHtml(name)}</span>
+      <span class="row-actions">
+        <button data-act="del-att" title="Delete attachment" draggable="false">🗑</button>
+      </span>
+    </div>`;
+}
+
+async function getAttachmentParentByPath(path) {
+  const app = tree.find(a => a.name === path.app);
+  if (!app) throw new Error("App not found");
+  const ch = app.children.find(c => c.name === path.ch);
+  if (!ch) throw new Error("Chapter not found");
+  if (path.sub) {
+    const sub = ch.children.find(s => s.name === path.sub);
+    if (!sub) throw new Error("Sub-chapter not found");
+    return sub.handle;
+  }
+  return ch.handle;
+}
+
+async function openAttachmentByPath(path, attName) {
+  try {
+    const parentH = await getAttachmentParentByPath(path);
+    const attDir = await parentH.getDirectoryHandle("attachments");
+    const fh = await attDir.getFileHandle(attName);
+    const file = await fh.getFile();
+    const url = URL.createObjectURL(file);
+    blobUrls.push(url);
+    const ext = attName.split(".").pop().toLowerCase();
+    if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext)) openLightbox(url, "img");
+    else if (["mp4","webm","mov","mkv"].includes(ext)) openLightbox(url, "video");
+    else if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) openLightbox(url, "audio");
+    else window.open(url, "_blank");
+  } catch (e) { showToast("Open failed: " + e.message, "error"); }
+}
+
+async function deleteAttachmentByPath(path, attName) {
+  const parentH = await getAttachmentParentByPath(path);
+  const attDir = await parentH.getDirectoryHandle("attachments");
+  await attDir.removeEntry(attName);
+  await refreshTree();
+  if (selected && (
+    (selected.type === "sub" && path.sub
+      && selected.appName === path.app && selected.chapterName === path.ch && selected.subName === path.sub) ||
+    (selected.type === "chapter" && !path.sub
+      && selected.appName === path.app && selected.chapterName === path.ch)
+  )) {
+    await renderAttachments();
+  }
 }
 
 function nodeRow({ level, name, path, hasChildren = true }) {
@@ -1264,21 +1374,27 @@ async function selectNode(path) {
   // Save anything pending first
   await flushSave();
   revokeBlobUrls();
-  if (path.type === "sub") {
+  if (path.type === "sub" || path.type === "chapter") {
     const app = tree.find(a => a.name === path.app);
     const ch = app?.children.find(c => c.name === path.ch);
-    const sub = ch?.children.find(s => s.name === path.sub);
-    if (!sub) { showToast("Not found", "error"); return; }
-    const dir = sub.handle;
-    selected = { appName: path.app, chapterName: path.ch, subName: path.sub, dirHandle: dir, type: "sub" };
+    if (!ch) { showToast("Not found", "error"); return; }
+    let dir, subName = null;
+    if (path.type === "sub") {
+      const sub = ch.children.find(s => s.name === path.sub);
+      if (!sub) { showToast("Not found", "error"); return; }
+      dir = sub.handle; subName = path.sub;
+    } else {
+      dir = ch.handle;
+    }
+    selected = { appName: path.app, chapterName: path.ch, subName, dirHandle: dir, type: path.type };
     showSubEditor();
     const text = await readFileText(dir, "notes.md");
     document.getElementById("notesEditor").value = text;
     setDirty(false);
     await renderAttachments();
   } else {
-    // app or chapter — show a simple summary view
-    selected = { appName: path.app, chapterName: path.ch, subName: null, dirHandle: null, type: path.type };
+    // app — summary view (apps don't have notes/attachments themselves)
+    selected = { appName: path.app, chapterName: null, subName: null, dirHandle: null, type: "app" };
     showSummary();
   }
   updateBreadcrumb();
@@ -1312,7 +1428,9 @@ function updateBreadcrumb() {
   const parts = [selected.appName, selected.chapterName, selected.subName].filter(Boolean);
   const crumbs = parts.map(p => `<span class="crumb">${escapeHtml(p)}</span>`).join(`<span class="sep">›</span>`);
   bc.innerHTML = `${backBtn}${crumbs}<div class="actions">${
-    selected.type === "sub" ? `<button id="openInExplorerHint" title="Files are in the folder you picked">📁 On disk</button>` : ""
+    (selected.type === "sub" || selected.type === "chapter")
+      ? `<button id="openInExplorerHint" title="Files are in the folder you picked">📁 On disk</button>`
+      : ""
   }</div>`;
 }
 
@@ -1350,7 +1468,7 @@ function scheduleSave() {
 
 async function flushSave() {
   clearTimeout(saveTimer);
-  if (!dirty || !selected || selected.type !== "sub") return;
+  if (!dirty || !selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
   try {
     await writeFileText(selected.dirHandle, "notes.md", editor.value);
     setDirty(false);
@@ -1503,7 +1621,7 @@ function bindPreviewClicks(root) {
 
 // -------- Attachments --------
 async function getAttachmentsDir(create = false) {
-  if (!selected || selected.type !== "sub") return null;
+  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return null;
   return await selected.dirHandle.getDirectoryHandle("attachments", { create });
 }
 
@@ -1529,7 +1647,7 @@ function revokeBlobUrls() {
 async function renderAttachments() {
   const list = document.getElementById("attachList");
   list.innerHTML = "";
-  if (!selected || selected.type !== "sub") return;
+  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
   let dir;
   try { dir = await getAttachmentsDir(false); } catch { dir = null; }
   if (!dir) { list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No attachments yet. Drop files into the editor or use “+ Add files”.</div>`; return; }
@@ -1568,6 +1686,7 @@ async function renderAttachments() {
       if (!confirm(`Delete attachment "${f.name}"?`)) return;
       await dir.removeEntry(f.name);
       await renderAttachments();
+      await refreshTree();
       showToast("Deleted " + f.name, "ok");
     });
     list.appendChild(div);
@@ -1598,7 +1717,7 @@ function humanSize(n) {
 const contentEl = document.getElementById("content");
 let dragDepth = 0;
 contentEl.addEventListener("dragenter", (e) => {
-  if (!selected || selected.type !== "sub") return;
+  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
   if (!e.dataTransfer.types.includes("Files")) return;
   e.preventDefault();
   dragDepth++;
@@ -1609,21 +1728,21 @@ contentEl.addEventListener("dragleave", () => {
   if (dragDepth === 0) contentEl.classList.remove("drop-active");
 });
 contentEl.addEventListener("dragover", (e) => {
-  if (!selected || selected.type !== "sub") return;
+  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
   e.preventDefault();
 });
 contentEl.addEventListener("drop", async (e) => {
   e.preventDefault();
   dragDepth = 0;
   contentEl.classList.remove("drop-active");
-  if (!selected || selected.type !== "sub") return;
+  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
   const files = [...e.dataTransfer.files];
   if (!files.length) return;
   await attachFiles(files);
 });
 
 editor.addEventListener("paste", async (e) => {
-  if (!selected || selected.type !== "sub") return;
+  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
   const items = e.clipboardData?.items || [];
   const imgs = [];
   for (const it of items) {
@@ -1639,7 +1758,7 @@ editor.addEventListener("paste", async (e) => {
 });
 
 document.getElementById("addAttachBtn").addEventListener("click", async () => {
-  if (!selected || selected.type !== "sub") return;
+  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
   try {
     const handles = await window.showOpenFilePicker({ multiple: true });
     const files = await Promise.all(handles.map(h => h.getFile()));
@@ -1669,6 +1788,7 @@ async function attachFiles(files, fromPaste = false) {
   setDirty(true);
   scheduleSave();
   await renderAttachments();
+  await refreshTree();
   showToast(`Attached ${inserted.length} file${inserted.length>1?"s":""}`, "ok");
 }
 
@@ -1777,8 +1897,11 @@ async function reSelect() {
   } else if (selected.type === "chapter") {
     const ch = app.children.find(c => c.name === selected.chapterName);
     if (!ch) { selected = null; showSummaryEmpty(); return; }
-    selected.dirHandle = null;
-    showSummary();
+    selected.dirHandle = ch.handle;
+    showSubEditor();
+    document.getElementById("notesEditor").value = await readFileText(ch.handle, "notes.md");
+    setDirty(false);
+    await renderAttachments();
   } else if (selected.type === "sub") {
     const ch = app.children.find(c => c.name === selected.chapterName);
     const sub = ch?.children.find(s => s.name === selected.subName);
@@ -2405,6 +2528,7 @@ document.getElementById("helpBtn").addEventListener("click", () => {
         <li><b>Notes</b> use markdown. Switch tabs <i>Edit / Preview / Split</i>.</li>
         <li><b>Screenshots:</b> press <code>Win + Shift + S</code>, capture, then <code>Ctrl + V</code> in the editor.</li>
         <li><b>Other files:</b> drag-drop into the editor or use <i>+ Add files</i>.</li>
+        <li><b>Attachments in tree:</b> every attached file appears as a row under its parent chapter or sub-chapter. Tap to preview, 🗑 to remove. Works at chapter level too — just select the chapter and attach.</li>
         <li><b>Import structure</b> from Markdown headings or CSV (Excel: <i>Save As → CSV</i>).</li>
         <li><b>Backup:</b> just copy the folder, or sync it with OneDrive / Dropbox.</li>
         <li><b>Test data…</b> creates a sandbox with apps prefixed <code>[TEST]</code> (Wikipedia summaries + sample diagrams). The matching <i>Delete</i> only removes apps with that prefix — your real projects are safe.</li>
