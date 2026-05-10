@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Whokna Learning Helper</title>
 <style>
   :root {
@@ -28,11 +28,9 @@
     color: var(--text);
     background: var(--bg);
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
   }
-  button, input, select, textarea {
-    font: inherit;
-    color: inherit;
-  }
+  button, input, select, textarea { font: inherit; color: inherit; }
   button {
     background: var(--panel-2);
     border: 1px solid var(--border);
@@ -47,6 +45,8 @@
   button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
   button.danger { color: var(--danger); border-color: #553a44; }
   button.danger:hover { background: #3a2730; }
+  button.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  button.ghost:hover { background: var(--panel-2); color: var(--text); }
   button.icon { padding: 4px 8px; font-size: 12px; }
   input[type=text], input[type=search], textarea, select {
     background: var(--panel);
@@ -55,44 +55,37 @@
     padding: 6px 10px;
     width: 100%;
   }
-  input[type=text]:focus, textarea:focus, select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
 
   #app {
     display: grid;
     grid-template-rows: auto 1fr;
     height: 100vh;
-    height: 100dvh; /* respects mobile URL/nav bars when supported */
+    height: 100dvh;
   }
 
   header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    gap: 10px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--border);
     background: var(--panel);
     flex-wrap: wrap;
   }
-  header .brand {
-    font-weight: 600;
-    font-size: 15px;
-    margin-right: 8px;
-  }
+  header .brand { font-weight: 600; font-size: 15px; margin-right: 4px; }
   header .vault {
     color: var(--muted);
     font-size: 12px;
     flex: 1;
-    min-width: 180px;
+    min-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   header .vault.connected { color: var(--ok); }
   header .vault.error { color: var(--danger); }
-  header .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  header .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
   main {
     display: grid;
@@ -101,13 +94,13 @@
     min-height: 0;
   }
 
-  /* ===== Tree ===== */
   #sidebar {
     border-right: 1px solid var(--border);
     background: var(--panel);
     display: flex;
     flex-direction: column;
     min-height: 0;
+    position: relative;
   }
   .sidebar-head {
     padding: 8px 10px;
@@ -117,52 +110,60 @@
     align-items: center;
   }
   .sidebar-head input { padding: 4px 8px; }
-  #treeWrap {
+  #treeWrap { overflow: auto; flex: 1; padding: 6px 0; }
+  #notesMatches {
+    border-top: 1px solid var(--border);
+    padding: 6px 10px;
+    max-height: 30%;
     overflow: auto;
-    flex: 1;
-    padding: 6px 0;
+    background: var(--panel-2);
+    font-size: 12px;
   }
-  .tree-empty {
+  #notesMatches:empty { display: none; }
+  #notesMatches .nm-head {
     color: var(--muted);
-    padding: 16px;
-    font-size: 13px;
-    text-align: center;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: .08em;
+    margin-bottom: 4px;
   }
+  #notesMatches .nm { padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+  #notesMatches .nm:hover { background: #2f3548; }
+  #notesMatches .nm-name { font-weight: 600; color: var(--text); }
+  #notesMatches .nm-snip { color: var(--muted); }
+  #notesMatches mark { background: #4f3a16; color: #fff; padding: 0 2px; border-radius: 2px; }
+  .tree-empty { color: var(--muted); padding: 16px; font-size: 13px; text-align: center; }
+
   .node { user-select: none; }
   .node-row {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 8px;
+    padding: 4px 8px;
     cursor: pointer;
     border-radius: 4px;
     margin: 1px 4px;
     font-size: 13px;
+    position: relative;
   }
   .node-row:hover { background: #2f3548; }
   .node-row.selected { background: #3a4880; }
-  .node-row .twist {
-    width: 14px;
-    text-align: center;
+  .node-row .grip {
+    width: 12px;
     color: var(--muted);
-    font-size: 10px;
+    font-size: 12px;
+    cursor: grab;
+    text-align: center;
+    flex-shrink: 0;
+    touch-action: none;
   }
+  .node-row .grip:active { cursor: grabbing; }
+  .node-row .twist { width: 14px; text-align: center; color: var(--muted); font-size: 10px; flex-shrink: 0; }
   .node-row .twist.empty { visibility: hidden; }
-  .node-row .icon {
-    width: 14px;
-    text-align: center;
-    color: var(--muted);
-  }
-  .node-row .label {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .node-row .row-actions {
-    display: none;
-    gap: 2px;
-  }
+  .node-row .icon { width: 14px; text-align: center; color: var(--muted); flex-shrink: 0; }
+  .node-row .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .node-row .badge { color: var(--accent-2); font-size: 11px; flex-shrink: 0; }
+  .node-row .row-actions { display: none; gap: 2px; }
   .node-row:hover .row-actions { display: flex; }
   .node-row .row-actions button {
     padding: 2px 5px;
@@ -171,25 +172,41 @@
     border: 1px solid transparent;
     color: var(--muted);
   }
-  .node-row .row-actions button:hover {
-    background: #1c2030;
-    border-color: var(--border);
-    color: var(--text);
-  }
+  .node-row .row-actions button:hover { background: #1c2030; border-color: var(--border); color: var(--text); }
   .node-children { margin-left: 14px; }
   .level-0 > .node-row { font-weight: 600; }
   .level-1 > .node-row { font-weight: 500; }
-  .att-row .label { color: var(--muted); font-style: italic; }
+  .att-row .label { color: var(--muted); }
   .att-row:hover .label { color: var(--text); }
-  .att-row { font-size: 12.5px; }
+  .att-row, .note-row { font-size: 12.5px; }
 
-  /* ===== Content area ===== */
+  .node-row.drag-over-into { background: #2c5e3c; outline: 1px dashed var(--ok); }
+  .node-row.drag-over-before { box-shadow: inset 0 2px 0 var(--accent); }
+  .node-row.drag-over-after { box-shadow: inset 0 -2px 0 var(--accent); }
+  .node-row.dragging { opacity: 0.4; }
+
+  #dragGhost {
+    position: fixed;
+    z-index: 200;
+    background: var(--panel-2);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--text);
+    pointer-events: none;
+    box-shadow: var(--shadow);
+    display: none;
+  }
+  #dragGhost.link::before { content: "🔗 "; }
+
   #content {
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 0;
     background: var(--bg);
+    position: relative;
   }
   #breadcrumb {
     padding: 8px 14px;
@@ -201,35 +218,28 @@
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 5;
   }
-  #breadcrumb .crumb { color: var(--text); }
+  #breadcrumb .crumb { color: var(--text); cursor: pointer; }
+  #breadcrumb .crumb:hover { text-decoration: underline; }
   #breadcrumb .sep { color: var(--muted); }
   #breadcrumb .actions { margin-left: auto; display: flex; gap: 6px; }
+  #backToTree { display: none; }
 
-  #editorPane {
-    display: grid;
-    grid-template-rows: 1fr auto;
-    flex: 1;
-    min-height: 0;
-  }
-
+  #editorPane { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     color: var(--muted);
-    padding: 40px;
+    padding: 40px 20px;
     text-align: center;
     gap: 12px;
     height: 100%;
   }
   .empty-state h2 { color: var(--text); margin: 0; }
-  .empty-state code {
-    background: var(--code-bg);
-    padding: 1px 6px;
-    border-radius: 4px;
-  }
+  .empty-state code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
   .empty-state ul { text-align: left; max-width: 540px; }
 
   .editor-tabs {
@@ -238,6 +248,7 @@
     padding: 6px 10px 0 10px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
+    align-items: center;
   }
   .editor-tabs button {
     background: transparent;
@@ -262,16 +273,31 @@
   .editor-tabs .save-status.dirty { color: var(--warn); }
   .editor-tabs .save-status.saved { color: var(--ok); }
 
+  .linked-hint {
+    background: var(--panel-2);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 4px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .linked-hint b { color: var(--accent-2); }
+
   .editor-body {
     overflow: auto;
     background: var(--panel);
+    flex: 1;
     min-height: 0;
+    display: grid;
   }
+  .editor-body.split { grid-template-columns: 1fr 1fr; }
+  .editor-body.edit  { grid-template-columns: 1fr; }
+  .editor-body.preview { grid-template-columns: 1fr; }
+  .editor-body.split #notesEditor { border-right: 1px solid var(--border); }
+
   #notesEditor {
     width: 100%;
     height: 100%;
     border: none;
-    border-radius: 0;
     background: var(--panel);
     padding: 14px 18px;
     font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
@@ -300,8 +326,8 @@
   #preview ul, #preview ol { margin: 8px 0 8px 22px; }
   #preview blockquote { border-left: 3px solid var(--accent); padding: 4px 12px; color: var(--muted); margin: 8px 0; }
   #preview audio, #preview video { max-width: 100%; margin: 6px 0; border-radius: 6px; }
+  #preview hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
-  /* ===== Attachments ===== */
   #attachments {
     border-top: 1px solid var(--border);
     background: var(--panel-2);
@@ -319,11 +345,7 @@
     justify-content: space-between;
     align-items: center;
   }
-  #attachments .attach-list {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
+  #attachments .attach-list { display: flex; gap: 8px; flex-wrap: wrap; }
   .att {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -337,12 +359,8 @@
     max-width: 260px;
   }
   .att:hover { border-color: var(--accent); }
-  .att .att-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .att .att-size { color: var(--muted); font-size: 11px; }
+  .att .att-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .att .att-link-badge { color: var(--accent-2); font-size: 10px; }
   .att .att-del {
     background: transparent;
     border: none;
@@ -353,7 +371,6 @@
   }
   .att .att-del:hover { color: var(--danger); }
 
-  /* Drop overlay */
   .drop-active::after {
     content: "Drop files to attach";
     position: absolute;
@@ -369,185 +386,32 @@
     pointer-events: none;
     z-index: 50;
   }
-  #content { position: relative; }
 
-  /* Modal */
   .modal-backdrop {
     position: fixed; inset: 0;
     background: rgba(0,0,0,.55);
     display: flex; align-items: center; justify-content: center;
     z-index: 100;
+    padding: 16px;
   }
   .modal {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 18px 20px;
-    min-width: 380px;
+    min-width: 320px;
     max-width: 92vw;
+    max-height: 92vh;
+    overflow: auto;
     box-shadow: var(--shadow);
   }
   .modal h3 { margin: 0 0 12px; }
   .modal .row { margin: 8px 0; }
-  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
   .modal .hint { color: var(--muted); font-size: 12px; }
   .modal pre { background: var(--code-bg); padding: 10px; border-radius: 6px; overflow: auto; font-size: 12px; max-height: 200px; }
+  .modal kbd { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: ui-monospace, monospace; }
 
-  /* Toast */
-  #toast {
-    position: fixed;
-    bottom: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    box-shadow: var(--shadow);
-    font-size: 13px;
-    opacity: 0;
-    transition: opacity .25s;
-    pointer-events: none;
-    z-index: 200;
-  }
-  #toast.show { opacity: 1; }
-  #toast.error { border-color: var(--danger); color: var(--danger); }
-  #toast.ok { border-color: var(--ok); color: var(--ok); }
-
-  /* Drag reorder visuals */
-  .node-row.dragging { opacity: .35; }
-  .node-row.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
-  .node-row.drop-after  { box-shadow: inset 0 -2px 0 var(--accent); }
-  .node-row .grip {
-    color: #555c75;
-    font-size: 11px;
-    cursor: grab;
-    margin-right: 2px;
-    user-select: none;
-  }
-  .node-row:hover .grip { color: var(--muted); }
-  .node-row.dragging .grip { cursor: grabbing; }
-
-  /* Notes-match panel */
-  #matchPanel {
-    border-top: 1px solid var(--border);
-    background: #20253390;
-    overflow: auto;
-    flex-shrink: 0;
-    max-height: 45%;
-  }
-  #matchPanel .match-head {
-    padding: 6px 10px;
-    color: var(--muted);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .match-row {
-    padding: 6px 10px;
-    border-top: 1px solid #2a2f40;
-    cursor: pointer;
-    font-size: 12px;
-  }
-  .match-row:hover { background: #2f3548; }
-  .match-where { color: var(--muted); margin-bottom: 2px; }
-  .match-where b { color: var(--text); }
-  .match-snip {
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-family: ui-monospace, Consolas, monospace;
-    font-size: 11.5px;
-  }
-  .match-snip mark { background: #5a4a1a; color: #fff7c0; padding: 0 2px; border-radius: 2px; }
-
-  /* Mobile back button (in breadcrumb) — desktop hides it */
-  .mobile-back {
-    display: none;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    font-size: 13px;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    cursor: pointer;
-    margin-right: 4px;
-  }
-
-  /* ===== Mobile / narrow-viewport layout ===== */
-  @media (max-width: 760px) {
-    header { padding: 6px 10px; gap: 6px; }
-    header .brand { font-size: 13px; }
-    header .vault {
-      flex-basis: 100%;
-      order: 99;
-      margin: 2px 0 0;
-      font-size: 11px;
-    }
-    header .actions { gap: 4px; }
-    header button { padding: 5px 9px; font-size: 12.5px; }
-
-    main { grid-template-columns: 1fr; }
-    #sidebar {
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-    }
-
-    /* Master-detail switch driven by body class */
-    body.mobile-show-content #sidebar { display: none; }
-    body:not(.mobile-show-content) #content { display: none; }
-
-    .mobile-back { display: inline-flex; }
-
-    .modal {
-      min-width: 0;
-      max-width: 96vw;
-      max-height: 88vh;
-      overflow: auto;
-      padding: 14px 16px;
-    }
-    .modal pre { max-height: 30vh; }
-    .modal .actions { flex-wrap: wrap; }
-
-    #notesEditor { padding: 10px 12px; font-size: 14px; }
-    #preview { padding: 10px 14px; }
-
-    #attachments { max-height: 30vh; }
-    .att { max-width: 100%; }
-
-    .editor-tabs { padding: 4px 6px 0; }
-    .editor-tabs button { padding: 5px 10px; font-size: 12.5px; }
-
-    #breadcrumb { padding: 6px 10px; gap: 4px; }
-    .node-row { padding: 6px 10px; font-size: 14px; }
-    .node-row .row-actions button { padding: 4px 7px; font-size: 13px; }
-
-    /* In the content (detail) view, stack everything and let the whole pane
-       scroll, so the Attachments panel below the editor is always reachable. */
-    body.mobile-show-content #content {
-      display: block;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    body.mobile-show-content #breadcrumb {
-      position: sticky;
-      top: 0;
-      z-index: 5;
-    }
-    body.mobile-show-content #editorPane { flex: none; height: auto; }
-    body.mobile-show-content #editorWrap { height: auto !important; }
-    body.mobile-show-content .editor-body { height: 55vh; overflow: auto; }
-    body.mobile-show-content #notesEditor { height: 100%; }
-    body.mobile-show-content #attachments { max-height: none; flex-shrink: 0; }
-  }
-
-  /* Lightbox */
   #lightbox {
     position: fixed; inset: 0;
     background: rgba(0,0,0,.85);
@@ -555,2030 +419,1852 @@
     align-items: center;
     justify-content: center;
     z-index: 150;
+    padding: 24px;
     cursor: zoom-out;
   }
-  #lightbox.show { display: flex; }
-  #lightbox img, #lightbox video {
-    max-width: 92vw;
-    max-height: 92vh;
+  #lightbox.open { display: flex; }
+  #lightbox img, #lightbox video, #lightbox audio {
+    max-width: 95vw;
+    max-height: 90vh;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  #lightbox .lb-close {
+    position: absolute; top: 16px; right: 20px;
+    background: rgba(0,0,0,.5);
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+  }
+
+  #toast {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    z-index: 220;
+    display: none;
+    max-width: 90vw;
+  }
+  #toast.show { display: block; }
+  #toast.error { border-color: var(--danger); color: #ffd0d0; }
+  #toast.ok { border-color: var(--ok); color: #d0ffd6; }
+
+  .menu {
+    position: absolute;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
     border-radius: 6px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.6);
+    box-shadow: var(--shadow);
+    padding: 4px;
+    z-index: 80;
+    min-width: 180px;
+  }
+  .menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+  .menu button:hover { background: var(--panel); }
+  .menu .sep { border-top: 1px solid var(--border); margin: 4px 0; }
+
+  body.mobile #app { grid-template-rows: auto 1fr; }
+  body.mobile main { grid-template-columns: 1fr; }
+  body.mobile #content { display: none; }
+  body.mobile.show-content #sidebar { display: none; }
+  body.mobile.show-content #content { display: flex; }
+  body.mobile #backToTree { display: inline-flex; }
+  body.mobile .editor-body { max-height: 55vh; }
+  body.mobile .editor-body.split { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  body.mobile .editor-body.split #notesEditor { border-right: none; border-bottom: 1px solid var(--border); }
+  body.mobile #attachments { max-height: none; }
+  body.mobile .node-row .row-actions { display: flex; }
+  body.mobile .node-row .row-actions button { font-size: 13px; padding: 4px 8px; }
+
+  .pulse { animation: pulse .4s ease-out; }
+  @keyframes pulse {
+    0% { background: rgba(79,140,255,.4); }
+    100% { background: transparent; }
   }
 </style>
 </head>
 <body>
-<div id="app">
-  <header>
-    <div class="brand">Whokna Learning Helper</div>
-    <div id="vaultLabel" class="vault">No folder connected</div>
-    <div class="actions">
-      <button id="pickFolderBtn" class="primary">Pick learning folder…</button>
-      <button id="importBtn" title="Import structure from Markdown or CSV">Import structure…</button>
-      <button id="exportBtn" title="Export tree as Markdown">Export tree</button>
-      <button id="testBtn" title="Generate or delete sandbox test data">Test data…</button>
-      <button id="helpBtn">Help</button>
-    </div>
-  </header>
-  <main>
-    <aside id="sidebar">
-      <div class="sidebar-head">
-        <input id="searchBox" type="search" placeholder="Search names &amp; notes…">
-        <button id="addAppBtn" title="Add a top-level app">+ App</button>
+  <div id="app">
+    <header>
+      <div class="brand">📚 Whokna Helper</div>
+      <div id="vaultStatus" class="vault">No vault selected.</div>
+      <div class="actions">
+        <button id="btnOpenVault" class="primary">Open Vault…</button>
+        <button id="btnAddApp" class="ghost" title="Add app">+ App</button>
+        <button id="btnTools" class="ghost">Tools ▾</button>
+        <button id="btnTest" class="ghost">Test data…</button>
+        <button id="btnHelp" class="ghost">?</button>
       </div>
-      <div id="treeWrap">
-        <div class="tree-empty">Pick a folder to begin.</div>
-      </div>
-      <div id="matchPanel" style="display:none;"></div>
-    </aside>
-    <section id="content">
-      <div id="breadcrumb"><span class="crumb">No selection</span></div>
-      <div id="editorPane">
-        <div class="empty-state" id="emptyState">
-          <h2>Nothing open yet</h2>
-          <p>Pick a sub-chapter on the left, or click <code>+ App</code> to start a structure.</p>
-          <ul>
-            <li><b>Notes:</b> markdown in the editor, live preview on the right tab.</li>
-            <li><b>Screenshots:</b> press <code>Win+Shift+S</code> in Windows, then <code>Ctrl+V</code> in the editor.</li>
-            <li><b>Audio / video / pdf / docx:</b> drag-drop into the editor or attachments panel.</li>
-            <li><b>Search:</b> type in the box top-left — matches both names and notes content.</li>
-            <li><b>Reorder:</b> drag the <code>⋮⋮</code> handle on any tree row up or down.</li>
-            <li><b>Import:</b> Markdown headings (<code>#</code> App, <code>##</code> Chapter, <code>###</code> Sub-chapter) or CSV (<code>App,Chapter,Sub-chapter</code>).</li>
-          </ul>
+    </header>
+    <main>
+      <aside id="sidebar">
+        <div class="sidebar-head">
+          <input id="search" type="search" placeholder="Search names + notes…">
         </div>
-        <div id="editorWrap" style="display:none; flex-direction:column; height:100%;">
-          <div class="editor-tabs">
-            <button data-tab="edit" class="active">Edit</button>
-            <button data-tab="preview">Preview</button>
-            <button data-tab="split">Split</button>
-            <span class="save-status" id="saveStatus">—</span>
-          </div>
-          <div class="editor-body" id="editorBody">
-            <textarea id="notesEditor" placeholder="Start typing your notes in markdown…&#10;&#10;Paste screenshots with Ctrl+V. Drop audio/video/pdf to attach."></textarea>
+        <div id="treeWrap"></div>
+        <div id="notesMatches"></div>
+      </aside>
+      <section id="content">
+        <div id="breadcrumb">
+          <button id="backToTree" class="ghost icon">← Tree</button>
+          <span id="crumbBox"></span>
+          <div class="actions">
+            <button id="btnAddChild" class="ghost icon" title="Add child">+ Child</button>
+            <button id="btnAddNote" class="ghost icon" title="Add note">+ Note</button>
+            <button id="btnAddFiles" class="ghost icon" title="Attach files">+ Files</button>
           </div>
         </div>
-      </div>
-      <div id="attachments" style="display:none;">
-        <h3>
-          <span>Attachments</span>
-          <span>
-            <button id="addAttachBtn" class="icon">+ Add files</button>
-          </span>
-        </h3>
-        <div class="attach-list" id="attachList"></div>
-      </div>
-    </section>
-  </main>
-</div>
-<div id="toast"></div>
-<div id="lightbox"></div>
+        <div id="editorPane">
+          <div id="emptyState" class="empty-state">
+            <h2>Pick a vault to begin</h2>
+            <p>On desktop, click <b>Open Vault…</b> to choose a folder.<br>
+               On mobile, open <b>Test data…</b> to start an in-browser sandbox.</p>
+            <ul>
+              <li>Notes are autosaved as Markdown.</li>
+              <li>Paste screenshots, drag-drop audio/video/PDFs.</li>
+              <li>Hold <kbd>Alt</kbd> while dragging to <b>link</b> an item into another place.</li>
+              <li>Long-press the grip on mobile to start link-drag.</li>
+            </ul>
+          </div>
+          <div id="editorWrap" style="display:none; flex-direction:column; height: 100%; min-height: 0;">
+            <div id="linkedHint" class="linked-hint" style="display:none;"></div>
+            <div class="editor-tabs">
+              <button data-tab="edit" class="active">Edit</button>
+              <button data-tab="preview">Preview</button>
+              <button data-tab="split">Split</button>
+              <span class="save-status" id="saveStatus">—</span>
+            </div>
+            <div class="editor-body edit" id="editorBody">
+              <textarea id="notesEditor" spellcheck="true" placeholder="# Notes…&#10;&#10;Type or paste here. Drop files to attach."></textarea>
+              <div id="preview"></div>
+            </div>
+            <div id="attachments">
+              <h3>
+                <span>Attachments <span id="attCount">(0)</span></span>
+                <span class="hint" id="attHint">paste · drag · + Files</span>
+              </h3>
+              <div class="attach-list" id="attachList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="dragGhost"></div>
+  <div id="lightbox"><button class="lb-close">×</button><div class="lb-inner"></div></div>
+  <div id="toast"></div>
+
+  <input type="file" id="filePicker" multiple style="display:none">
 
 <script>
 "use strict";
 
-/* =========================================================
-   Whokna Learning Helper — single-file local app
-   Storage layout in the user's chosen folder:
-     <vault>/<App>/<Chapter>/<SubChapter>/notes.md
-     <vault>/<App>/<Chapter>/<SubChapter>/attachments/...
-   The selected folder handle is persisted in IndexedDB.
-   ========================================================= */
+/* ============================================================
+   Whokna Learning Helper v2 — single-file build
+   ID-based, multi-parent linking, FS Access + IDB sandbox
+   ============================================================ */
 
-// -------- Browser feature detection --------
-// Desktop Chrome/Edge get the File System Access API ("real folder" mode).
-// Mobile / Firefox fall back to the in-browser sandbox (IndexedDB-backed).
-const fsSupported = typeof window.showDirectoryPicker === "function";
+const $ = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const k in props) {
+    if (k === 'class') n.className = props[k];
+    else if (k === 'style' && typeof props[k] === 'object') Object.assign(n.style, props[k]);
+    else if (k.startsWith('on') && typeof props[k] === 'function') n.addEventListener(k.slice(2), props[k]);
+    else if (k === 'dataset') Object.assign(n.dataset, props[k]);
+    else if (k in n) n[k] = props[k];
+    else n.setAttribute(k, props[k]);
+  }
+  for (const k of kids.flat()) {
+    if (k == null || k === false) continue;
+    n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k);
+  }
+  return n;
+};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
-// -------- Tiny IndexedDB wrapper for handle persistence --------
-const DB_NAME = "whokna-helper", STORE = "kv";
-function idb() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+const toastEl = $('#toast');
+let toastT;
+function toast(msg, type = '') {
+  toastEl.textContent = msg;
+  toastEl.className = 'show ' + type;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { toastEl.className = ''; }, 2400);
 }
-async function idbGet(key) {
-  const db = await idb();
+
+function newId() {
+  const t = Date.now().toString(36);
+  const r = Math.random().toString(36).slice(2, 8).padEnd(6, '0');
+  return `t-${t}-${r}`;
+}
+
+const IDB_NAME = 'whokna-helper';
+const IDB_VER = 1;
+let _idb;
+function idbOpen() {
+  if (_idb) return Promise.resolve(_idb);
   return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, "readonly");
-    const req = tx.objectStore(STORE).get(key);
-    req.onsuccess = () => res(req.result);
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+      if (!db.objectStoreNames.contains('sandbox')) db.createObjectStore('sandbox');
+      if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
+    };
+    req.onsuccess = () => { _idb = req.result; res(_idb); };
     req.onerror = () => rej(req.error);
   });
 }
-async function idbSet(key, val) {
-  const db = await idb();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put(val, key);
-    tx.oncomplete = () => res();
+function idbReq(store, mode, fn) {
+  return idbOpen().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(store, mode);
+    const s = tx.objectStore(store);
+    const r = fn(s);
+    tx.oncomplete = () => res(r && 'result' in r ? r.result : undefined);
     tx.onerror = () => rej(tx.error);
-  });
+    tx.onabort = () => rej(tx.error);
+  }));
+}
+const sbxGet = k => idbReq('sandbox', 'readonly', s => s.get(k));
+const sbxSet = (k, v) => idbReq('sandbox', 'readwrite', s => s.put(v, k));
+const sbxDel = k => idbReq('sandbox', 'readwrite', s => s.delete(k));
+const sbxKeys = () => idbReq('sandbox', 'readonly', s => s.getAllKeys());
+const sbxClearAll = () => idbReq('sandbox', 'readwrite', s => s.clear());
+const hGet = k => idbReq('handles', 'readonly', s => s.get(k));
+const hSet = (k, v) => idbReq('handles', 'readwrite', s => s.put(v, k));
+
+/* ============================================================
+   Vault layer — abstracts FS Access (desktop) and IDB (sandbox)
+   ============================================================ */
+
+const KIND_DIR = { app: '_apps', chapter: '_chapters', sub: '_subs' };
+
+class VaultBase {
+  constructor() { this.label = 'unknown'; this.kind = 'unknown'; }
+  async readIndex() { return (await this._readJson('_index.json')) || { schema: 2, items: {} }; }
+  async writeIndex(idx) { return this._writeJson('_index.json', idx); }
+  async readLinks(containerId, kind) {
+    const path = containerId == null ? '_links.json' : `${KIND_DIR[kind]}/${containerId}/_links.json`;
+    return (await this._readJson(path)) || { schema: 2, order: [] };
+  }
+  async writeLinks(containerId, kind, links) {
+    const path = containerId == null ? '_links.json' : `${KIND_DIR[kind]}/${containerId}/_links.json`;
+    await this._ensureContainerDir(containerId, kind);
+    return this._writeJson(path, links);
+  }
+  async deleteContainerDir(containerId, kind) {
+    return this._removeDir(`${KIND_DIR[kind]}/${containerId}`);
+  }
+  async readNote(id) { return (await this._readText(`_notes/${id}.md`)) || ''; }
+  async writeNote(id, txt) { return this._writeText(`_notes/${id}.md`, txt); }
+  async deleteNote(id) { return this._remove(`_notes/${id}.md`); }
+  async readAsset(id, ext) { return this._readBlob(`_assets/${id}.${ext}`); }
+  async writeAsset(id, ext, blob) { return this._writeBlob(`_assets/${id}.${ext}`, blob); }
+  async deleteAsset(id, ext) { return this._remove(`_assets/${id}.${ext}`); }
+  async _ensureContainerDir(containerId, kind) { /* override */ }
 }
 
-// =================== In-browser sandbox vault ====================
-// Mimics the FileSystemDirectoryHandle / FileSystemFileHandle API just enough
-// for the rest of the app to use it transparently. Backed by IndexedDB.
-class MemFileHandle {
-  constructor(parent, name) {
-    this.kind = "file";
-    this.name = name;
-    this._parent = parent;
+class IdbVault extends VaultBase {
+  constructor() {
+    super();
+    this.label = 'In-browser sandbox';
+    this.kind = 'sandbox';
   }
-  async getFile() {
-    const ent = this._parent._entries.get(this.name);
-    if (!ent || ent.kind !== "file") throw new DOMException("Not found", "NotFoundError");
-    return new File([ent.blob], this.name, {
-      type: ent.blob.type || "",
-      lastModified: ent.lastModified,
-    });
+  async _readJson(path) {
+    const v = await sbxGet('f:' + path);
+    if (v == null) return null;
+    try { return JSON.parse(v); } catch { return null; }
   }
-  async createWritable() {
-    const parent = this._parent, name = this.name;
-    const chunks = [];
-    return {
-      async write(data) {
-        if (data == null) return;
-        if (data instanceof Blob) chunks.push(data);
-        else if (typeof data === "string") chunks.push(new Blob([data], { type: "text/plain" }));
-        else chunks.push(new Blob([data]));
-      },
-      async close() {
-        const blob = new Blob(chunks);
-        parent._entries.set(name, { kind: "file", blob, lastModified: Date.now() });
-        parent._touched();
-      },
-    };
+  async _writeJson(path, obj) { await sbxSet('f:' + path, JSON.stringify(obj)); }
+  async _readText(path) {
+    const v = await sbxGet('f:' + path);
+    return v == null ? null : v;
   }
+  async _writeText(path, txt) { await sbxSet('f:' + path, txt); }
+  async _readBlob(path) {
+    const v = await sbxGet('f:' + path);
+    return v instanceof Blob ? v : null;
+  }
+  async _writeBlob(path, blob) {
+    if (blob.size > 100 * 1024 * 1024) throw new Error('Sandbox file size cap is 100 MB');
+    await sbxSet('f:' + path, blob);
+  }
+  async _remove(path) { await sbxDel('f:' + path); }
+  async _removeDir(prefix) {
+    const keys = await sbxKeys();
+    for (const k of keys) if (typeof k === 'string' && k.startsWith('f:' + prefix + '/')) await sbxDel(k);
+    await sbxDel('f:' + prefix + '/_links.json');
+  }
+  async wipe() { return sbxClearAll(); }
 }
 
-class MemDirHandle {
-  constructor(name, root = null, parent = null) {
-    this.kind = "directory";
-    this.name = name;
-    this._entries = new Map();
-    this._parent = parent;
-    this._root = root || this;
+class FsVault extends VaultBase {
+  constructor(rootHandle) {
+    super();
+    this.root = rootHandle;
+    this.label = rootHandle.name;
+    this.kind = 'fs';
   }
-  _touched() {
-    if (typeof this._root._scheduleSave === "function") this._root._scheduleSave();
-  }
-  async getDirectoryHandle(name, opts = {}) {
-    const ent = this._entries.get(name);
-    if (ent) {
-      if (ent.kind !== "dir") throw new DOMException("Not a directory: " + name, "TypeMismatchError");
-      return ent.handle;
+  async _dir(parts, create = true) {
+    let h = this.root;
+    for (const p of parts) {
+      if (!p) continue;
+      h = await h.getDirectoryHandle(p, { create });
     }
-    if (!opts.create) throw new DOMException("Not found: " + name, "NotFoundError");
-    const child = new MemDirHandle(name, this._root, this);
-    this._entries.set(name, { kind: "dir", handle: child });
-    this._touched();
-    return child;
+    return h;
   }
-  async getFileHandle(name, opts = {}) {
-    const ent = this._entries.get(name);
-    if (ent) {
-      if (ent.kind !== "file") throw new DOMException("Not a file: " + name, "TypeMismatchError");
-      return new MemFileHandle(this, name);
-    }
-    if (!opts.create) throw new DOMException("Not found: " + name, "NotFoundError");
-    this._entries.set(name, { kind: "file", blob: new Blob([]), lastModified: Date.now() });
-    this._touched();
-    return new MemFileHandle(this, name);
+  async _file(path, create = false) {
+    const segs = path.split('/');
+    const name = segs.pop();
+    const dir = await this._dir(segs, create);
+    return dir.getFileHandle(name, { create });
   }
-  async *entries() {
-    for (const [name, ent] of this._entries) {
-      if (ent.kind === "dir") yield [name, ent.handle];
-      else yield [name, new MemFileHandle(this, name)];
-    }
-  }
-  async removeEntry(name) {
-    if (!this._entries.has(name)) throw new DOMException("Not found: " + name, "NotFoundError");
-    this._entries.delete(name);
-    this._touched();
-  }
-  async queryPermission() { return "granted"; }
-  async requestPermission() { return "granted"; }
-}
-
-class MemVault extends MemDirHandle {
-  constructor(name = "Android Sandbox") {
-    super(name);
-    this._dirty = false;
-    this._timer = null;
-  }
-  _scheduleSave() {
-    this._dirty = true;
-    if (this._timer) return;
-    this._timer = setTimeout(async () => {
-      this._timer = null;
-      if (!this._dirty) return;
-      this._dirty = false;
-      try {
-        await idbSet("memVaultData", serializeMemVault(this));
-      } catch (e) {
-        console.warn("Sandbox save failed", e);
-        this._dirty = true;
-      }
-    }, 350);
-  }
-}
-
-function serializeMemVault(dir) {
-  const entries = {};
-  for (const [name, ent] of dir._entries) {
-    if (ent.kind === "dir") entries[name] = { kind: "dir", value: serializeMemVault(ent.handle) };
-    else entries[name] = { kind: "file", blob: ent.blob, lastModified: ent.lastModified };
-  }
-  return { name: dir.name, entries };
-}
-
-function deserializeMemVault(obj) {
-  const root = new MemVault(obj.name || "Android Sandbox");
-  loadDirEntries(root, obj.entries || {});
-  return root;
-}
-
-function loadDirEntries(dir, entries) {
-  for (const [name, ent] of Object.entries(entries)) {
-    if (ent.kind === "dir") {
-      const child = new MemDirHandle(name, dir._root, dir);
-      dir._entries.set(name, { kind: "dir", handle: child });
-      loadDirEntries(child, (ent.value && ent.value.entries) || {});
-    } else {
-      dir._entries.set(name, { kind: "file", blob: ent.blob, lastModified: ent.lastModified });
-    }
-  }
-}
-
-// -------- State --------
-let vaultHandle = null;        // FileSystemDirectoryHandle
-let tree = [];                 // [{name, handle, children:[{name,handle,children:[{name,handle}]}]}]
-let selected = null;           // {appName, chapterName, subName, dirHandle, type:'sub'|'chapter'|'app'}
-let dirty = false;
-let saveTimer = null;
-let blobUrls = [];             // track to revoke
-let contentMatches = new Map();    // key "App|Ch|Sub" -> snippet HTML
-let contentCache = new Map();      // key -> { text, lastModified }
-let searchTimer = null;
-let dragState = null;              // { srcPath, srcRow }
-
-// -------- Toast --------
-const toast = document.getElementById("toast");
-function showToast(msg, kind = "") {
-  toast.textContent = msg;
-  toast.className = "show " + kind;
-  clearTimeout(showToast._t);
-  showToast._t = setTimeout(() => toast.className = kind, 2200);
-}
-
-// -------- Vault connection --------
-async function connectVault(handle) {
-  vaultHandle = handle;
-  const isMem = handle instanceof MemVault;
-  const label = document.getElementById("vaultLabel");
-  label.textContent = (isMem ? "Sandbox (in-browser): " : "Folder: ") + handle.name;
-  label.className = "vault connected";
-  // Remove any leftover "Reconnect" button from a previous boot
-  document.querySelectorAll("header .actions button.reconnect-btn").forEach(b => b.remove());
-  await refreshTree();
-  // Pre-seed real folders only; sandboxes start empty so the user can decide.
-  if (tree.length === 0 && !isMem) {
-    await ensureDir(vaultHandle, "Whokna Design");
-    await ensureDir(vaultHandle, "Whokna Database");
-    await refreshTree();
-    showToast("Created starter apps: Whokna Design, Whokna Database", "ok");
-  }
-  if (isMem) {
-    await idbSet("memVaultActive", true);
-  } else {
-    await idbSet("memVaultActive", false);
-    await idbSet("vaultHandle", handle);
-  }
-}
-
-async function pickVault() {
-  if (!fsSupported) {
-    showToast("Folder picker is desktop-only. Use Test data… → Start Android sandbox.", "error");
-    openTestModal();
-    return;
-  }
-  try {
-    const handle = await window.showDirectoryPicker({ mode: "readwrite", id: "whokna-vault" });
-    await connectVault(handle);
-  } catch (e) {
-    if (e.name !== "AbortError") showToast("Folder pick failed: " + e.message, "error");
-  }
-}
-
-async function tryRestoreVault() {
-  // Sandbox mode wins if active.
-  const memActive = await idbGet("memVaultActive");
-  if (memActive) {
-    const data = await idbGet("memVaultData");
-    if (data) {
-      try {
-        await connectVault(deserializeMemVault(data));
-        return;
-      } catch (e) { console.warn("Sandbox restore failed", e); }
-    }
-  }
-  if (!fsSupported) {
-    const label = document.getElementById("vaultLabel");
-    label.textContent = "Mobile browser detected — open Test data… to start a sandbox";
-    return;
-  }
-  const handle = await idbGet("vaultHandle");
-  if (!handle) return;
-  try {
-    let perm = await handle.queryPermission({ mode: "readwrite" });
-    if (perm !== "granted") {
-      // Show a banner-like state and require a click; permission can only be requested from a user gesture
-      const label = document.getElementById("vaultLabel");
-      label.textContent = `Last folder: ${handle.name} — click "Reconnect" to grant access`;
-      label.className = "vault error";
-      const btn = document.createElement("button");
-      btn.textContent = "Reconnect";
-      btn.className = "primary reconnect-btn";
-      btn.onclick = async () => {
-        const p = await handle.requestPermission({ mode: "readwrite" });
-        if (p === "granted") {
-          btn.remove();
-          await connectVault(handle);
-        } else {
-          showToast("Permission denied", "error");
-        }
-      };
-      document.querySelector("header .actions").prepend(btn);
-      return;
-    }
-    await connectVault(handle);
-  } catch (e) {
-    console.warn("Restore failed", e);
-  }
-}
-
-// -------- File system helpers --------
-async function ensureDir(parent, name) {
-  return await parent.getDirectoryHandle(name, { create: true });
-}
-async function readFileText(dirHandle, name) {
-  try {
-    const fh = await dirHandle.getFileHandle(name);
-    const f = await fh.getFile();
-    return await f.text();
-  } catch (e) {
-    if (e.name === "NotFoundError") return "";
-    throw e;
-  }
-}
-async function writeFileText(dirHandle, name, text) {
-  const fh = await dirHandle.getFileHandle(name, { create: true });
-  const w = await fh.createWritable();
-  await w.write(text);
-  await w.close();
-}
-async function writeFileBlob(dirHandle, name, blob) {
-  const fh = await dirHandle.getFileHandle(name, { create: true });
-  const w = await fh.createWritable();
-  await w.write(blob);
-  await w.close();
-}
-async function listDirs(dirHandle) {
-  const out = [];
-  for await (const [name, entry] of dirHandle.entries()) {
-    if (entry.kind === "directory") out.push({ name, handle: entry });
-  }
-  out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
-  return out;
-}
-async function readMetaOrder(dirHandle) {
-  try {
-    const fh = await dirHandle.getFileHandle("_meta.json");
-    const j = JSON.parse(await (await fh.getFile()).text());
-    return Array.isArray(j.order) ? j.order : [];
-  } catch { return []; }
-}
-async function writeMetaOrder(dirHandle, names) {
-  await writeFileText(dirHandle, "_meta.json", JSON.stringify({ order: names }, null, 2));
-}
-async function listOrderedDirs(dirHandle) {
-  const all = await listDirs(dirHandle);
-  const order = await readMetaOrder(dirHandle);
-  const seen = new Set();
-  const ordered = [];
-  for (const n of order) {
-    const f = all.find(d => d.name === n);
-    if (f) { ordered.push(f); seen.add(n); }
-  }
-  for (const d of all) if (!seen.has(d.name)) ordered.push(d);
-  return ordered;
-}
-async function replaceInMetaOrder(parentHandle, oldName, newName) {
-  const order = await readMetaOrder(parentHandle);
-  const i = order.indexOf(oldName);
-  if (i >= 0) {
-    order[i] = newName;
-    await writeMetaOrder(parentHandle, order);
-  }
-}
-async function listFiles(dirHandle) {
-  const out = [];
-  for await (const [name, entry] of dirHandle.entries()) {
-    if (entry.kind === "file") out.push({ name, handle: entry });
-  }
-  out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
-  return out;
-}
-async function listAttachments(parentDirHandle) {
-  // Returns [{ name }] sorted; empty array if no attachments folder yet.
-  try {
-    const att = await parentDirHandle.getDirectoryHandle("attachments");
-    const out = [];
-    for await (const [name, entry] of att.entries()) {
-      if (entry.kind === "file") out.push({ name });
-    }
-    out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
-    return out;
-  } catch { return []; }
-}
-async function removeEntry(parent, name) {
-  await parent.removeEntry(name, { recursive: true });
-}
-function safeName(name) {
-  // Windows-friendly: strip <>:"/\|?* and trim spaces/dots
-  return name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "").replace(/\s+/g, " ").trim().replace(/\.+$/, "");
-}
-
-// -------- Tree refresh & render --------
-async function refreshTree() {
-  tree = [];
-  if (!vaultHandle) return renderTree();
-  const apps = await listOrderedDirs(vaultHandle);
-  for (const app of apps) {
-    if (app.name.startsWith(".") || app.name === "_attachments") continue;
-    const chapters = await listOrderedDirs(app.handle);
-    const chArr = [];
-    for (const ch of chapters) {
-      if (ch.name === "attachments") continue;
-      const subs = await listOrderedDirs(ch.handle);
-      const subArr = [];
-      for (const s of subs) {
-        if (s.name === "attachments") continue;
-        const subAtts = await listAttachments(s.handle);
-        subArr.push({ name: s.name, handle: s.handle, attachments: subAtts });
-      }
-      const chAtts = await listAttachments(ch.handle);
-      chArr.push({ name: ch.name, handle: ch.handle, children: subArr, attachments: chAtts });
-    }
-    tree.push({ name: app.name, handle: app.handle, children: chArr });
-  }
-  renderTree();
-}
-
-function nodeKey(appName, chName, subName) {
-  return [appName, chName, subName].filter(Boolean).join(" › ");
-}
-
-function renderTree() {
-  const wrap = document.getElementById("treeWrap");
-  if (!vaultHandle) {
-    wrap.innerHTML = `<div class="tree-empty">Pick a folder to begin.</div>`;
-    renderMatchPanel("");
-    return;
-  }
-  if (tree.length === 0) {
-    wrap.innerHTML = `<div class="tree-empty">Empty. Click <b>+ App</b> above.</div>`;
-    renderMatchPanel("");
-    return;
-  }
-  const filter = document.getElementById("searchBox").value.trim().toLowerCase();
-  const matchesName = (s) => !filter || s.toLowerCase().includes(filter);
-  const subContent = (a, c, s) => contentMatches.has(`${a}|${c}|${s}`);
-  const matchAtt = (atts) => filter && (atts || []).some(a => a.name.toLowerCase().includes(filter));
-  const isSubVisible = (a, ch, s) =>
-    !filter || matchesName(a.name) || matchesName(ch.name) || matchesName(s.name)
-    || subContent(a.name, ch.name, s.name) || matchAtt(s.attachments);
-  const isChVisible = (a, ch) =>
-    !filter || matchesName(a.name) || matchesName(ch.name)
-    || ch.children.some(s => isSubVisible(a, ch, s)) || matchAtt(ch.attachments);
-  const isAppVisible = (a) =>
-    !filter || matchesName(a.name) || a.children.some(ch => isChVisible(a, ch));
-
-  const html = tree.filter(isAppVisible).map(app => {
-    const chHtml = app.children.filter(ch => isChVisible(app, ch)).map(ch => {
-      const subHtml = ch.children
-        .filter(s => isSubVisible(app, ch, s))
-        .map(s => {
-          const subAttHtml = (s.attachments || [])
-            .filter(a => !filter || matchesName(a.name) || matchesName(s.name) || matchesName(ch.name) || matchesName(app.name))
-            .map(a => attachmentRow({ app: app.name, ch: ch.name, sub: s.name, name: a.name }))
-            .join("");
-          return `
-            <div class="node level-2">
-              ${nodeRow({ level: 2, name: s.name,
-                          path: { app: app.name, ch: ch.name, sub: s.name, type: "sub" } })}
-              ${subAttHtml ? `<div class="node-children">${subAttHtml}</div>` : ""}
-            </div>`;
-        }).join("");
-      const chAttHtml = (ch.attachments || [])
-        .filter(a => !filter || matchesName(a.name) || matchesName(ch.name) || matchesName(app.name))
-        .map(a => attachmentRow({ app: app.name, ch: ch.name, sub: null, name: a.name }))
-        .join("");
-      return `
-        <div class="node level-1">
-          ${nodeRow({ level: 1, name: ch.name, hasChildren: ch.children.length > 0,
-                      path: { app: app.name, ch: ch.name, type: "chapter" } })}
-          <div class="node-children">${subHtml}${chAttHtml}</div>
-        </div>`;
-    }).join("");
-    return `
-      <div class="node level-0">
-        ${nodeRow({ level: 0, name: app.name, hasChildren: app.children.length > 0,
-                    path: { app: app.name, type: "app" } })}
-        <div class="node-children">${chHtml}</div>
-      </div>`;
-  }).join("");
-
-  wrap.innerHTML = html || `<div class="tree-empty">No matches.</div>`;
-
-  wrap.querySelectorAll(".node-row").forEach(row => {
-    if (row.classList.contains("att-row")) return; // handled separately
-    row.addEventListener("click", (e) => {
-      if (e.target.closest(".row-actions") || e.target.closest(".grip")) return;
-      const path = JSON.parse(row.dataset.path);
-      selectNode(path);
-    });
-    attachDragHandlers(row);
-  });
-  wrap.querySelectorAll(".row-actions [data-act]").forEach(btn => {
-    btn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const row = btn.closest(".node-row");
-      const act = btn.dataset.act;
-      if (act === "del-att") {
-        const path = JSON.parse(row.dataset.attPath);
-        const name = row.dataset.attName;
-        if (!confirm(`Delete attachment "${name}"?`)) return;
-        try {
-          await deleteAttachmentByPath(path, name);
-          showToast("Deleted " + name, "ok");
-        } catch (err) { showToast("Delete failed: " + err.message, "error"); }
-        return;
-      }
-      const path = JSON.parse(row.dataset.path);
-      if (act === "add")    await onAddChild(path);
-      if (act === "rename") await onRename(path);
-      if (act === "delete") await onDelete(path);
-    });
-  });
-  wrap.querySelectorAll(".att-row").forEach(row => {
-    row.addEventListener("click", (e) => {
-      if (e.target.closest(".row-actions")) return;
-      const path = JSON.parse(row.dataset.attPath);
-      openAttachmentByPath(path, row.dataset.attName);
-    });
-  });
-
-  // Re-mark selection
-  if (selected) {
-    const sel = nodeKey(selected.appName, selected.chapterName, selected.subName);
-    wrap.querySelectorAll(".node-row").forEach(r => {
-      if (r.dataset.key === sel) r.classList.add("selected");
-    });
-  }
-
-  renderMatchPanel(filter);
-}
-
-function renderMatchPanel(filter) {
-  const panel = document.getElementById("matchPanel");
-  if (!filter || contentMatches.size === 0) {
-    panel.style.display = "none";
-    panel.innerHTML = "";
-    return;
-  }
-  panel.style.display = "block";
-  const rows = [...contentMatches.entries()].map(([k, snip]) => {
-    const [a, c, s] = k.split("|");
-    const path = { app: a, ch: c, sub: s, type: "sub" };
-    return `
-      <div class="match-row" data-path='${escapeAttr(JSON.stringify(path))}'>
-        <div class="match-where">${escapeHtml(a)} › ${escapeHtml(c)} › <b>${escapeHtml(s)}</b></div>
-        <div class="match-snip">${snip}</div>
-      </div>`;
-  }).join("");
-  panel.innerHTML = `
-    <div class="match-head">
-      <span>Notes matches (${contentMatches.size})</span>
-    </div>${rows}`;
-  panel.querySelectorAll(".match-row").forEach(r => {
-    r.addEventListener("click", () => selectNode(JSON.parse(r.dataset.path)));
-  });
-}
-
-function attachmentRow({ app, ch, sub, name }) {
-  const path = JSON.stringify({ app, ch, sub: sub || null });
-  return `
-    <div class="node-row att-row" data-att-path='${escapeAttr(path)}' data-att-name='${escapeAttr(name)}' title="Open ${escapeAttr(name)}">
-      <span class="grip" style="visibility:hidden">⋮⋮</span>
-      <span class="twist empty">▾</span>
-      <span class="icon">${iconFor(name)}</span>
-      <span class="label">${escapeHtml(name)}</span>
-      <span class="row-actions">
-        <button data-act="del-att" title="Delete attachment" draggable="false">🗑</button>
-      </span>
-    </div>`;
-}
-
-async function getAttachmentParentByPath(path) {
-  const app = tree.find(a => a.name === path.app);
-  if (!app) throw new Error("App not found");
-  const ch = app.children.find(c => c.name === path.ch);
-  if (!ch) throw new Error("Chapter not found");
-  if (path.sub) {
-    const sub = ch.children.find(s => s.name === path.sub);
-    if (!sub) throw new Error("Sub-chapter not found");
-    return sub.handle;
-  }
-  return ch.handle;
-}
-
-async function openAttachmentByPath(path, attName) {
-  try {
-    const parentH = await getAttachmentParentByPath(path);
-    const attDir = await parentH.getDirectoryHandle("attachments");
-    const fh = await attDir.getFileHandle(attName);
-    const file = await fh.getFile();
-    const url = URL.createObjectURL(file);
-    blobUrls.push(url);
-    const ext = attName.split(".").pop().toLowerCase();
-    if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext)) openLightbox(url, "img");
-    else if (["mp4","webm","mov","mkv"].includes(ext)) openLightbox(url, "video");
-    else if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) openLightbox(url, "audio");
-    else window.open(url, "_blank");
-  } catch (e) { showToast("Open failed: " + e.message, "error"); }
-}
-
-async function deleteAttachmentByPath(path, attName) {
-  const parentH = await getAttachmentParentByPath(path);
-  const attDir = await parentH.getDirectoryHandle("attachments");
-  await attDir.removeEntry(attName);
-  await refreshTree();
-  if (selected && (
-    (selected.type === "sub" && path.sub
-      && selected.appName === path.app && selected.chapterName === path.ch && selected.subName === path.sub) ||
-    (selected.type === "chapter" && !path.sub
-      && selected.appName === path.app && selected.chapterName === path.ch)
-  )) {
-    await renderAttachments();
-  }
-}
-
-function nodeRow({ level, name, path, hasChildren = true }) {
-  const icon = level === 0 ? "▣" : level === 1 ? "▤" : "📄";
-  const key = nodeKey(path.app, path.ch, path.sub);
-  const addLabel = level === 0 ? "+ Chapter" : level === 1 ? "+ Sub-chapter" : "";
-  const actions = `
-    <span class="row-actions">
-      ${level < 2 ? `<button data-act="add" title="${addLabel}" draggable="false">＋</button>` : ""}
-      <button data-act="rename" title="Rename" draggable="false">✎</button>
-      <button data-act="delete" title="Delete" draggable="false">🗑</button>
-    </span>`;
-  return `
-    <div class="node-row" draggable="true" data-level="${level}" data-path='${escapeAttr(JSON.stringify(path))}' data-key="${escapeAttr(key)}">
-      <span class="grip" title="Drag to reorder">⋮⋮</span>
-      <span class="twist empty">▾</span>
-      <span class="icon">${icon}</span>
-      <span class="label">${escapeHtml(name)}</span>
-      ${actions}
-    </div>`;
-}
-
-// -------- Drag-reorder --------
-function attachDragHandlers(row) {
-  row.addEventListener("dragstart", (e) => {
-    const path = JSON.parse(row.dataset.path);
-    dragState = { srcPath: path, srcRow: row };
-    e.dataTransfer.effectAllowed = "move";
-    // Set data so the browser treats this as a drag operation
-    try { e.dataTransfer.setData("application/x-whokna-node", row.dataset.path); } catch {}
-    row.classList.add("dragging");
-    e.stopPropagation();
-  });
-  row.addEventListener("dragend", () => {
-    row.classList.remove("dragging");
-    clearAllDropIndicators();
-    dragState = null;
-  });
-  row.addEventListener("dragover", (e) => {
-    if (!dragState) return;
-    const dst = JSON.parse(row.dataset.path);
-    if (!sameLevelSameParent(dragState.srcPath, dst)) return;
-    if (samePath(dragState.srcPath, dst)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    const rect = row.getBoundingClientRect();
-    const before = (e.clientY - rect.top) < rect.height / 2;
-    clearAllDropIndicators();
-    row.classList.add(before ? "drop-before" : "drop-after");
-  });
-  row.addEventListener("dragleave", () => {
-    row.classList.remove("drop-before", "drop-after");
-  });
-  row.addEventListener("drop", async (e) => {
-    if (!dragState) return;
-    const dst = JSON.parse(row.dataset.path);
-    if (!sameLevelSameParent(dragState.srcPath, dst) || samePath(dragState.srcPath, dst)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const rect = row.getBoundingClientRect();
-    const before = (e.clientY - rect.top) < rect.height / 2;
-    const src = dragState.srcPath;
-    clearAllDropIndicators();
-    dragState = null;
-    await moveNode(src, dst, before);
-  });
-}
-
-function clearAllDropIndicators() {
-  document.querySelectorAll(".node-row.drop-before, .node-row.drop-after")
-    .forEach(r => r.classList.remove("drop-before", "drop-after"));
-}
-
-function sameLevelSameParent(a, b) {
-  if (a.type !== b.type) return false;
-  if (a.type === "app") return true;
-  if (a.type === "chapter") return a.app === b.app;
-  if (a.type === "sub") return a.app === b.app && a.ch === b.ch;
-  return false;
-}
-function samePath(a, b) {
-  return a.type === b.type && a.app === b.app && a.ch === b.ch && a.sub === b.sub;
-}
-
-async function moveNode(src, dst, before) {
-  let parentHandle, names;
-  if (src.type === "app") {
-    parentHandle = vaultHandle;
-    names = tree.map(a => a.name);
-  } else if (src.type === "chapter") {
-    const app = tree.find(a => a.name === src.app);
-    parentHandle = app.handle;
-    names = app.children.map(c => c.name);
-  } else {
-    const app = tree.find(a => a.name === src.app);
-    const ch = app.children.find(c => c.name === src.ch);
-    parentHandle = ch.handle;
-    names = ch.children.map(s => s.name);
-  }
-  const srcName = src.type === "app" ? src.app : src.type === "chapter" ? src.ch : src.sub;
-  const dstName = dst.type === "app" ? dst.app : dst.type === "chapter" ? dst.ch : dst.sub;
-  names = names.filter(n => n !== srcName);
-  let idx = names.indexOf(dstName);
-  if (idx < 0) idx = names.length;
-  if (!before) idx += 1;
-  names.splice(idx, 0, srcName);
-  try {
-    await writeMetaOrder(parentHandle, names);
-    await refreshTree();
-  } catch (e) {
-    showToast("Reorder failed: " + e.message, "error");
-  }
-}
-
-// -------- Content search --------
-async function runContentSearch(term) {
-  contentMatches.clear();
-  if (!term || term.length < 2 || !vaultHandle) return;
-  const t = term.toLowerCase();
-  for (const app of tree) {
-    for (const ch of app.children) {
-      for (const sub of ch.children) {
-        const key = `${app.name}|${ch.name}|${sub.name}`;
-        try {
-          const fh = await sub.handle.getFileHandle("notes.md");
-          const file = await fh.getFile();
-          let cached = contentCache.get(key);
-          if (!cached || cached.lastModified !== file.lastModified) {
-            cached = { text: await file.text(), lastModified: file.lastModified };
-            contentCache.set(key, cached);
-          }
-          const lower = cached.text.toLowerCase();
-          const idx = lower.indexOf(t);
-          if (idx >= 0) {
-            const start = Math.max(0, idx - 30);
-            const end = Math.min(cached.text.length, idx + term.length + 60);
-            const raw = (start > 0 ? "…" : "") +
-                        cached.text.slice(start, end).replace(/\s+/g, " ").trim() +
-                        (end < cached.text.length ? "…" : "");
-            const escaped = escapeHtml(raw);
-            const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
-            contentMatches.set(key, escaped.replace(re, "<mark>$1</mark>"));
-          }
-        } catch { /* no notes.md yet */ }
-      }
-    }
-  }
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-}
-function escapeAttr(s) { return escapeHtml(s); }
-
-// -------- Selection / loading content --------
-async function selectNode(path) {
-  // Save anything pending first
-  await flushSave();
-  revokeBlobUrls();
-  if (path.type === "sub" || path.type === "chapter") {
-    const app = tree.find(a => a.name === path.app);
-    const ch = app?.children.find(c => c.name === path.ch);
-    if (!ch) { showToast("Not found", "error"); return; }
-    let dir, subName = null;
-    if (path.type === "sub") {
-      const sub = ch.children.find(s => s.name === path.sub);
-      if (!sub) { showToast("Not found", "error"); return; }
-      dir = sub.handle; subName = path.sub;
-    } else {
-      dir = ch.handle;
-    }
-    selected = { appName: path.app, chapterName: path.ch, subName, dirHandle: dir, type: path.type };
-    showSubEditor();
-    const text = await readFileText(dir, "notes.md");
-    document.getElementById("notesEditor").value = text;
-    setDirty(false);
-    await renderAttachments();
-  } else {
-    // app — summary view (apps don't have notes/attachments themselves)
-    selected = { appName: path.app, chapterName: null, subName: null, dirHandle: null, type: "app" };
-    showSummary();
-  }
-  updateBreadcrumb();
-  renderTree(); // update selected highlight
-  if (isMobileLayout()) document.body.classList.add("mobile-show-content");
-}
-
-function showSubEditor() {
-  document.getElementById("emptyState").style.display = "none";
-  document.getElementById("editorWrap").style.display = "flex";
-  document.getElementById("attachments").style.display = "block";
-}
-
-function showSummary() {
-  document.getElementById("editorWrap").style.display = "none";
-  document.getElementById("attachments").style.display = "none";
-  const empty = document.getElementById("emptyState");
-  empty.style.display = "flex";
-  const what = selected.type === "app" ? "app" : "chapter";
-  const childKind = selected.type === "app" ? "chapters" : "sub-chapters";
-  empty.innerHTML = `
-    <h2>${escapeHtml(selected.appName)}${selected.chapterName ? " › " + escapeHtml(selected.chapterName) : ""}</h2>
-    <p>This is an ${what}. Notes live in <b>sub-chapters</b>.</p>
-    <p>Use the <b>＋</b> button on this row in the tree to add ${childKind}, or click an existing one to open it.</p>`;
-}
-
-function updateBreadcrumb() {
-  const bc = document.getElementById("breadcrumb");
-  const backBtn = `<button class="mobile-back" id="mobileBack" title="Back to tree">← Tree</button>`;
-  if (!selected) { bc.innerHTML = `${backBtn}<span class="crumb">No selection</span>`; return; }
-  const parts = [selected.appName, selected.chapterName, selected.subName].filter(Boolean);
-  const crumbs = parts.map(p => `<span class="crumb">${escapeHtml(p)}</span>`).join(`<span class="sep">›</span>`);
-  bc.innerHTML = `${backBtn}${crumbs}<div class="actions">${
-    (selected.type === "sub" || selected.type === "chapter")
-      ? `<button id="openInExplorerHint" title="Files are in the folder you picked">📁 On disk</button>`
-      : ""
-  }</div>`;
-}
-
-function isMobileLayout() {
-  return window.matchMedia("(max-width: 760px)").matches;
-}
-
-// One-time delegation for the Back button (re-rendered on every breadcrumb update)
-document.getElementById("breadcrumb").addEventListener("click", (e) => {
-  if (e.target.closest("#mobileBack")) {
-    document.body.classList.remove("mobile-show-content");
-  }
-});
-
-// -------- Editor: tabs, autosave, paste, drop --------
-const editor = document.getElementById("notesEditor");
-const editorBody = document.getElementById("editorBody");
-const saveStatus = document.getElementById("saveStatus");
-
-editor.addEventListener("input", () => {
-  setDirty(true);
-  scheduleSave();
-});
-
-function setDirty(d) {
-  dirty = d;
-  saveStatus.textContent = d ? "● unsaved" : "saved";
-  saveStatus.className = "save-status " + (d ? "dirty" : "saved");
-}
-
-function scheduleSave() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(flushSave, 600);
-}
-
-async function flushSave() {
-  clearTimeout(saveTimer);
-  if (!dirty || !selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
-  try {
-    await writeFileText(selected.dirHandle, "notes.md", editor.value);
-    setDirty(false);
-    // Refresh cache entry so an open search reflects the new content
-    const key = `${selected.appName}|${selected.chapterName}|${selected.subName}`;
-    contentCache.set(key, { text: editor.value, lastModified: Date.now() });
-  } catch (e) {
-    showToast("Save failed: " + e.message, "error");
-  }
-}
-
-window.addEventListener("beforeunload", (e) => {
-  if (dirty) { e.preventDefault(); e.returnValue = ""; }
-});
-
-// Tabs
-document.querySelectorAll(".editor-tabs button[data-tab]").forEach(b => {
-  b.addEventListener("click", () => switchTab(b.dataset.tab));
-});
-
-async function switchTab(tab) {
-  document.querySelectorAll(".editor-tabs button[data-tab]").forEach(b =>
-    b.classList.toggle("active", b.dataset.tab === tab));
-  editorBody.innerHTML = "";
-  if (tab === "edit") {
-    editorBody.appendChild(editor);
-    editorBody.style.display = "block";
-  } else if (tab === "preview") {
-    const div = document.createElement("div");
-    div.id = "preview";
-    div.innerHTML = await renderMarkdown(editor.value);
-    editorBody.appendChild(div);
-    bindPreviewClicks(div);
-  } else if (tab === "split") {
-    editorBody.style.display = "grid";
-    editorBody.style.gridTemplateColumns = "1fr 1fr";
-    editorBody.appendChild(editor);
-    const div = document.createElement("div");
-    div.id = "preview";
-    div.style.borderLeft = "1px solid var(--border)";
-    div.innerHTML = await renderMarkdown(editor.value);
-    editorBody.appendChild(div);
-    bindPreviewClicks(div);
-  }
-  if (tab !== "split") editorBody.style.display = "block";
-}
-
-// -------- Markdown rendering (small, safe-ish) --------
-async function renderMarkdown(src) {
-  if (!src) return `<p style="color:var(--muted)">Empty. Switch to Edit to start writing.</p>`;
-  const lines = src.split(/\r?\n/);
-  let html = "";
-  let inCode = false, codeBuf = [];
-  let listType = null; // 'ul' | 'ol' | null
-  const flushList = () => { if (listType) { html += `</${listType}>`; listType = null; } };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.startsWith("```")) {
-      if (!inCode) { inCode = true; codeBuf = []; }
-      else { html += `<pre><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`; inCode = false; }
-      continue;
-    }
-    if (inCode) { codeBuf.push(line); continue; }
-
-    if (/^\s*$/.test(line)) { flushList(); continue; }
-
-    let m;
-    if ((m = /^(#{1,6})\s+(.*)$/.exec(line))) {
-      flushList();
-      const lvl = m[1].length;
-      html += `<h${lvl}>${inline(m[2])}</h${lvl}>`;
-      continue;
-    }
-    if ((m = /^>\s?(.*)$/.exec(line))) {
-      flushList();
-      html += `<blockquote>${inline(m[1])}</blockquote>`;
-      continue;
-    }
-    if ((m = /^(\s*)[-*]\s+(.*)$/.exec(line))) {
-      if (listType !== "ul") { flushList(); html += "<ul>"; listType = "ul"; }
-      html += `<li>${inline(m[2])}</li>`;
-      continue;
-    }
-    if ((m = /^(\s*)\d+\.\s+(.*)$/.exec(line))) {
-      if (listType !== "ol") { flushList(); html += "<ol>"; listType = "ol"; }
-      html += `<li>${inline(m[2])}</li>`;
-      continue;
-    }
-    flushList();
-    html += `<p>${inline(line)}</p>`;
-  }
-  flushList();
-  if (inCode) html += `<pre><code>${escapeHtml(codeBuf.join("\n"))}</code></pre>`;
-
-  // Resolve attachments/* references to blob URLs
-  const tmp = document.createElement("div");
-  tmp.innerHTML = html;
-  const tasks = [];
-  for (const el of tmp.querySelectorAll("img, a, video, audio, source")) {
-    const attr = el.tagName === "A" ? "href" : "src";
-    const v = el.getAttribute(attr);
-    if (v && v.startsWith("attachments/")) {
-      tasks.push((async () => {
-        try {
-          const url = await getAttachmentUrl(decodeURIComponent(v.slice("attachments/".length)));
-          if (!url) return;
-          el.setAttribute(attr, url);
-          // Auto-upgrade: if a markdown link points to an audio/video/pdf, convert <a> to a player
-          if (el.tagName === "A") {
-            const ext = v.split(".").pop().toLowerCase();
-            if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) {
-              const a = document.createElement("audio"); a.controls = true; a.src = url;
-              el.replaceWith(a);
-            } else if (["mp4","webm","mov","mkv"].includes(ext)) {
-              const v2 = document.createElement("video"); v2.controls = true; v2.src = url;
-              v2.style.maxWidth = "100%";
-              el.replaceWith(v2);
-            } else if (ext === "pdf") {
-              const f = document.createElement("iframe"); f.src = url;
-              f.style.width = "100%"; f.style.height = "520px"; f.style.border = "1px solid var(--border)";
-              f.style.borderRadius = "6px";
-              el.replaceWith(f);
-            }
-          }
-        } catch (e) { console.warn(e); }
-      })());
-    }
-  }
-  await Promise.all(tasks);
-  return tmp.innerHTML;
-}
-
-function inline(s) {
-  // images first
-  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_,alt,src)=>`<img alt="${escapeHtml(alt)}" src="${escapeHtml(src)}">`);
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_,t,h)=>`<a href="${escapeHtml(h)}" target="_blank" rel="noopener">${inline(t)}</a>`);
-  s = s.replace(/`([^`]+)`/g, (_,c)=>`<code>${escapeHtml(c)}</code>`);
-  s = s.replace(/\*\*([^*]+)\*\*/g, (_,c)=>`<strong>${c}</strong>`);
-  s = s.replace(/(^|[^*])\*([^*]+)\*/g, (_,p,c)=>`${p}<em>${c}</em>`);
-  // Don't escape the produced tags; raw line text should already be safe enough for our local notes.
-  return s;
-}
-
-function bindPreviewClicks(root) {
-  root.querySelectorAll("img").forEach(img => {
-    img.addEventListener("click", () => openLightbox(img.src, "img"));
-  });
-}
-
-// -------- Attachments --------
-async function getAttachmentsDir(create = false) {
-  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return null;
-  return await selected.dirHandle.getDirectoryHandle("attachments", { create });
-}
-
-async function getAttachmentUrl(name) {
-  const dir = await getAttachmentsDir(false);
-  if (!dir) return null;
-  try {
-    const fh = await dir.getFileHandle(name);
-    const f = await fh.getFile();
-    const url = URL.createObjectURL(f);
-    blobUrls.push(url);
-    return url;
-  } catch (e) {
-    return null;
-  }
-}
-
-function revokeBlobUrls() {
-  for (const u of blobUrls) URL.revokeObjectURL(u);
-  blobUrls = [];
-}
-
-async function renderAttachments() {
-  const list = document.getElementById("attachList");
-  list.innerHTML = "";
-  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
-  let dir;
-  try { dir = await getAttachmentsDir(false); } catch { dir = null; }
-  if (!dir) { list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No attachments yet. Drop files into the editor or use “+ Add files”.</div>`; return; }
-  const files = await listFiles(dir);
-  if (files.length === 0) {
-    list.innerHTML = `<div style="color:var(--muted);font-size:12px;">No attachments yet.</div>`;
-    return;
-  }
-  for (const f of files) {
-    const file = await f.handle.getFile();
-    const div = document.createElement("div");
-    div.className = "att";
-    const ico = iconFor(f.name);
-    div.innerHTML = `
-      <span>${ico}</span>
-      <span class="att-name" title="${escapeAttr(f.name)}">${escapeHtml(f.name)}</span>
-      <span class="att-size">${humanSize(file.size)}</span>
-      <button class="att-del" title="Delete">✕</button>`;
-    div.addEventListener("click", async (e) => {
-      if (e.target.closest(".att-del")) return;
-      const url = URL.createObjectURL(file);
-      blobUrls.push(url);
-      const ext = f.name.split(".").pop().toLowerCase();
-      if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext)) openLightbox(url, "img");
-      else if (["mp4","webm","mov","mkv"].includes(ext)) openLightbox(url, "video");
-      else if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) {
-        const a = new Audio(url); a.controls = true;
-        openLightbox(url, "audio");
-      } else {
-        // pdf, docx, etc. — open in new tab
-        window.open(url, "_blank");
-      }
-    });
-    div.querySelector(".att-del").addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (!confirm(`Delete attachment "${f.name}"?`)) return;
-      await dir.removeEntry(f.name);
-      await renderAttachments();
-      await refreshTree();
-      showToast("Deleted " + f.name, "ok");
-    });
-    list.appendChild(div);
-  }
-}
-
-function iconFor(name) {
-  const ext = name.split(".").pop().toLowerCase();
-  if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext)) return "🖼";
-  if (["mp3","wav","ogg","m4a","aac","flac"].includes(ext)) return "🎵";
-  if (["mp4","webm","mov","mkv"].includes(ext)) return "🎬";
-  if (ext === "pdf") return "📕";
-  if (["doc","docx","odt","rtf","txt"].includes(ext)) return "📄";
-  if (["xls","xlsx","csv","ods"].includes(ext)) return "📊";
-  if (["ppt","pptx","odp"].includes(ext)) return "📽";
-  if (["zip","7z","rar","tar","gz"].includes(ext)) return "🗜";
-  return "📎";
-}
-
-function humanSize(n) {
-  if (n < 1024) return n + " B";
-  if (n < 1024*1024) return (n/1024).toFixed(1) + " KB";
-  if (n < 1024*1024*1024) return (n/1024/1024).toFixed(1) + " MB";
-  return (n/1024/1024/1024).toFixed(2) + " GB";
-}
-
-// -------- Drop & paste handlers --------
-const contentEl = document.getElementById("content");
-let dragDepth = 0;
-contentEl.addEventListener("dragenter", (e) => {
-  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
-  if (!e.dataTransfer.types.includes("Files")) return;
-  e.preventDefault();
-  dragDepth++;
-  contentEl.classList.add("drop-active");
-});
-contentEl.addEventListener("dragleave", () => {
-  dragDepth = Math.max(0, dragDepth - 1);
-  if (dragDepth === 0) contentEl.classList.remove("drop-active");
-});
-contentEl.addEventListener("dragover", (e) => {
-  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
-  e.preventDefault();
-});
-contentEl.addEventListener("drop", async (e) => {
-  e.preventDefault();
-  dragDepth = 0;
-  contentEl.classList.remove("drop-active");
-  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
-  const files = [...e.dataTransfer.files];
-  if (!files.length) return;
-  await attachFiles(files);
-});
-
-editor.addEventListener("paste", async (e) => {
-  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
-  const items = e.clipboardData?.items || [];
-  const imgs = [];
-  for (const it of items) {
-    if (it.kind === "file") {
-      const f = it.getAsFile();
-      if (f) imgs.push(f);
-    }
-  }
-  if (imgs.length) {
-    e.preventDefault();
-    await attachFiles(imgs, /*fromPaste*/true);
-  }
-});
-
-document.getElementById("addAttachBtn").addEventListener("click", async () => {
-  if (!selected || (selected.type !== "sub" && selected.type !== "chapter")) return;
-  try {
-    const handles = await window.showOpenFilePicker({ multiple: true });
-    const files = await Promise.all(handles.map(h => h.getFile()));
-    await attachFiles(files);
-  } catch (e) {
-    if (e.name !== "AbortError") showToast("Pick failed: " + e.message, "error");
-  }
-});
-
-async function attachFiles(files, fromPaste = false) {
-  const dir = await getAttachmentsDir(true);
-  const inserted = [];
-  for (let f of files) {
-    let name = f.name;
-    if (!name || fromPaste) {
-      // pasted screenshot — synthesize a name
-      const ts = new Date().toISOString().replace(/[:.]/g, "-");
-      const ext = (f.type && f.type.split("/")[1]) || "png";
-      name = `screenshot-${ts}.${ext}`;
-    }
-    name = uniquify(safeName(name) || `file-${Date.now()}`);
-    await writeFileBlob(dir, name, f);
-    inserted.push(name);
-  }
-  // Insert markdown reference at cursor position
-  insertAtCursor(editor, inserted.map(n => mdRefFor(n)).join("\n") + "\n");
-  setDirty(true);
-  scheduleSave();
-  await renderAttachments();
-  await refreshTree();
-  showToast(`Attached ${inserted.length} file${inserted.length>1?"s":""}`, "ok");
-}
-
-function uniquify(name) {
-  // very simple — append timestamp if needed; we don't read existing list to keep it cheap.
-  return name;
-}
-
-function mdRefFor(name) {
-  const ext = name.split(".").pop().toLowerCase();
-  const enc = encodeURI(name);
-  if (["png","jpg","jpeg","gif","webp","bmp","svg"].includes(ext))
-    return `![${name}](attachments/${enc})`;
-  return `[${name}](attachments/${enc})`;
-}
-
-function insertAtCursor(ta, text) {
-  const start = ta.selectionStart, end = ta.selectionEnd;
-  ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
-  ta.selectionStart = ta.selectionEnd = start + text.length;
-  ta.focus();
-}
-
-// -------- Lightbox --------
-const lightbox = document.getElementById("lightbox");
-function openLightbox(url, kind) {
-  lightbox.innerHTML = "";
-  let el;
-  if (kind === "img") { el = document.createElement("img"); el.src = url; }
-  else if (kind === "video") { el = document.createElement("video"); el.src = url; el.controls = true; el.autoplay = true; }
-  else if (kind === "audio") { el = document.createElement("audio"); el.src = url; el.controls = true; el.autoplay = true; el.style.background = "var(--panel)"; el.style.padding = "20px"; el.style.borderRadius = "8px"; }
-  lightbox.appendChild(el);
-  lightbox.classList.add("show");
-}
-lightbox.addEventListener("click", () => { lightbox.classList.remove("show"); lightbox.innerHTML = ""; });
-
-// -------- Tree mutation actions --------
-async function onAddChild(path) {
-  if (!vaultHandle) return;
-  let promptLabel, parentHandle;
-  if (path.type === "app") {
-    const app = tree.find(a => a.name === path.app);
-    promptLabel = "New chapter name:";
-    parentHandle = app.handle;
-  } else if (path.type === "chapter") {
-    const app = tree.find(a => a.name === path.app);
-    const ch = app.children.find(c => c.name === path.ch);
-    promptLabel = "New sub-chapter name:";
-    parentHandle = ch.handle;
-  } else return;
-  const raw = prompt(promptLabel);
-  if (!raw) return;
-  const name = safeName(raw);
-  if (!name) { showToast("Invalid name", "error"); return; }
-  try {
-    await ensureDir(parentHandle, name);
-    await refreshTree();
-    showToast("Created " + name, "ok");
-  } catch (e) { showToast("Create failed: " + e.message, "error"); }
-}
-
-async function onRename(path) {
-  if (!vaultHandle) return;
-  let parentHandle, oldName;
-  if (path.type === "sub") {
-    const app = tree.find(a => a.name === path.app);
-    const ch = app.children.find(c => c.name === path.ch);
-    parentHandle = ch.handle; oldName = path.sub;
-  } else if (path.type === "chapter") {
-    const app = tree.find(a => a.name === path.app);
-    parentHandle = app.handle; oldName = path.ch;
-  } else if (path.type === "app") {
-    parentHandle = vaultHandle; oldName = path.app;
-  }
-  const raw = prompt("Rename to:", oldName);
-  if (!raw || raw === oldName) return;
-  const newName = safeName(raw);
-  if (!newName) { showToast("Invalid name", "error"); return; }
-  try {
-    await renameDir(parentHandle, oldName, newName);
-    await replaceInMetaOrder(parentHandle, oldName, newName);
-    // Drop any stale content-search cache for this path
-    for (const k of [...contentCache.keys()]) {
-      if (k.split("|").includes(oldName)) contentCache.delete(k);
-    }
-    await refreshTree();
-    // Adjust selection if affected
-    if (selected) {
-      if (selected.appName === oldName && path.type === "app") selected.appName = newName;
-      if (selected.chapterName === oldName && path.type === "chapter") selected.chapterName = newName;
-      if (selected.subName === oldName && path.type === "sub") selected.subName = newName;
-      // Re-find directory handle
-      await reSelect();
-    }
-    showToast("Renamed", "ok");
-  } catch (e) { showToast("Rename failed: " + e.message, "error"); }
-}
-
-async function reSelect() {
-  if (!selected) return;
-  const app = tree.find(a => a.name === selected.appName);
-  if (!app) { selected = null; updateBreadcrumb(); showSummaryEmpty(); return; }
-  if (selected.type === "app") {
-    selected.dirHandle = null;
-    showSummary();
-  } else if (selected.type === "chapter") {
-    const ch = app.children.find(c => c.name === selected.chapterName);
-    if (!ch) { selected = null; showSummaryEmpty(); return; }
-    selected.dirHandle = ch.handle;
-    showSubEditor();
-    document.getElementById("notesEditor").value = await readFileText(ch.handle, "notes.md");
-    setDirty(false);
-    await renderAttachments();
-  } else if (selected.type === "sub") {
-    const ch = app.children.find(c => c.name === selected.chapterName);
-    const sub = ch?.children.find(s => s.name === selected.subName);
-    if (!sub) { selected = null; showSummaryEmpty(); return; }
-    selected.dirHandle = sub.handle;
-    document.getElementById("notesEditor").value = await readFileText(sub.handle, "notes.md");
-    setDirty(false);
-    await renderAttachments();
-  }
-  updateBreadcrumb();
-  renderTree();
-}
-
-function showSummaryEmpty() {
-  document.getElementById("editorWrap").style.display = "none";
-  document.getElementById("attachments").style.display = "none";
-  const empty = document.getElementById("emptyState");
-  empty.style.display = "flex";
-  empty.innerHTML = `<h2>Nothing open</h2><p>Pick a sub-chapter on the left.</p>`;
-  document.body.classList.remove("mobile-show-content");
-}
-
-// File System Access API has no native rename; copy+remove
-async function renameDir(parent, oldName, newName) {
-  if (oldName === newName) return;
-  // Try the modern move API if available
-  const oldHandle = await parent.getDirectoryHandle(oldName);
-  if (typeof oldHandle.move === "function") {
-    await oldHandle.move(newName);
-    return;
-  }
-  // Fallback: deep copy then remove
-  const newHandle = await parent.getDirectoryHandle(newName, { create: true });
-  await copyDir(oldHandle, newHandle);
-  await parent.removeEntry(oldName, { recursive: true });
-}
-async function copyDir(src, dst) {
-  for await (const [name, entry] of src.entries()) {
-    if (entry.kind === "directory") {
-      const sub = await dst.getDirectoryHandle(name, { create: true });
-      await copyDir(entry, sub);
-    } else {
-      const f = await entry.getFile();
-      await writeFileBlob(dst, name, f);
-    }
-  }
-}
-
-async function onDelete(path) {
-  if (!vaultHandle) return;
-  const what = path.type === "app" ? `app "${path.app}" and ALL chapters inside`
-            : path.type === "chapter" ? `chapter "${path.ch}" and ALL sub-chapters inside`
-            : `sub-chapter "${path.sub}"`;
-  if (!confirm(`Delete ${what}? This cannot be undone.`)) return;
-  try {
-    if (path.type === "app") await removeEntry(vaultHandle, path.app);
-    else if (path.type === "chapter") {
-      const app = tree.find(a => a.name === path.app);
-      await removeEntry(app.handle, path.ch);
-    } else {
-      const app = tree.find(a => a.name === path.app);
-      const ch = app.children.find(c => c.name === path.ch);
-      await removeEntry(ch.handle, path.sub);
-    }
-    if (selected) {
-      if (path.type === "app" && selected.appName === path.app) selected = null;
-      if (path.type === "chapter" && selected.chapterName === path.ch && selected.appName === path.app) selected = null;
-      if (path.type === "sub" && selected.subName === path.sub) selected = null;
-      if (!selected) showSummaryEmpty();
-    }
-    await refreshTree();
-    updateBreadcrumb();
-    showToast("Deleted", "ok");
-  } catch (e) { showToast("Delete failed: " + e.message, "error"); }
-}
-
-// -------- + App button --------
-document.getElementById("addAppBtn").addEventListener("click", async () => {
-  if (!vaultHandle) { showToast("Pick a folder first", "error"); return; }
-  const raw = prompt("New app name (e.g. Whokna Design):");
-  if (!raw) return;
-  const name = safeName(raw);
-  if (!name) { showToast("Invalid name", "error"); return; }
-  try {
-    await ensureDir(vaultHandle, name);
-    await refreshTree();
-    showToast("Created " + name, "ok");
-  } catch (e) { showToast("Create failed: " + e.message, "error"); }
-});
-
-// -------- Search filter (names + notes content) --------
-document.getElementById("searchBox").addEventListener("input", () => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(async () => {
-    const term = document.getElementById("searchBox").value.trim();
-    await runContentSearch(term);
-    renderTree();
-  }, 180);
-});
-
-// -------- Import structure (Markdown / CSV) --------
-document.getElementById("importBtn").addEventListener("click", () => openImportModal());
-
-function openImportModal() {
-  if (!vaultHandle) { showToast("Pick a folder first", "error"); return; }
-  const back = document.createElement("div");
-  back.className = "modal-backdrop";
-  back.innerHTML = `
-    <div class="modal">
-      <h3>Import structure</h3>
-      <p class="hint">
-        <b>Markdown:</b> use heading levels — <code># App</code>, <code>## Chapter</code>, <code>### Sub-chapter</code>.<br>
-        <b>CSV:</b> 3 columns — <code>App,Chapter,Sub-chapter</code>. First row may be a header.<br>
-        Existing nodes are kept; new ones are created.
-      </p>
-      <div class="row">
-        <input type="file" id="importFile" accept=".md,.txt,.csv">
-      </div>
-      <div class="row">
-        <p style="margin:6px 0;color:var(--muted)">Or paste content here:</p>
-        <textarea id="importText" rows="8" placeholder="# Whokna Design&#10;## Getting Started&#10;### Interface tour&#10;### Toolbars"></textarea>
-      </div>
-      <div class="actions">
-        <button id="importCancel">Cancel</button>
-        <button id="importGo" class="primary">Import</button>
-      </div>
-    </div>`;
-  document.body.appendChild(back);
-  back.querySelector("#importCancel").onclick = () => back.remove();
-  back.querySelector("#importGo").onclick = async () => {
-    const fEl = back.querySelector("#importFile");
-    const txEl = back.querySelector("#importText");
-    let text = txEl.value, fname = "pasted.md";
-    if (fEl.files[0]) { text = await fEl.files[0].text(); fname = fEl.files[0].name; }
-    if (!text.trim()) { showToast("Nothing to import", "error"); return; }
-    const isCsv = fname.toLowerCase().endsWith(".csv") || (text.includes(",") && !text.trim().startsWith("#"));
+  async _readJson(path) {
     try {
-      const tree = isCsv ? parseCsvStructure(text) : parseMarkdownStructure(text);
-      const created = await applyStructure(tree);
-      back.remove();
-      await refreshTree();
-      showToast(`Imported. Created ${created} new node${created!==1?"s":""}.`, "ok");
-    } catch (e) {
-      showToast("Import failed: " + e.message, "error");
-    }
-  };
+      const f = await (await this._file(path, false)).getFile();
+      return JSON.parse(await f.text());
+    } catch { return null; }
+  }
+  async _writeJson(path, obj) {
+    const fh = await this._file(path, true);
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify(obj, null, 2));
+    await w.close();
+  }
+  async _readText(path) {
+    try {
+      const f = await (await this._file(path, false)).getFile();
+      return await f.text();
+    } catch { return null; }
+  }
+  async _writeText(path, txt) {
+    const fh = await this._file(path, true);
+    const w = await fh.createWritable();
+    await w.write(txt);
+    await w.close();
+  }
+  async _readBlob(path) {
+    try { return await (await this._file(path, false)).getFile(); }
+    catch { return null; }
+  }
+  async _writeBlob(path, blob) {
+    const fh = await this._file(path, true);
+    const w = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+  }
+  async _remove(path) {
+    const segs = path.split('/');
+    const name = segs.pop();
+    try {
+      const dir = await this._dir(segs, false);
+      await dir.removeEntry(name);
+    } catch {}
+  }
+  async _removeDir(path) {
+    const segs = path.split('/');
+    const name = segs.pop();
+    try {
+      const dir = await this._dir(segs, false);
+      await dir.removeEntry(name, { recursive: true });
+    } catch {}
+  }
+  async _ensureContainerDir(containerId, kind) {
+    if (containerId == null) return;
+    await this._dir([KIND_DIR[kind], containerId], true);
+  }
 }
 
-function parseMarkdownStructure(text) {
-  const out = [];
-  let app = null, chapter = null;
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trimEnd();
-    let m;
-    if ((m = /^#\s+(.+)$/.exec(line))) {
-      app = { name: safeName(m[1]), children: [] };
-      out.push(app); chapter = null;
-    } else if ((m = /^##\s+(.+)$/.exec(line))) {
-      if (!app) { app = { name: "Untitled app", children: [] }; out.push(app); }
-      chapter = { name: safeName(m[1]), children: [] };
-      app.children.push(chapter);
-    } else if ((m = /^###\s+(.+)$/.exec(line))) {
-      if (!app) { app = { name: "Untitled app", children: [] }; out.push(app); }
-      if (!chapter) { chapter = { name: "Untitled chapter", children: [] }; app.children.push(chapter); }
-      chapter.children.push({ name: safeName(m[1]) });
-    }
-  }
-  return out;
-}
+/* ============================================================
+   Registry / model operations
+   ============================================================ */
 
-function parseCsvStructure(text) {
-  const rows = [];
-  // minimalist CSV: handles "quoted, fields" and commas
-  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
-  for (const line of lines) {
-    const fields = parseCsvLine(line);
-    rows.push(fields);
-  }
-  // skip header if first row looks like one
-  if (rows.length && /app/i.test(rows[0][0]||"") && /chapter/i.test(rows[0][1]||"")) rows.shift();
-  const apps = new Map();
-  for (const r of rows) {
-    const [a,c,s] = [safeName(r[0]||""), safeName(r[1]||""), safeName(r[2]||"")];
-    if (!a) continue;
-    if (!apps.has(a)) apps.set(a, { name: a, children: [], _ch: new Map() });
-    const app = apps.get(a);
-    if (!c) continue;
-    if (!app._ch.has(c)) {
-      const ch = { name: c, children: [] };
-      app._ch.set(c, ch); app.children.push(ch);
-    }
-    const ch = app._ch.get(c);
-    if (s) ch.children.push({ name: s });
-  }
-  return [...apps.values()].map(a => ({ name: a.name, children: a.children }));
-}
-function parseCsvLine(line) {
-  const out = []; let cur = ""; let q = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (q) {
-      if (c === '"' && line[i+1] === '"') { cur += '"'; i++; }
-      else if (c === '"') q = false;
-      else cur += c;
-    } else {
-      if (c === ',') { out.push(cur); cur = ""; }
-      else if (c === '"') q = true;
-      else cur += c;
-    }
-  }
-  out.push(cur);
-  return out.map(s => s.trim());
-}
-
-async function applyStructure(struct) {
-  let created = 0;
-  for (const app of struct) {
-    if (!app.name) continue;
-    const before = (await listDirs(vaultHandle)).some(d => d.name === app.name);
-    const appH = await ensureDir(vaultHandle, app.name);
-    if (!before) created++;
-    for (const ch of app.children || []) {
-      if (!ch.name) continue;
-      const beforeC = (await listDirs(appH)).some(d => d.name === ch.name);
-      const chH = await ensureDir(appH, ch.name);
-      if (!beforeC) created++;
-      for (const sub of ch.children || []) {
-        if (!sub.name) continue;
-        const beforeS = (await listDirs(chH)).some(d => d.name === sub.name);
-        await ensureDir(chH, sub.name);
-        if (!beforeS) created++;
-      }
-    }
-  }
-  return created;
-}
-
-// -------- Export tree as Markdown --------
-document.getElementById("exportBtn").addEventListener("click", async () => {
-  if (!vaultHandle) { showToast("Pick a folder first", "error"); return; }
-  await refreshTree();
-  let md = `# ${vaultHandle.name}\n\n`;
-  for (const app of tree) {
-    md += `# ${app.name}\n`;
-    for (const ch of app.children) {
-      md += `## ${ch.name}\n`;
-      for (const sub of ch.children) {
-        md += `### ${sub.name}\n`;
-      }
-    }
-    md += "\n";
-  }
-  const blob = new Blob([md], { type: "text/markdown" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "structure.md";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-});
-
-// -------- Test data (sandbox) --------
-// All test data lives in top-level apps prefixed with TEST_PREFIX so that
-// "Delete test data" can never touch your real apps.
-const TEST_PREFIX = "[TEST] ";
-const TEST_STRUCTURE = {
-  "[TEST] Whokna Design": {
-    "01 Window Basics": [
-      { name: "Window types",      wiki: "Window" },
-      { name: "Frame materials",   wiki: "Window_frame" },
-      { name: "Glazing systems",   wiki: "Insulated_glazing" },
-      { name: "Casement vs tilt-and-turn", wiki: "Casement_window" },
-    ],
-    "02 Drawing Tools": [
-      { name: "CAD overview",      wiki: "Computer-aided_design" },
-      { name: "Technical drawing", wiki: "Technical_drawing" },
-      { name: "Dimensioning",      wiki: "Engineering_drawing" },
-    ],
-    "03 Configurators": [
-      { name: "Product configurator", wiki: "Configurator" },
-      { name: "PVC profiles",         wiki: "Polyvinyl_chloride" },
-      { name: "Aluminium profiles",   wiki: "Aluminium" },
-    ],
-  },
-  "[TEST] Whokna Database": {
-    "01 Data Modeling": [
-      { name: "Relational basics",  wiki: "Relational_database" },
-      { name: "ER diagrams",        wiki: "Entity_relationship_model" },
-      { name: "Normalization",      wiki: "Database_normalization" },
-    ],
-    "02 Article Master": [
-      { name: "Bill of materials",  wiki: "Bill_of_materials" },
-      { name: "SKU and pricing",    wiki: "Stock_keeping_unit" },
-    ],
-    "03 Production": [
-      { name: "Production planning",     wiki: "Production_planning" },
-      { name: "Manufacturing execution", wiki: "Manufacturing_execution_system" },
-    ],
-  },
-  "[TEST] Reference": {
-    "Standards": [
-      { name: "ISO 9001", wiki: "ISO_9001" },
-      { name: "U-value",  wiki: "Thermal_transmittance" },
-    ],
-    "Glossary": [
-      { name: "Mullion",       wiki: "Mullion_(architecture)" },
-      { name: "Tilt and turn", wiki: "Tilt_and_turn_window" },
-    ],
-  },
+const State = {
+  vault: null,
+  index: null,
+  selectedId: null,
+  selectedParentId: null,
+  selectedParentKind: null,
+  currentNoteId: null,
+  expanded: new Set(),
+  noteTextCache: new Map(),
+  blobUrlCache: new Map(),
+  searchQuery: '',
+  editorTab: 'edit',
+  notesDirty: false,
+  isMobile: false,
+  inOrphansView: false,
 };
 
-async function fetchWikiSummary(slug) {
-  // Wikipedia REST API allows CORS (Access-Control-Allow-Origin: *).
-  // Returns null on any failure so the caller can fall back to canned text.
-  try {
-    const res = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURI(slug)}?redirect=true`,
-      { headers: { "Accept": "application/json" } }
-    );
-    if (!res.ok) return null;
-    const j = await res.json();
-    if (!j || !j.extract) return null;
-    return {
-      title: j.title || slug.replace(/_/g, " "),
-      extract: j.extract,
-      url: j.content_urls?.desktop?.page || `https://en.wikipedia.org/wiki/${slug}`,
-      thumb: j.thumbnail?.source || null,
-    };
-  } catch {
-    return null;
+function isContainer(kind) { return kind === 'app' || kind === 'chapter' || kind === 'sub'; }
+function childKindAllowed(parentKind, childKind) {
+  if (parentKind === 'app')     return childKind === 'chapter' || childKind === 'note' || childKind === 'asset';
+  if (parentKind === 'chapter') return childKind === 'sub'     || childKind === 'note' || childKind === 'asset';
+  if (parentKind === 'sub')     return childKind === 'note'    || childKind === 'asset';
+  return false;
+}
+
+async function persistIndex() { await State.vault.writeIndex(State.index); }
+
+function makeItem(kind, displayName, opts = {}) {
+  const id = newId();
+  const now = Date.now();
+  State.index.items[id] = {
+    kind,
+    displayName,
+    originalName: opts.originalName,
+    mime: opts.mime,
+    ext: opts.ext,
+    createdAt: now,
+    updatedAt: now,
+    parents: [],
+    isTest: !!opts.isTest,
+  };
+  return id;
+}
+
+async function addChild(parentId, parentKind, childId, atIndex = -1) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  if (!links.order.includes(childId)) {
+    if (atIndex < 0 || atIndex > links.order.length) links.order.push(childId);
+    else links.order.splice(atIndex, 0, childId);
+  }
+  await State.vault.writeLinks(parentId, parentKind, links);
+  const item = State.index.items[childId];
+  if (parentId != null && item && !item.parents.includes(parentId)) item.parents.push(parentId);
+  if (item) item.updatedAt = Date.now();
+  await persistIndex();
+}
+
+async function removeChild(parentId, parentKind, childId) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  links.order = links.order.filter(x => x !== childId);
+  await State.vault.writeLinks(parentId, parentKind, links);
+  const item = State.index.items[childId];
+  if (item && parentId != null) item.parents = item.parents.filter(x => x !== parentId);
+  if (item) item.updatedAt = Date.now();
+  await persistIndex();
+}
+
+async function reorderChild(parentId, parentKind, childId, targetIndex) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  const cur = links.order.indexOf(childId);
+  if (cur < 0) return;
+  links.order.splice(cur, 1);
+  let ti = targetIndex;
+  if (cur < ti) ti -= 1;
+  if (ti < 0) ti = 0;
+  if (ti > links.order.length) ti = links.order.length;
+  links.order.splice(ti, 0, childId);
+  await State.vault.writeLinks(parentId, parentKind, links);
+}
+
+async function descendantSet(rootId) {
+  const out = new Set();
+  const stack = [rootId];
+  while (stack.length) {
+    const id = stack.pop();
+    if (out.has(id)) continue;
+    out.add(id);
+    const item = State.index.items[id];
+    if (!item || !isContainer(item.kind)) continue;
+    const links = await State.vault.readLinks(id, item.kind);
+    for (const c of links.order) stack.push(c);
+  }
+  return out;
+}
+
+async function hardDelete(id) {
+  const item = State.index.items[id];
+  if (!item) return;
+  if (isContainer(item.kind)) {
+    const links = await State.vault.readLinks(id, item.kind);
+    for (const c of [...links.order]) {
+      await removeChild(id, item.kind, c);
+      const child = State.index.items[c];
+      if (child && child.parents.length === 0) await hardDelete(c);
+    }
+    await State.vault.deleteContainerDir(id, item.kind);
+  } else if (item.kind === 'note') {
+    await State.vault.deleteNote(id);
+  } else if (item.kind === 'asset') {
+    await State.vault.deleteAsset(id, item.ext);
+    const url = State.blobUrlCache.get(id);
+    if (url) try { URL.revokeObjectURL(url); } catch {}
+    State.blobUrlCache.delete(id);
+  }
+  delete State.index.items[id];
+  await persistIndex();
+}
+
+async function renameItem(id, newName) {
+  const item = State.index.items[id];
+  if (!item) return;
+  item.displayName = newName.trim() || item.displayName;
+  item.updatedAt = Date.now();
+  await persistIndex();
+}
+
+function parentNames(id) {
+  const item = State.index.items[id];
+  if (!item) return [];
+  return item.parents.map(p => State.index.items[p]?.displayName).filter(Boolean);
+}
+
+function firstChain(id) {
+  const item = State.index.items[id];
+  if (!item) return [];
+  if (item.kind === 'app') return [id];
+  const p = item.parents[0];
+  if (!p) return [id];
+  return [...firstChain(p), id];
+}
+
+/* ============================================================
+   Tree render
+   ============================================================ */
+
+const treeWrap = $('#treeWrap');
+
+async function getRootOrder() {
+  const links = await State.vault.readLinks(null, null);
+  return links.order;
+}
+
+async function renderTree() {
+  treeWrap.innerHTML = '';
+  if (!State.vault) {
+    treeWrap.appendChild(el('div', { class: 'tree-empty' }, 'No vault open.'));
+    return;
+  }
+  const matchSet = State.searchQuery ? await computeSearchMatches(State.searchQuery) : null;
+
+  if (State.inOrphansView) {
+    const orphans = Object.keys(State.index.items).filter(id => (State.index.items[id].parents || []).length === 0 && State.index.items[id].kind !== 'app');
+    const head = el('div', { class: 'tree-empty', style: { textAlign: 'left', padding: '6px 12px' } });
+    head.appendChild(el('button', { class: 'ghost icon', onclick: () => { State.inOrphansView = false; renderTree(); } }, '← Back to apps'));
+    head.appendChild(el('div', { style: { marginTop: '6px', color: 'var(--muted)' } }, `${orphans.length} orphan(s)`));
+    treeWrap.appendChild(head);
+    if (!orphans.length) {
+      treeWrap.appendChild(el('div', { class: 'tree-empty' }, 'No orphans yet.'));
+      return;
+    }
+    for (const id of orphans) {
+      treeWrap.appendChild(renderRow({ id, parentId: null, parentKind: null, level: 0, matchSet, orphan: true }));
+    }
+    return;
+  }
+
+  const rootOrder = await getRootOrder();
+  if (!rootOrder.length) {
+    treeWrap.appendChild(el('div', { class: 'tree-empty' }, 'No apps yet. Click "+ App" to add one.'));
+    return;
+  }
+  for (const appId of rootOrder) {
+    if (matchSet && !matchSet.has(appId)) continue;
+    treeWrap.appendChild(await renderNode(appId, null, null, 0, matchSet));
   }
 }
 
-function notesFromWiki(name, wiki) {
-  return `# ${name}\n\n` +
-         `> **Source:** Wikipedia — [${wiki.title}](${wiki.url})\n\n` +
-         `${wiki.extract}\n\n` +
-         `## Course notes\n_Your observations during the lesson go here._\n\n` +
-         `## Action items\n` +
-         `- [ ] Take a screenshot of the relevant Whokna dialog\n` +
-         `- [ ] Note down the keyboard shortcut\n` +
-         `- [ ] Find a real-world example in a current project\n\n` +
-         `## Diagram\n![${name}](attachments/diagram.svg)\n`;
+async function renderNode(id, parentId, parentKind, level, matchSet) {
+  const item = State.index.items[id];
+  if (!item) return el('div');
+  const wrap = el('div', { class: `node level-${level}`, dataset: { id, parentId: parentId || '', parentKind: parentKind || '' } });
+  wrap.appendChild(renderRow({ id, parentId, parentKind, level, matchSet }));
+  if (isContainer(item.kind)) {
+    const expanded = State.expanded.has(id) || (matchSet != null);
+    if (expanded) {
+      const childWrap = el('div', { class: 'node-children' });
+      const links = await State.vault.readLinks(id, item.kind);
+      for (const c of links.order) {
+        if (matchSet && !matchSet.has(c)) continue;
+        childWrap.appendChild(await renderNode(c, id, item.kind, level + 1, matchSet));
+      }
+      wrap.appendChild(childWrap);
+    }
+  }
+  return wrap;
 }
 
-function fallbackNotes(name) {
-  return `# ${name}\n\n` +
-         `> _Test note. Live web fetch did not succeed; using placeholder content._\n\n` +
-         `## Key points\n` +
-         `- Topic: **${name}**\n` +
-         `- Generated by the Test data feature.\n` +
-         `- Replace with your own notes during the course.\n\n` +
-         `## Action items\n` +
-         `- [ ] Add screenshots from the lesson\n` +
-         `- [ ] Record an audio explanation\n` +
-         `- [ ] Attach the relevant PDF\n\n` +
-         `## Diagram\n![${name}](attachments/diagram.svg)\n`;
+function kindIcon(kind, ext) {
+  if (kind === 'app') return '📦';
+  if (kind === 'chapter') return '📁';
+  if (kind === 'sub') return '📂';
+  if (kind === 'note') return '📝';
+  if (kind === 'asset') {
+    if (!ext) return '📎';
+    const e = ext.toLowerCase();
+    if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(e)) return '🖼';
+    if (['mp4','webm','mov','m4v','avi'].includes(e)) return '🎬';
+    if (['mp3','wav','m4a','ogg','flac'].includes(e)) return '🔊';
+    if (e === 'pdf') return '📄';
+    return '📎';
+  }
+  return '•';
 }
 
-function makeTestSvg(label) {
-  const safe = String(label).replace(/[<>&"]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;","\"":"&quot;"}[c]));
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 220">
-  <rect width="420" height="220" fill="#1f2430"/>
-  <rect x="20" y="20" width="380" height="180" rx="10" fill="#2e3446" stroke="#4f8cff" stroke-width="2"/>
-  <text x="210" y="105" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="22" fill="#e6e8ee">${safe}</text>
-  <text x="210" y="145" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#9aa0b4">Test diagram • Whokna Learning Helper</text>
+function renderRow({ id, parentId, parentKind, level, matchSet, orphan }) {
+  const item = State.index.items[id];
+  const linked = (item.parents || []).length > 1;
+  const row = el('div', { class: 'node-row' + (item.kind === 'asset' ? ' att-row' : item.kind === 'note' ? ' note-row' : ''), dataset: { id, parentId: parentId || '', parentKind: parentKind || '' } });
+  if (State.selectedId === id) row.classList.add('selected');
+
+  if (level > 0 || !isContainer(item.kind)) {
+    row.appendChild(el('span', { class: 'grip', title: 'Drag to reorder. Hold Alt or long-press to link.' }, '⋮⋮'));
+  } else {
+    row.appendChild(el('span', { class: 'grip' }, ' '));
+  }
+  if (isContainer(item.kind)) {
+    const exp = State.expanded.has(id) || (matchSet != null);
+    row.appendChild(el('span', { class: 'twist', onclick: e => { e.stopPropagation(); if (exp) State.expanded.delete(id); else State.expanded.add(id); renderTree(); } }, exp ? '▼' : '▶'));
+  } else {
+    row.appendChild(el('span', { class: 'twist empty' }, ' '));
+  }
+
+  row.appendChild(el('span', { class: 'icon' }, kindIcon(item.kind, item.ext)));
+  row.appendChild(el('span', { class: 'label' }, item.displayName));
+  if (linked) {
+    const others = parentNames(id);
+    row.appendChild(el('span', { class: 'badge', title: 'Linked in: ' + others.join(', ') }, '🔗'));
+  }
+
+  const acts = el('span', { class: 'row-actions' });
+  acts.appendChild(el('button', { title: 'Rename', onclick: e => { e.stopPropagation(); promptRename(id); } }, '✎'));
+  if (isContainer(item.kind)) {
+    acts.appendChild(el('button', { title: 'Add child', onclick: e => { e.stopPropagation(); promptAddChild(id, item.kind); } }, '+'));
+  }
+  if (linked) acts.appendChild(el('button', { title: 'Open canonical (first parent)', onclick: e => { e.stopPropagation(); jumpToCanonical(id); } }, '↗'));
+  acts.appendChild(el('button', { class: 'danger', title: orphan ? 'Hard delete' : 'Delete here', onclick: e => { e.stopPropagation(); deleteHere(id, parentId, parentKind, !!orphan); } }, '✕'));
+  row.appendChild(acts);
+
+  row.addEventListener('click', () => selectItem(id, parentId, parentKind));
+  bindRowDrag(row, { id, parentId, parentKind });
+  return row;
+}
+
+function jumpToCanonical(id) {
+  const item = State.index.items[id];
+  if (!item || !item.parents.length) return;
+  const p = item.parents[0];
+  const pk = State.index.items[p]?.kind;
+  for (const a of firstChain(id)) State.expanded.add(a);
+  selectItem(id, p, pk);
+  renderTree().then(() => {
+    const r = treeWrap.querySelector(`.node-row[data-id="${id}"][data-parent-id="${p}"]`);
+    if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('pulse'); }
+  });
+}
+
+/* ============================================================
+   Selection / editor / breadcrumb
+   ============================================================ */
+
+const editorWrap = $('#editorWrap');
+const emptyState = $('#emptyState');
+const notesEditor = $('#notesEditor');
+const previewEl = $('#preview');
+const editorBody = $('#editorBody');
+const linkedHint = $('#linkedHint');
+const saveStatus = $('#saveStatus');
+const crumbBox = $('#crumbBox');
+
+function setSaveStatus(s) {
+  saveStatus.className = 'save-status ' + s;
+  saveStatus.textContent = s === 'dirty' ? 'unsaved…' : s === 'saving' ? 'saving…' : s === 'saved' ? 'saved ✓' : '—';
+}
+
+async function selectItem(id, parentId, parentKind) {
+  State.selectedId = id;
+  State.selectedParentId = parentId;
+  State.selectedParentKind = parentKind;
+  document.body.classList.add('show-content');
+  $$('.node-row.selected').forEach(r => r.classList.remove('selected'));
+  const sel = treeWrap.querySelector(`.node-row[data-id="${id}"][data-parent-id="${parentId || ''}"]`);
+  if (sel) sel.classList.add('selected');
+  await openEditor();
+  renderBreadcrumb();
+}
+
+function renderBreadcrumb() {
+  crumbBox.innerHTML = '';
+  if (!State.selectedId) { crumbBox.textContent = ''; return; }
+  const chain = firstChain(State.selectedId);
+  chain.forEach((cid, i) => {
+    if (i > 0) crumbBox.appendChild(el('span', { class: 'sep' }, '›'));
+    const it = State.index.items[cid];
+    if (!it) return;
+    crumbBox.appendChild(el('span', { class: 'crumb', onclick: () => {
+      const pid = it.parents[0] || null;
+      const pk = pid ? State.index.items[pid]?.kind : null;
+      selectItem(cid, pid, pk);
+    } }, it.displayName));
+  });
+}
+
+async function openEditor() {
+  const id = State.selectedId;
+  if (!id) {
+    emptyState.style.display = '';
+    editorWrap.style.display = 'none';
+    return;
+  }
+  const item = State.index.items[id];
+  if (!item) return;
+  emptyState.style.display = 'none';
+  editorWrap.style.display = 'flex';
+
+  if ((item.parents || []).length > 1) {
+    linkedHint.style.display = '';
+    linkedHint.innerHTML = `🔗 Linked in <b>${esc(parentNames(id).join(', '))}</b>. Edits sync everywhere.`;
+  } else {
+    linkedHint.style.display = 'none';
+  }
+
+  let noteId = null;
+  if (item.kind === 'note') {
+    noteId = id;
+  } else if (isContainer(item.kind)) {
+    const links = await State.vault.readLinks(id, item.kind);
+    for (const c of links.order) {
+      if (State.index.items[c]?.kind === 'note') { noteId = c; break; }
+    }
+  } else if (item.kind === 'asset') {
+    notesEditor.value = '';
+    setSaveStatus('—');
+    State.currentNoteId = null;
+    notesEditor.disabled = true;
+    previewEl.innerHTML = await renderAssetPreviewHtml(id, item);
+    setEditorTab('preview');
+    await renderAttachments();
+    return;
+  }
+  notesEditor.disabled = false;
+
+  if (!noteId && isContainer(item.kind)) {
+    State.currentNoteId = null;
+    notesEditor.value = '';
+    setSaveStatus('—');
+    previewEl.innerHTML = '<p style="color:var(--muted)">No note yet. Start typing to create one.</p>';
+  } else if (noteId) {
+    State.currentNoteId = noteId;
+    const txt = await State.vault.readNote(noteId);
+    State.noteTextCache.set(noteId, txt);
+    notesEditor.value = txt;
+    setSaveStatus(txt ? 'saved' : '—');
+    await renderPreview();
+  }
+  setEditorTab(State.editorTab);
+  await renderAttachments();
+}
+
+async function renderAssetPreviewHtml(id, item) {
+  const url = await assetUrl(id, item);
+  const e = (item.ext || '').toLowerCase();
+  if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(e))
+    return `<img src="${esc(url)}" alt="${esc(item.displayName)}">`;
+  if (['mp4','webm','mov','m4v'].includes(e))
+    return `<video controls src="${esc(url)}" style="max-width:100%"></video>`;
+  if (['mp3','wav','m4a','ogg','flac'].includes(e))
+    return `<audio controls src="${esc(url)}"></audio>`;
+  if (e === 'pdf')
+    return `<p><a href="${esc(url)}" target="_blank" rel="noopener">Open PDF: ${esc(item.displayName)}</a></p>`;
+  return `<p><a href="${esc(url)}" download="${esc(item.originalName || item.displayName)}">Download ${esc(item.displayName)}</a></p>`;
+}
+
+$$('.editor-tabs button[data-tab]').forEach(b => b.addEventListener('click', () => setEditorTab(b.dataset.tab)));
+function setEditorTab(t) {
+  State.editorTab = t;
+  $$('.editor-tabs button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  editorBody.className = 'editor-body ' + t;
+  notesEditor.style.display = (t === 'preview') ? 'none' : '';
+  previewEl.style.display = (t === 'edit') ? 'none' : '';
+  if (t !== 'edit') renderPreview();
+}
+
+const saveNote = debounce(async () => {
+  if (!State.notesDirty) return;
+  setSaveStatus('saving');
+  try {
+    let noteId = State.currentNoteId;
+    if (!noteId) {
+      const parent = State.selectedId;
+      const pkind = State.index.items[parent]?.kind;
+      if (!isContainer(pkind)) { setSaveStatus('—'); return; }
+      noteId = makeItem('note', 'Notes');
+      await addChild(parent, pkind, noteId);
+      State.currentNoteId = noteId;
+      await renderTree();
+    }
+    const txt = notesEditor.value;
+    await State.vault.writeNote(noteId, txt);
+    State.noteTextCache.set(noteId, txt);
+    State.index.items[noteId].updatedAt = Date.now();
+    await persistIndex();
+    State.notesDirty = false;
+    setSaveStatus('saved');
+    if (State.editorTab !== 'edit') renderPreview();
+  } catch (e) {
+    console.error(e);
+    setSaveStatus('dirty');
+    toast('Save failed: ' + e.message, 'error');
+  }
+}, 600);
+
+notesEditor.addEventListener('input', () => {
+  State.notesDirty = true;
+  setSaveStatus('dirty');
+  saveNote();
+});
+
+window.addEventListener('beforeunload', e => {
+  if (State.notesDirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ============================================================
+   Markdown renderer (minimal)
+   ============================================================ */
+function renderMd(src) {
+  src = String(src || '').replace(/\r\n/g, '\n');
+  const codeBlocks = [];
+  src = src.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (m, lang, code) => {
+    codeBlocks.push(`<pre><code class="lang-${esc(lang)}">${esc(code)}</code></pre>`);
+    return ` CB${codeBlocks.length - 1} `;
+  });
+  const lines = src.split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    let m;
+    if ((m = line.match(/^(#{1,6})\s+(.*)$/))) {
+      out.push(`<h${m[1].length}>${inlineMd(m[2])}</h${m[1].length}>`);
+      i++; continue;
+    }
+    if (/^>/.test(line)) {
+      const buf = [];
+      while (i < lines.length && /^>/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, '')); i++; }
+      out.push(`<blockquote>${inlineMd(buf.join('\n'))}</blockquote>`);
+      continue;
+    }
+    if (/^[-*+]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*+]\s+/.test(lines[i])) {
+        items.push(`<li>${inlineMd(lines[i].replace(/^[-*+]\s+/, ''))}</li>`); i++;
+      }
+      out.push(`<ul>${items.join('')}</ul>`);
+      continue;
+    }
+    if (/^\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push(`<li>${inlineMd(lines[i].replace(/^\d+\.\s+/, ''))}</li>`); i++;
+      }
+      out.push(`<ol>${items.join('')}</ol>`);
+      continue;
+    }
+    if (/^---+$/.test(line)) { out.push('<hr>'); i++; continue; }
+    if (line.trim() === '') { i++; continue; }
+    const para = [line]; i++;
+    while (i < lines.length && lines[i].trim() !== '' && !/^(#{1,6}\s|>|[-*+]\s|\d+\.\s|---+$|```)/.test(lines[i])) { para.push(lines[i]); i++; }
+    out.push(`<p>${inlineMd(para.join('\n'))}</p>`);
+  }
+  let html = out.join('\n');
+  html = html.replace(/ CB(\d+) /g, (m, n) => codeBlocks[+n]);
+  return html;
+}
+function inlineMd(s) {
+  s = esc(s);
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, src) => mediaTag(src, alt));
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}" target="_blank" rel="noopener">${t}</a>`);
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^\w*])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>');
+  s = s.replace(/(^|[^\w_])_([^_\n]+)_(?!\w)/g, '$1<em>$2</em>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+function mediaTag(src, alt) {
+  let resolved = src;
+  let ext = (src.split('.').pop() || '').toLowerCase();
+  if (/^_assets\//.test(src)) {
+    const m = src.match(/^_assets\/([^.\/]+)\.([a-zA-Z0-9]+)$/);
+    if (m) {
+      ext = m[2].toLowerCase();
+      const url = State.blobUrlCache.get(m[1]);
+      if (url) resolved = url;
+    }
+  }
+  if (['mp4','webm','mov','m4v'].includes(ext)) return `<video controls src="${esc(resolved)}"></video>`;
+  if (['mp3','wav','m4a','ogg','flac'].includes(ext)) return `<audio controls src="${esc(resolved)}"></audio>`;
+  if (ext === 'pdf') return `<a href="${esc(resolved)}" target="_blank" rel="noopener">📄 ${esc(alt || src)}</a>`;
+  return `<img src="${esc(resolved)}" alt="${esc(alt)}">`;
+}
+
+async function renderPreview() {
+  const txt = notesEditor.value;
+  const refs = new Set();
+  txt.replace(/_assets\/([a-z0-9-]+)\.([a-zA-Z0-9]+)/gi, (m, id) => { refs.add(id); return m; });
+  for (const id of refs) {
+    if (!State.blobUrlCache.has(id) && State.index.items[id]) await assetUrl(id, State.index.items[id]);
+  }
+  previewEl.innerHTML = renderMd(txt);
+  $$('img', previewEl).forEach(img => img.addEventListener('click', () => openLightbox(img.src, 'img')));
+}
+
+/* ============================================================
+   Attachments panel
+   ============================================================ */
+const attachListEl = $('#attachList');
+const attCountEl = $('#attCount');
+
+async function renderAttachments() {
+  attachListEl.innerHTML = '';
+  const id = State.selectedId;
+  if (!id) { attCountEl.textContent = '(0)'; return; }
+  const item = State.index.items[id];
+  if (!item || !isContainer(item.kind)) { attCountEl.textContent = '(–)'; return; }
+  const links = await State.vault.readLinks(id, item.kind);
+  const assets = links.order.filter(c => State.index.items[c]?.kind === 'asset');
+  attCountEl.textContent = `(${assets.length})`;
+  for (const aid of assets) {
+    const a = State.index.items[aid];
+    if (!a) continue;
+    const linked = (a.parents || []).length > 1;
+    const node = el('div', { class: 'att', title: a.originalName || a.displayName });
+    node.appendChild(el('span', { class: 'icon' }, kindIcon('asset', a.ext)));
+    node.appendChild(el('span', { class: 'att-name' }, a.displayName));
+    if (linked) node.appendChild(el('span', { class: 'att-link-badge', title: 'Linked in: ' + parentNames(aid).join(', ') }, '🔗'));
+    node.addEventListener('click', () => previewAsset(aid, a));
+    const del = el('button', { class: 'att-del', title: 'Remove from this container', onclick: async e => {
+      e.stopPropagation();
+      await deleteHere(aid, id, item.kind, false);
+    } }, '×');
+    node.appendChild(del);
+    attachListEl.appendChild(node);
+  }
+}
+
+async function previewAsset(id, item) {
+  const url = await assetUrl(id, item);
+  const e = (item.ext || '').toLowerCase();
+  if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(e)) openLightbox(url, 'img');
+  else if (['mp4','webm','mov','m4v'].includes(e)) openLightbox(url, 'video');
+  else if (['mp3','wav','m4a','ogg','flac'].includes(e)) openLightbox(url, 'audio');
+  else if (e === 'pdf') window.open(url, '_blank');
+  else {
+    const a = el('a', { href: url, download: item.originalName || item.displayName });
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+}
+
+async function assetUrl(id, item) {
+  if (State.blobUrlCache.has(id)) return State.blobUrlCache.get(id);
+  const blob = await State.vault.readAsset(id, item.ext);
+  if (!blob) return '';
+  const url = URL.createObjectURL(blob);
+  State.blobUrlCache.set(id, url);
+  return url;
+}
+
+const lightbox = $('#lightbox');
+const lbInner = $('.lb-inner', lightbox);
+function openLightbox(src, kind) {
+  lbInner.innerHTML = '';
+  let node;
+  if (kind === 'img') node = el('img', { src });
+  else if (kind === 'video') node = el('video', { src, controls: true, autoplay: true });
+  else if (kind === 'audio') node = el('audio', { src, controls: true, autoplay: true });
+  if (node) lbInner.appendChild(node);
+  lightbox.classList.add('open');
+}
+lightbox.addEventListener('click', e => {
+  if (e.target === lightbox || e.target.classList.contains('lb-close')) {
+    lightbox.classList.remove('open'); lbInner.innerHTML = '';
+  }
+});
+
+/* ============================================================
+   Drag & Drop: reorder / move / link
+   ============================================================ */
+let dragState = null;
+
+function bindRowDrag(row, info) {
+  row.draggable = true;
+  row.addEventListener('dragstart', e => {
+    dragState = { id: info.id, parentId: info.parentId, parentKind: info.parentKind, link: e.altKey };
+    e.dataTransfer.effectAllowed = e.altKey ? 'link' : 'move';
+    e.dataTransfer.setData('text/plain', info.id);
+    row.classList.add('dragging');
+  });
+  row.addEventListener('dragend', () => { row.classList.remove('dragging'); clearDragHints(); dragState = null; });
+  row.addEventListener('dragover', e => {
+    if (!dragState) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = e.altKey ? 'link' : 'move';
+    decorateDropTarget(row, e);
+  });
+  row.addEventListener('dragleave', () => row.classList.remove('drag-over-into', 'drag-over-before', 'drag-over-after'));
+  row.addEventListener('drop', async e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = decideDropTarget(row, e);
+    clearDragHints();
+    if (!dragState) return;
+    await performDrop(dragState, target, e.altKey);
+    dragState = null;
+  });
+
+  let touchStart = null;
+  let longPressTimer = null;
+  let longPressed = false;
+  const grip = row.querySelector('.grip');
+  if (!grip) return;
+  grip.addEventListener('touchstart', e => {
+    touchStart = e.touches[0];
+    longPressed = false;
+    longPressTimer = setTimeout(() => {
+      longPressed = true;
+      navigator.vibrate?.(20);
+      startTouchDrag(row, info, true, touchStart);
+      toast('Link mode — drop on a target to link', 'ok');
+    }, 450);
+  }, { passive: true });
+  grip.addEventListener('touchmove', e => {
+    if (!touchStart) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStart.clientX, dy = t.clientY - touchStart.clientY;
+    if (!dragState && (Math.abs(dx) + Math.abs(dy)) > 8) {
+      clearTimeout(longPressTimer);
+      if (!longPressed) startTouchDrag(row, info, false, touchStart);
+    }
+    if (dragState) handleTouchMove(t);
+  }, { passive: true });
+  grip.addEventListener('touchend', async e => {
+    clearTimeout(longPressTimer);
+    if (dragState && dragState.touch) {
+      const t = (e.changedTouches || [])[0];
+      const tgtRow = t ? findRowAt(t.clientX, t.clientY) : null;
+      const target = tgtRow ? decideDropTarget(tgtRow, { clientY: t.clientY }) : null;
+      clearDragHints();
+      if (target) await performDrop(dragState, target, dragState.link);
+      $('#dragGhost').style.display = 'none';
+      dragState = null;
+    }
+    touchStart = null;
+  });
+  grip.addEventListener('touchcancel', () => {
+    clearTimeout(longPressTimer);
+    $('#dragGhost').style.display = 'none';
+    clearDragHints();
+    dragState = null; touchStart = null;
+  });
+}
+
+function startTouchDrag(row, info, isLink, touch) {
+  dragState = { id: info.id, parentId: info.parentId, parentKind: info.parentKind, link: isLink, touch: true };
+  const g = $('#dragGhost');
+  g.textContent = State.index.items[info.id]?.displayName || '?';
+  g.className = isLink ? 'link' : '';
+  g.style.display = 'block';
+  g.style.left = (touch.clientX + 8) + 'px';
+  g.style.top = (touch.clientY + 8) + 'px';
+}
+function handleTouchMove(t) {
+  const g = $('#dragGhost');
+  g.style.left = (t.clientX + 8) + 'px';
+  g.style.top = (t.clientY + 8) + 'px';
+  const r = findRowAt(t.clientX, t.clientY);
+  clearDragHints();
+  if (r) decorateDropTarget(r, { clientY: t.clientY });
+}
+function findRowAt(x, y) {
+  const els = document.elementsFromPoint(x, y);
+  return els.find(e => e.classList && e.classList.contains('node-row'));
+}
+function clearDragHints() {
+  $$('.drag-over-into,.drag-over-before,.drag-over-after').forEach(r => r.classList.remove('drag-over-into', 'drag-over-before', 'drag-over-after'));
+}
+function decorateDropTarget(row, e) {
+  const target = decideDropTarget(row, e);
+  if (!target) return;
+  if (target.position === 'into') row.classList.add('drag-over-into');
+  else if (target.position === 'before') row.classList.add('drag-over-before');
+  else row.classList.add('drag-over-after');
+}
+function decideDropTarget(row, e) {
+  const id = row.dataset.id;
+  const item = State.index.items[id];
+  if (!item) return null;
+  const r = row.getBoundingClientRect();
+  const y = e.clientY - r.top;
+  if (isContainer(item.kind)) {
+    if (y < r.height * 0.25) return { position: 'before', refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+    if (y > r.height * 0.75) return { position: 'after',  refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+    return { position: 'into', containerId: id, containerKind: item.kind };
+  } else {
+    if (y < r.height * 0.5) return { position: 'before', refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+    return { position: 'after', refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+  }
+}
+
+async function performDrop(drag, target, modifierLink) {
+  if (!target) return;
+  const sourceId = drag.id;
+  const sourceItem = State.index.items[sourceId];
+  if (!sourceItem) return;
+
+  let destParentId, destParentKind, destIndex;
+  if (target.position === 'into') {
+    destParentId = target.containerId;
+    destParentKind = target.containerKind;
+    destIndex = -1;
+  } else {
+    destParentId = target.parentId || null;
+    destParentKind = target.parentKind || null;
+    const links = await State.vault.readLinks(destParentId || null, destParentKind);
+    destIndex = links.order.indexOf(target.refId);
+    if (target.position === 'after') destIndex += 1;
+  }
+
+  if (sourceId === destParentId) { toast('Cannot drop into itself', 'error'); return; }
+  if (destParentKind !== null && !childKindAllowed(destParentKind, sourceItem.kind)) {
+    toast(`A ${destParentKind} cannot host a ${sourceItem.kind}`, 'error'); return;
+  }
+  if (destParentKind === null && sourceItem.kind !== 'app') {
+    toast('Only apps can be at the root.', 'error'); return;
+  }
+  if (isContainer(sourceItem.kind) && destParentId) {
+    const desc = await descendantSet(sourceId);
+    if (desc.has(destParentId)) { toast('Cannot move/link into own descendant', 'error'); return; }
+  }
+
+  const isLink = drag.link || modifierLink;
+  const samePlace = (drag.parentId || null) === (destParentId || null);
+
+  if (samePlace) {
+    await reorderChild(destParentId, destParentKind, sourceId, destIndex);
+  } else if (isLink) {
+    await addChild(destParentId, destParentKind, sourceId, destIndex);
+    toast('Linked', 'ok');
+  } else {
+    if (drag.parentId !== undefined) await removeChild(drag.parentId || null, drag.parentKind || null, sourceId);
+    await addChild(destParentId, destParentKind, sourceId, destIndex);
+  }
+  await renderTree();
+}
+
+/* ============================================================
+   Add / rename / delete dialogs
+   ============================================================ */
+
+function showModal(content) {
+  const back = el('div', { class: 'modal-backdrop' });
+  const m = el('div', { class: 'modal' });
+  back.appendChild(m);
+  back.addEventListener('click', e => { if (e.target === back) back.remove(); });
+  m.appendChild(content);
+  document.body.appendChild(back);
+  return back;
+}
+
+function promptText({ title, label, value = '', placeholder = '' }) {
+  return new Promise(res => {
+    const inp = el('input', { type: 'text', value, placeholder });
+    const c = el('div', {},
+      el('h3', {}, title),
+      el('div', { class: 'row' }, el('label', {}, label, el('br'), inp)),
+      el('div', { class: 'actions' },
+        el('button', { onclick: () => { back.remove(); res(null); } }, 'Cancel'),
+        el('button', { class: 'primary', onclick: () => { back.remove(); res(inp.value.trim()); } }, 'OK')
+      )
+    );
+    const back = showModal(c);
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { back.remove(); res(inp.value.trim()); }
+      if (e.key === 'Escape') { back.remove(); res(null); }
+    });
+  });
+}
+
+async function promptRename(id) {
+  const item = State.index.items[id];
+  if (!item) return;
+  const name = await promptText({ title: 'Rename', label: 'Display name', value: item.displayName });
+  if (name) { await renameItem(id, name); renderTree(); renderBreadcrumb(); }
+}
+
+async function promptAddChild(parentId, parentKind) {
+  const choices = [];
+  if (parentKind === 'app') choices.push('chapter');
+  if (parentKind === 'chapter') choices.push('sub');
+  choices.push('note', 'asset');
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, `Add to ${State.index.items[parentId]?.displayName || ''}`));
+  const row = el('div', { class: 'row', style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
+  for (const k of choices) {
+    row.appendChild(el('button', { onclick: async () => {
+      back.remove();
+      if (k === 'asset') {
+        $('#filePicker').onchange = async e => {
+          for (const f of e.target.files) await ingestFile(f, parentId, parentKind);
+          await renderTree(); await renderAttachments();
+          $('#filePicker').value = '';
+        };
+        $('#filePicker').click();
+      } else {
+        const name = await promptText({ title: `New ${k}`, label: 'Display name', value: k === 'note' ? 'Notes' : '' });
+        if (!name) return;
+        const id = makeItem(k, name);
+        await addChild(parentId, parentKind, id);
+        await renderTree();
+        if (k !== 'asset') selectItem(id, parentId, parentKind);
+      }
+    } }, kindIcon(k), ' ', k));
+  }
+  c.appendChild(row);
+  c.appendChild(el('div', { class: 'actions' }, el('button', { onclick: () => back.remove() }, 'Close')));
+  const back = showModal(c);
+}
+
+async function deleteHere(id, parentId, parentKind, hardOnly) {
+  const item = State.index.items[id];
+  if (!item) return;
+  if (hardOnly) {
+    if (!confirm(`Hard delete "${item.displayName}"? This removes data permanently.`)) return;
+    await hardDelete(id);
+    if (State.selectedId === id) { State.selectedId = null; openEditor(); }
+    await renderTree();
+    return;
+  }
+  if (parentId == null) {
+    if (item.kind === 'app') {
+      if (!confirm(`Remove app "${item.displayName}" from root?`)) return;
+      const links = await State.vault.readLinks(null, null);
+      links.order = links.order.filter(x => x !== id);
+      await State.vault.writeLinks(null, null, links);
+    }
+  } else {
+    await removeChild(parentId, parentKind, id);
+  }
+  if ((item.parents || []).length === 0 && item.kind !== 'app') {
+    const c = el('div', {});
+    c.appendChild(el('h3', {}, `Last link removed`));
+    c.appendChild(el('p', {}, `"${item.displayName}" is no longer linked anywhere.`));
+    const acts = el('div', { class: 'actions' });
+    acts.appendChild(el('button', { onclick: () => { back.remove(); renderTree(); } }, 'Move to Orphans'));
+    acts.appendChild(el('button', { class: 'danger', onclick: async () => {
+      back.remove();
+      await hardDelete(id);
+      if (State.selectedId === id) { State.selectedId = null; openEditor(); }
+      renderTree();
+    } }, 'Hard delete'));
+    acts.appendChild(el('button', { class: 'primary', onclick: async () => {
+      back.remove();
+      if (parentId != null && parentKind) await addChild(parentId, parentKind, id);
+      renderTree();
+    } }, 'Cancel (undo)'));
+    c.appendChild(acts);
+    const back = showModal(c);
+  } else {
+    if (State.selectedId === id) { State.selectedId = null; openEditor(); }
+    renderTree();
+  }
+}
+
+/* ============================================================
+   File ingest (paste / drop / + Add)
+   ============================================================ */
+async function ingestFile(file, parentId, parentKind) {
+  if (!parentId) { toast('Select a chapter or sub-chapter first', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024 && State.vault.kind === 'sandbox')
+    toast('Large file (' + (file.size/1024/1024).toFixed(1) + ' MB) in sandbox.', 'warn');
+  const ext = guessExt(file);
+  const name = file.name || `pasted-${Date.now()}.${ext}`;
+  const id = makeItem('asset', name, { originalName: file.name, mime: file.type, ext });
+  await State.vault.writeAsset(id, ext, file);
+  await addChild(parentId, parentKind, id);
+  return id;
+}
+function guessExt(file) {
+  if (file.name && file.name.includes('.')) return file.name.split('.').pop().toLowerCase();
+  const m = (file.type || '').match(/\/([a-z0-9]+)/i);
+  return m ? m[1] : 'bin';
+}
+
+const contentArea = $('#content');
+contentArea.addEventListener('paste', async e => {
+  if (!State.selectedId) return;
+  const items = e.clipboardData?.items || [];
+  let parent = State.selectedId, parentKind = State.index.items[State.selectedId]?.kind;
+  if (!isContainer(parentKind)) { parent = State.selectedParentId; parentKind = State.selectedParentKind; }
+  if (!isContainer(parentKind)) return;
+  let ingested = false;
+  for (const it of items) {
+    if (it.kind === 'file') {
+      const f = it.getAsFile();
+      if (f) { await ingestFile(f, parent, parentKind); ingested = true; }
+    }
+  }
+  if (ingested) { e.preventDefault(); await renderTree(); await renderAttachments(); toast('Pasted', 'ok'); }
+});
+contentArea.addEventListener('dragover', e => {
+  if (!e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  contentArea.classList.add('drop-active');
+});
+contentArea.addEventListener('dragleave', e => { if (e.target === contentArea) contentArea.classList.remove('drop-active'); });
+contentArea.addEventListener('drop', async e => {
+  contentArea.classList.remove('drop-active');
+  if (!e.dataTransfer.files.length) return;
+  e.preventDefault();
+  let parent = State.selectedId, parentKind = State.index.items[State.selectedId]?.kind;
+  if (!isContainer(parentKind)) { parent = State.selectedParentId; parentKind = State.selectedParentKind; }
+  if (!isContainer(parentKind)) { toast('Select a container first', 'error'); return; }
+  for (const f of e.dataTransfer.files) await ingestFile(f, parent, parentKind);
+  await renderTree(); await renderAttachments();
+  toast('Files added', 'ok');
+});
+
+$('#btnAddFiles').addEventListener('click', () => {
+  if (!State.selectedId) { toast('Select a container first', 'error'); return; }
+  const item = State.index.items[State.selectedId];
+  let p = State.selectedId, pk = item.kind;
+  if (!isContainer(pk)) { p = State.selectedParentId; pk = State.selectedParentKind; }
+  if (!isContainer(pk)) return;
+  $('#filePicker').onchange = async e => {
+    for (const f of e.target.files) await ingestFile(f, p, pk);
+    await renderTree(); await renderAttachments();
+    $('#filePicker').value = '';
+  };
+  $('#filePicker').click();
+});
+$('#btnAddNote').addEventListener('click', async () => {
+  const sel = State.selectedId;
+  let p = sel, pk = State.index.items[sel]?.kind;
+  if (!isContainer(pk)) { p = State.selectedParentId; pk = State.selectedParentKind; }
+  if (!isContainer(pk)) { toast('Select a container first', 'error'); return; }
+  const name = await promptText({ title: 'New note', label: 'Display name', value: 'Notes' });
+  if (!name) return;
+  const id = makeItem('note', name);
+  await addChild(p, pk, id);
+  await renderTree();
+  selectItem(id, p, pk);
+});
+$('#btnAddChild').addEventListener('click', async () => {
+  if (!State.selectedId) { toast('Select an item first', 'error'); return; }
+  const it = State.index.items[State.selectedId];
+  if (isContainer(it.kind)) promptAddChild(State.selectedId, it.kind);
+  else promptAddChild(State.selectedParentId, State.selectedParentKind);
+});
+$('#btnAddApp').addEventListener('click', async () => {
+  if (!State.vault) { toast('Open a vault first', 'error'); return; }
+  const name = await promptText({ title: 'New app', label: 'App name' });
+  if (!name) return;
+  const id = makeItem('app', name);
+  const links = await State.vault.readLinks(null, null);
+  links.order.push(id);
+  await State.vault.writeLinks(null, null, links);
+  await renderTree();
+  selectItem(id, null, null);
+});
+$('#backToTree').addEventListener('click', () => { document.body.classList.remove('show-content'); });
+
+/* ============================================================
+   Search
+   ============================================================ */
+const searchInput = $('#search');
+const notesMatchesEl = $('#notesMatches');
+
+searchInput.addEventListener('input', debounce(async () => {
+  State.searchQuery = searchInput.value.trim().toLowerCase();
+  await renderTree();
+  await renderNotesMatches();
+}, 180));
+
+async function computeSearchMatches(q) {
+  const set = new Set();
+  q = q.toLowerCase();
+  const direct = new Set();
+  for (const id in State.index.items) {
+    const it = State.index.items[id];
+    if ((it.displayName || '').toLowerCase().includes(q)) direct.add(id);
+    if (it.kind === 'note') {
+      let txt = State.noteTextCache.get(id);
+      if (txt == null) {
+        try { txt = await State.vault.readNote(id); State.noteTextCache.set(id, txt); } catch { txt = ''; }
+      }
+      if ((txt || '').toLowerCase().includes(q)) direct.add(id);
+    }
+  }
+  for (const id of direct) {
+    const stack = [id];
+    while (stack.length) {
+      const cur = stack.pop();
+      if (set.has(cur)) continue;
+      set.add(cur);
+      const it = State.index.items[cur];
+      if (it && it.parents) for (const p of it.parents) stack.push(p);
+    }
+  }
+  return set;
+}
+
+async function renderNotesMatches() {
+  notesMatchesEl.innerHTML = '';
+  if (!State.searchQuery) return;
+  const q = State.searchQuery.toLowerCase();
+  const list = [];
+  for (const id in State.index.items) {
+    const it = State.index.items[id];
+    if (it.kind !== 'note') continue;
+    let txt = State.noteTextCache.get(id);
+    if (txt == null) continue;
+    const i = txt.toLowerCase().indexOf(q);
+    if (i < 0) continue;
+    const start = Math.max(0, i - 30), end = Math.min(txt.length, i + q.length + 50);
+    list.push({ id, snip: txt.slice(start, end), at: i - start });
+    if (list.length > 30) break;
+  }
+  if (!list.length) return;
+  notesMatchesEl.appendChild(el('div', { class: 'nm-head' }, `Notes matches (${list.length})`));
+  for (const m of list) {
+    const it = State.index.items[m.id];
+    const before = esc(m.snip.slice(0, m.at));
+    const hit = esc(m.snip.slice(m.at, m.at + State.searchQuery.length));
+    const after = esc(m.snip.slice(m.at + State.searchQuery.length));
+    const node = el('div', { class: 'nm', onclick: () => {
+      const p = it.parents[0] || null;
+      const pk = p ? State.index.items[p].kind : null;
+      selectItem(m.id, p, pk);
+    } });
+    node.appendChild(el('div', { class: 'nm-name' }, it.displayName));
+    const snip = el('div', { class: 'nm-snip' });
+    snip.innerHTML = `…${before}<mark>${hit}</mark>${after}…`;
+    node.appendChild(snip);
+    notesMatchesEl.appendChild(node);
+  }
+}
+
+/* ============================================================
+   Tools menu
+   ============================================================ */
+$('#btnTools').addEventListener('click', e => {
+  const existing = $('#toolsMenu');
+  if (existing) { existing.remove(); return; }
+  const m = el('div', { class: 'menu', id: 'toolsMenu' });
+  m.style.right = '12px';
+  m.style.top = (e.target.getBoundingClientRect().bottom + 4) + 'px';
+  m.style.position = 'fixed';
+  m.appendChild(el('button', { onclick: () => { m.remove(); State.inOrphansView = true; renderTree(); } }, '🗃 Orphans'));
+  m.appendChild(el('button', { onclick: () => { m.remove(); exportTree(); } }, '⇩ Export tree (Markdown)'));
+  m.appendChild(el('button', { onclick: () => { m.remove(); importStructure(); } }, '⇪ Import structure'));
+  m.appendChild(el('div', { class: 'sep' }));
+  m.appendChild(el('button', { onclick: () => { m.remove(); garbageCollect(); } }, '🧹 GC orphan files'));
+  document.body.appendChild(m);
+  setTimeout(() => {
+    document.addEventListener('click', function once(ev) {
+      if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', once); }
+    });
+  }, 0);
+});
+
+async function exportTree() {
+  const out = ['# Vault export', ''];
+  const root = await State.vault.readLinks(null, null);
+  async function walk(id) {
+    const it = State.index.items[id]; if (!it) return;
+    const linked = (it.parents || []).length > 1 ? '  🔗' : '';
+    if (it.kind === 'app') out.push(`# ${it.displayName}${linked}`);
+    else if (it.kind === 'chapter') out.push(`## ${it.displayName}${linked}`);
+    else if (it.kind === 'sub') out.push(`### ${it.displayName}${linked}`);
+    else if (it.kind === 'note') out.push(`- 📝 ${it.displayName}${linked}`);
+    else if (it.kind === 'asset') out.push(`- 📎 ${it.displayName}${linked}`);
+    if (isContainer(it.kind)) {
+      const ch = await State.vault.readLinks(id, it.kind);
+      for (const c of ch.order) await walk(c);
+    }
+  }
+  for (const a of root.order) await walk(a);
+  const blob = new Blob([out.join('\n')], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: 'whokna-export.md' });
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('Exported', 'ok');
+}
+
+async function importStructure() {
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, 'Import structure'));
+  c.appendChild(el('p', { class: 'hint' }, 'Markdown headings (# app, ## chapter, ### sub-chapter) OR 3-column CSV: app,chapter,sub.'));
+  const ta = el('textarea', { rows: 10, style: { width: '100%', height: '180px' }, placeholder: '# Whokna Design\n## Frames\n### Hinges\n### Locks\n## Glass\n### Insulation' });
+  c.appendChild(ta);
+  c.appendChild(el('div', { class: 'actions' },
+    el('button', { onclick: () => back.remove() }, 'Cancel'),
+    el('button', { class: 'primary', onclick: async () => {
+      back.remove();
+      await runImport(ta.value);
+      await renderTree();
+      toast('Imported', 'ok');
+    } }, 'Import')
+  ));
+  const back = showModal(c);
+}
+
+async function runImport(txt) {
+  const lines = txt.split(/\r?\n/);
+  let appId = null, chapterId = null;
+  const isCsv = !lines.some(l => /^#{1,3}\s/.test(l)) && lines.some(l => l.includes(','));
+  if (isCsv) {
+    for (const line of lines) {
+      const cols = line.split(',').map(s => s.trim());
+      if (!cols[0]) continue;
+      appId = await ensureChild(null, null, 'app', cols[0]);
+      if (cols[1]) chapterId = await ensureChild(appId, 'app', 'chapter', cols[1]);
+      if (cols[2]) await ensureChild(chapterId, 'chapter', 'sub', cols[2]);
+    }
+  } else {
+    for (const line of lines) {
+      const m1 = line.match(/^#\s+(.+)$/);
+      const m2 = line.match(/^##\s+(.+)$/);
+      const m3 = line.match(/^###\s+(.+)$/);
+      if (m1) { appId = await ensureChild(null, null, 'app', m1[1]); chapterId = null; }
+      else if (m2 && appId) { chapterId = await ensureChild(appId, 'app', 'chapter', m2[1]); }
+      else if (m3 && chapterId) { await ensureChild(chapterId, 'chapter', 'sub', m3[1]); }
+    }
+  }
+}
+async function ensureChild(parentId, parentKind, kind, name) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  for (const c of links.order) {
+    const it = State.index.items[c];
+    if (it && it.kind === kind && it.displayName === name) return c;
+  }
+  const id = makeItem(kind, name);
+  await addChild(parentId, parentKind, id);
+  return id;
+}
+
+async function garbageCollect() {
+  if (State.vault.kind !== 'sandbox') { toast('GC available in sandbox only', 'warn'); return; }
+  const keys = await sbxKeys();
+  let removed = 0;
+  for (const k of keys) {
+    if (typeof k !== 'string' || !k.startsWith('f:_')) continue;
+    const m = k.match(/^f:(_assets|_notes)\/([^.\/]+)/);
+    if (m && !State.index.items[m[2]]) { await sbxDel(k); removed++; }
+  }
+  toast(`GC removed ${removed} file(s)`, 'ok');
+}
+
+/* ============================================================
+   Test data + sandbox modal
+   ============================================================ */
+const TEST_TOPICS = [
+  ['Window','window'],['Door','door'],['Hinge','hinge'],['Mortise lock','mortise lock'],
+  ['Casement','casement window'],['Sash window','sash window'],['Glazing','insulated glazing'],
+  ['Weatherstrip','weatherstripping'],['Frame (construction)','frame'],['PVC window','PVC window'],
+  ['Profile (extrusion)','profile'],['Aluminium','aluminium'],['Wood','wood'],
+  ['Door handle','door handle'],['Lock and key','lock and key'],['Cylinder lock','cylinder lock'],
+  ['SQL','SQL'],['PostgreSQL','PostgreSQL'],['Database normalization','database normalization'],
+  ['Index (database)','database index'],['Foreign key','foreign key'],['Backup','backup'],
+  ['Schema migration','schema migration'],['SAP','SAP SE'],['CSV','CSV'],['XML','XML'],['JSON','JSON']
+];
+
+const PLACEHOLDER_SVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <rect width="320" height="200" fill="#262b3a"/>
+  <rect x="20" y="20" width="280" height="160" fill="none" stroke="#7aa8ff" stroke-width="3"/>
+  <rect x="50" y="40" width="100" height="120" fill="#3a4880" stroke="#7aa8ff" stroke-width="2"/>
+  <rect x="170" y="40" width="100" height="120" fill="#3a4880" stroke="#7aa8ff" stroke-width="2"/>
+  <line x1="50" y1="100" x2="270" y2="100" stroke="#7aa8ff" stroke-width="1"/>
+  <text x="160" y="195" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#9aa0b4">demo SVG</text>
 </svg>`;
+
+$('#btnTest').addEventListener('click', () => openTestModal());
+function openTestModal() {
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, 'Test data & sandbox'));
+  if (State.vault) {
+    const p = el('p', { class: 'hint' });
+    p.innerHTML = `Active vault: <b>${esc(State.vault.label)}</b> (${State.vault.kind})`;
+    c.appendChild(p);
+  } else {
+    c.appendChild(el('p', { class: 'hint' }, 'No vault open. Start sandbox to try without picking a folder.'));
+  }
+  const row = el('div', { class: 'row', style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
+  row.appendChild(el('button', { onclick: async () => { back.remove(); await openSandbox(); } }, '▶ Start / Resume sandbox'));
+  row.appendChild(el('button', { class: 'primary', onclick: async () => {
+    if (!State.vault) { toast('Open a vault first or start sandbox', 'error'); return; }
+    back.remove(); await generateTestData();
+  } }, '✨ Generate test data'));
+  row.appendChild(el('button', { class: 'danger', onclick: async () => {
+    if (!State.vault) return;
+    if (!confirm('Delete all items marked isTest=true?')) return;
+    back.remove(); await deleteTestData();
+  } }, '🗑 Delete test data'));
+  if (State.vault?.kind === 'sandbox') {
+    row.appendChild(el('button', { class: 'danger', onclick: async () => {
+      if (!confirm('Wipe the entire sandbox?')) return;
+      back.remove();
+      await State.vault.wipe();
+      await initVault(null);
+      await renderTree();
+      toast('Sandbox wiped', 'ok');
+    } }, '⚠ Wipe sandbox'));
+  }
+  c.appendChild(row);
+  c.appendChild(el('div', { class: 'actions' }, el('button', { onclick: () => back.remove() }, 'Close')));
+  const back = showModal(c);
 }
 
-async function generateTestData(progressCb) {
-  if (!vaultHandle) throw new Error("No folder connected.");
-  let folders = 0, fetched = 0, failed = 0;
-  for (const appName of Object.keys(TEST_STRUCTURE)) {
-    progressCb?.(`Creating ${appName}…`);
-    const appH = await ensureDir(vaultHandle, appName);
-    folders++;
-    const chapters = TEST_STRUCTURE[appName];
-    for (const chName of Object.keys(chapters)) {
-      const chH = await ensureDir(appH, chName);
-      folders++;
-      for (const sub of chapters[chName]) {
-        progressCb?.(`Fetching “${sub.name}”…`);
-        const subH = await ensureDir(chH, sub.name);
-        folders++;
-        const wiki = sub.wiki ? await fetchWikiSummary(sub.wiki) : null;
-        if (wiki) fetched++; else failed++;
-        const attH = await ensureDir(subH, "attachments");
-        await writeFileBlob(attH, "diagram.svg",
-          new Blob([makeTestSvg(sub.name)], { type: "image/svg+xml" }));
-        await writeFileText(subH, "notes.md",
-          wiki ? notesFromWiki(sub.name, wiki) : fallbackNotes(sub.name));
+async function openSandbox() {
+  await initVault(new IdbVault());
+  await renderTree();
+  toast('Sandbox open', 'ok');
+}
+
+async function fetchWiki(title) {
+  try {
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { mode: 'cors' });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const j = await r.json();
+    return j.extract || '';
+  } catch { return ''; }
+}
+
+async function generateTestData() {
+  toast('Generating test data…');
+  const apps = ['[TEST] Whokna Design','[TEST] Whokna Database','[TEST] Reference'];
+  const root = await State.vault.readLinks(null, null);
+  const appIds = [];
+  for (const name of apps) {
+    let id = root.order.find(x => State.index.items[x]?.displayName === name);
+    if (!id) {
+      id = makeItem('app', name, { isTest: true });
+      root.order.push(id);
+    } else {
+      State.index.items[id].isTest = true;
+    }
+    appIds.push(id);
+  }
+  await State.vault.writeLinks(null, null, root);
+
+  const topics = TEST_TOPICS.slice(0, 27);
+  let topicIdx = 0;
+  const allSubs = [];
+  for (let a = 0; a < appIds.length; a++) {
+    const appId = appIds[a];
+    for (let c = 0; c < 3; c++) {
+      const chapName = ['Foundations','Components','Workflows'][c];
+      const chapId = await ensureChild(appId, 'app', 'chapter', chapName);
+      State.index.items[chapId].isTest = true;
+      for (let s = 0; s < 3; s++) {
+        const tp = topics[topicIdx % topics.length]; topicIdx++;
+        const subName = tp[0];
+        const subId = await ensureChild(chapId, 'chapter', 'sub', subName);
+        State.index.items[subId].isTest = true;
+        const noteId = makeItem('note', `${subName} notes`, { isTest: true });
+        await addChild(subId, 'sub', noteId);
+        const summary = await fetchWiki(tp[1]);
+        const blob = new Blob([PLACEHOLDER_SVG], { type: 'image/svg+xml' });
+        const aid = makeItem('asset', `${subName} diagram.svg`, { isTest: true, ext: 'svg', mime: 'image/svg+xml', originalName: `${subName}.svg` });
+        await State.vault.writeAsset(aid, 'svg', blob);
+        await addChild(subId, 'sub', aid);
+        const noteTxt = `# ${subName}\n\n${summary || `_(offline placeholder for ${subName})_`}\n\n![diagram](_assets/${aid}.svg)\n`;
+        await State.vault.writeNote(noteId, noteTxt);
+        State.noteTextCache.set(noteId, noteTxt);
+        allSubs.push({ subId, chapId, appId, aid, noteId });
       }
     }
   }
-  return { folders, fetched, failed };
-}
-
-async function listTestApps() {
-  if (!vaultHandle) return [];
-  const all = await listDirs(vaultHandle);
-  return all.filter(d => d.name.startsWith(TEST_PREFIX)).map(d => d.name);
+  await persistIndex();
+  if (allSubs.length >= 4) {
+    const a = allSubs[1], b = allSubs[2];
+    await addChild(b.subId, 'sub', a.aid);
+    await addChild(a.subId, 'sub', b.aid);
+  }
+  if (allSubs.length >= 5) {
+    const s = allSubs[3];
+    const targetChapter = allSubs[allSubs.length - 1].chapId;
+    if (s.chapId !== targetChapter) await addChild(targetChapter, 'chapter', s.subId);
+  }
+  await renderTree();
+  toast('Test data ready', 'ok');
 }
 
 async function deleteTestData() {
-  if (!vaultHandle) throw new Error("No folder connected.");
-  const names = await listTestApps();
-  for (const name of names) {
-    await vaultHandle.removeEntry(name, { recursive: true });
+  for (const id of Object.keys(State.index.items)) {
+    const it = State.index.items[id];
+    if (!it || !it.isTest) continue;
+    if (it.kind === 'app') {
+      const root = await State.vault.readLinks(null, null);
+      root.order = root.order.filter(x => x !== id);
+      await State.vault.writeLinks(null, null, root);
+    }
+    for (const p of [...(it.parents || [])]) {
+      const pkind = State.index.items[p]?.kind;
+      if (pkind) await removeChild(p, pkind, id);
+    }
+    await hardDelete(id);
   }
-  return names;
+  await renderTree();
+  toast('Test data removed', 'ok');
 }
 
-async function startAndroidSandbox() {
-  // Resume existing sandbox if data exists; else start fresh.
-  let v;
-  const existing = await idbGet("memVaultData");
-  if (existing) {
-    try { v = deserializeMemVault(existing); } catch { v = new MemVault(); }
-  } else {
-    v = new MemVault();
-    await idbSet("memVaultData", serializeMemVault(v));
-  }
-  await connectVault(v);
-}
+/* ============================================================
+   Help modal
+   ============================================================ */
+$('#btnHelp').addEventListener('click', () => {
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, 'Whokna Helper — Help'));
+  c.innerHTML += `
+    <p><b>Layout</b><br>
+    Vault → App → Chapter → Sub-chapter → notes &amp; attachments. Everything is referenced by stable ID, so renames never break links.</p>
 
-async function exitAndroidSandbox() {
-  vaultHandle = null;
-  selected = null;
-  tree = [];
-  contentCache.clear();
-  contentMatches.clear();
-  await idbSet("memVaultActive", false);
-  await idbSet("memVaultData", null);
-  const label = document.getElementById("vaultLabel");
-  label.textContent = fsSupported
-    ? "No folder connected"
-    : "Mobile browser detected — open Test data… to start a sandbox";
-  label.className = "vault";
-  showSummaryEmpty();
-  updateBreadcrumb();
-  renderTree();
-}
+    <p><b>Adding</b><br>
+    Use <kbd>+ App</kbd>, <kbd>+ Child</kbd>, <kbd>+ Note</kbd>, <kbd>+ Files</kbd> in the header. Click the <kbd>+</kbd> on a row in the tree. Paste images directly into the editor.</p>
 
-document.getElementById("testBtn").addEventListener("click", openTestModal);
+    <p><b>Drag &amp; drop</b><br>
+    • Plain drag inside the same parent → <b>reorder</b>.<br>
+    • Plain drag to a different parent → <b>move</b>.<br>
+    • Hold <kbd>Alt</kbd> while dragging → <b>link</b> (item appears in both places).<br>
+    • Mobile: short hold-and-drag the <kbd>⋮⋮</kbd> grip = reorder/move; long-press (~450 ms) = link.</p>
 
-async function openTestModal() {
-  const isMem = vaultHandle instanceof MemVault;
-  const haveVault = !!vaultHandle;
-  const existing = haveVault ? await listTestApps() : [];
+    <p><b>Linked items</b><br>
+    Show a 🔗 badge. Editing one updates them all. Use <kbd>↗</kbd> on a row to jump to the canonical (first-parent) location.</p>
 
-  const back = document.createElement("div");
-  back.className = "modal-backdrop";
-  back.innerHTML = `
-    <div class="modal" style="max-width:620px;">
-      <h3>Test data &amp; sandbox</h3>
+    <p><b>Delete</b><br>
+    The <kbd>✕</kbd> on a row removes it from <i>this</i> location. If it has no other parents, you'll get a dialog: move to Orphans, hard delete, or undo. Recover from <b>Tools → Orphans</b>.</p>
 
-      <p class="hint">
-        Test data is created as separate top-level apps whose names start with
-        <code>${escapeHtml(TEST_PREFIX)}</code>. <b>Delete test data</b> only
-        removes apps with that prefix, so your real projects can never be touched.
-      </p>
+    <p><b>Search</b><br>
+    Filters the tree by name <i>and</i> note content. Notes-matches panel below the tree shows snippets.</p>
 
-      ${haveVault
-        ? (existing.length
-            ? `<p>Currently in vault: <b>${existing.length}</b> test app(s):</p>
-               <pre>${existing.map(escapeHtml).join("\n")}</pre>`
-            : `<p class="hint">No test apps in current vault.</p>`)
-        : `<p class="hint" style="color:var(--warn);">No vault is connected. Pick a folder (desktop) or start the Android sandbox below.</p>`}
-
-      <p class="hint">
-        Generate creates ~${countSubs()} sub-chapters across ${Object.keys(TEST_STRUCTURE).length} apps,
-        each with a <code>notes.md</code> populated from a live Wikipedia summary
-        (offline fallback included) plus a sample SVG attachment.
-      </p>
-
-      <div id="testStatus" style="color:var(--muted);font-size:12px;min-height:1em;"></div>
-
-      <div class="actions" style="margin-bottom:16px;">
-        <button id="testDelete" class="danger" ${haveVault && existing.length ? "" : "disabled"}>Delete test data</button>
-        <button id="testGenerate" class="primary" ${haveVault ? "" : "disabled"}>Generate test data</button>
-      </div>
-
-      <div style="border-top:1px solid var(--border);margin:18px -20px 0;padding:14px 20px 0;">
-        <h3 style="margin-top:0;">Android / mobile sandbox</h3>
-        <p class="hint">
-          Mobile browsers don't have the folder picker. The sandbox stores
-          everything in this browser's IndexedDB on this device — refresh-safe,
-          but not synced anywhere. All other features (notes, paste screenshots,
-          drag-drop attachments, search, drag-reorder, generate/delete test data)
-          work the same.
-        </p>
-        <p>
-          Status: <b>${isMem
-            ? "Active — sandbox &ldquo;" + escapeHtml(vaultHandle.name) + "&rdquo;"
-            : "Not active"}</b>
-          ${!fsSupported && !isMem ? '<span style="color:var(--warn);"> (recommended on this browser)</span>' : ""}
-        </p>
-        <div class="actions">
-          <button id="exitSandbox" class="danger" ${isMem ? "" : "disabled"}>Exit sandbox &amp; wipe</button>
-          <button id="startSandbox" class="primary" ${isMem ? "disabled" : ""}>${
-            (await idbGet("memVaultData")) ? "Resume Android sandbox" : "Start Android sandbox"
-          }</button>
-        </div>
-      </div>
-
-      <div class="actions" style="margin-top:18px;">
-        <button id="testCancel">Close</button>
-      </div>
-    </div>`;
-  document.body.appendChild(back);
-  const status = back.querySelector("#testStatus");
-  const close = () => back.remove();
-  back.querySelector("#testCancel").onclick = close;
-
-  back.querySelector("#testGenerate").onclick = async () => {
-    if (!vaultHandle) { showToast("Start a sandbox or pick a folder first", "error"); return; }
-    back.querySelector("#testGenerate").disabled = true;
-    back.querySelector("#testDelete").disabled = true;
-    try {
-      const r = await generateTestData(msg => status.textContent = msg);
-      status.textContent =
-        `Created ${r.folders} folder(s). ` +
-        `Fetched ${r.fetched} live summary/summaries from Wikipedia` +
-        (r.failed ? `, ${r.failed} fell back to placeholder content.` : ".");
-      contentCache.clear();
-      await refreshTree();
-      showToast("Test data generated", "ok");
-      back.querySelector("#testDelete").disabled = false;
-    } catch (e) {
-      status.textContent = "Failed: " + e.message;
-      showToast("Generation failed: " + e.message, "error");
-      back.querySelector("#testGenerate").disabled = false;
-    }
-  };
-
-  back.querySelector("#testDelete").onclick = async () => {
-    const names = await listTestApps();
-    if (!names.length) { close(); return; }
-    if (!confirm(
-      `Delete ALL ${names.length} test app(s)?\n\n` +
-      names.map(n => "  • " + n).join("\n") +
-      `\n\nAny app NOT starting with "${TEST_PREFIX}" will not be touched.`
-    )) return;
-    back.querySelector("#testGenerate").disabled = true;
-    back.querySelector("#testDelete").disabled = true;
-    try {
-      const removed = await deleteTestData();
-      if (selected && typeof selected.appName === "string" && selected.appName.startsWith(TEST_PREFIX)) {
-        selected = null;
-        showSummaryEmpty();
-        updateBreadcrumb();
-      }
-      for (const k of [...contentCache.keys()]) {
-        if (removed.some(n => k.startsWith(n + "|"))) contentCache.delete(k);
-      }
-      await refreshTree();
-      showToast(`Deleted ${removed.length} test app(s)`, "ok");
-      close();
-    } catch (e) {
-      status.textContent = "Failed: " + e.message;
-      showToast("Delete failed: " + e.message, "error");
-      back.querySelector("#testGenerate").disabled = false;
-      back.querySelector("#testDelete").disabled = false;
-    }
-  };
-
-  back.querySelector("#startSandbox").onclick = async () => {
-    if (vaultHandle && !(vaultHandle instanceof MemVault)) {
-      if (!confirm(
-        "Switch to the in-browser sandbox?\n\n" +
-        "Your real folder stays on disk untouched. The app will reconnect to the sandbox; " +
-        "use Pick learning folder… later to return to your folder."
-      )) return;
-    }
-    back.querySelector("#startSandbox").disabled = true;
-    try {
-      await startAndroidSandbox();
-      showToast("Sandbox started", "ok");
-      close();
-    } catch (e) {
-      status.textContent = "Failed: " + e.message;
-      showToast("Sandbox failed: " + e.message, "error");
-      back.querySelector("#startSandbox").disabled = false;
-    }
-  };
-
-  back.querySelector("#exitSandbox").onclick = async () => {
-    if (!confirm(
-      "Exit sandbox and WIPE all sandbox data?\n\n" +
-      "This removes only the in-browser sandbox. Any real folder you connected " +
-      "before is on disk and untouched."
-    )) return;
-    back.querySelector("#exitSandbox").disabled = true;
-    try {
-      await exitAndroidSandbox();
-      showToast("Sandbox wiped", "ok");
-      close();
-    } catch (e) {
-      status.textContent = "Failed: " + e.message;
-      showToast("Exit failed: " + e.message, "error");
-      back.querySelector("#exitSandbox").disabled = false;
-    }
-  };
-}
-
-function countSubs() {
-  let n = 0;
-  for (const app of Object.values(TEST_STRUCTURE))
-    for (const ch of Object.values(app)) n += ch.length;
-  return n;
-}
-
-// -------- Help --------
-document.getElementById("helpBtn").addEventListener("click", () => {
-  const back = document.createElement("div");
-  back.className = "modal-backdrop";
-  back.innerHTML = `
-    <div class="modal">
-      <h3>Quick help</h3>
-      <ul>
-        <li><b>Pick learning folder…</b> — choose any folder (e.g. <code>Documents/Whokna</code>). All notes &amp; attachments live there.</li>
-        <li><b>+ App</b>, then ＋ on a row to add chapters and sub-chapters.</li>
-        <li><b>Reorder:</b> drag the <code>⋮⋮</code> handle up/down within the same parent. Order is saved in <code>_meta.json</code>.</li>
-        <li><b>Search:</b> the box at the top-left filters tree names <i>and</i> notes content. Matching notes show as snippets below the tree — click to jump.</li>
-        <li><b>Notes</b> use markdown. Switch tabs <i>Edit / Preview / Split</i>.</li>
-        <li><b>Screenshots:</b> press <code>Win + Shift + S</code>, capture, then <code>Ctrl + V</code> in the editor.</li>
-        <li><b>Other files:</b> drag-drop into the editor or use <i>+ Add files</i>.</li>
-        <li><b>Attachments in tree:</b> every attached file appears as a row under its parent chapter or sub-chapter. Tap to preview, 🗑 to remove. Works at chapter level too — just select the chapter and attach.</li>
-        <li><b>Import structure</b> from Markdown headings or CSV (Excel: <i>Save As → CSV</i>).</li>
-        <li><b>Backup:</b> just copy the folder, or sync it with OneDrive / Dropbox.</li>
-        <li><b>Test data…</b> creates a sandbox with apps prefixed <code>[TEST]</code> (Wikipedia summaries + sample diagrams). The matching <i>Delete</i> only removes apps with that prefix — your real projects are safe.</li>
-        <li><b>Android / mobile:</b> the folder picker is desktop-only. Open <i>Test data…</i> and tap <i>Start Android sandbox</i> to use an in-browser vault — every other feature works the same.</li>
-      </ul>
-      <p class="hint">Saves are automatic ~0.6s after you stop typing. Status shows top-right of the editor.</p>
-      <div class="actions">
-        <button id="helpClose" class="primary">Got it</button>
-      </div>
-    </div>`;
-  document.body.appendChild(back);
-  back.querySelector("#helpClose").onclick = () => back.remove();
+    <p><b>Test data</b><br>
+    <b>Test data…</b> creates 3 demo apps prefixed <code>[TEST]</code> with linked attachments and a cross-linked sub. Delete-test-data only removes those.</p>
+  `;
+  c.appendChild(el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => back.remove() }, 'Got it')));
+  const back = showModal(c);
 });
 
-// -------- Folder picker button --------
-document.getElementById("pickFolderBtn").addEventListener("click", pickVault);
-
-// -------- Keyboard --------
-document.addEventListener("keydown", (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-    e.preventDefault();
-    flushSave().then(() => showToast("Saved", "ok"));
+/* ============================================================
+   Vault open / migration check
+   ============================================================ */
+$('#btnOpenVault').addEventListener('click', async () => {
+  if (!('showDirectoryPicker' in window)) {
+    toast('No folder picker on this device — using sandbox', 'warn');
+    await openSandbox();
+    return;
   }
-  if (e.key === "Escape" && lightbox.classList.contains("show")) {
-    lightbox.classList.remove("show"); lightbox.innerHTML = "";
+  try {
+    const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    await dir.requestPermission?.({ mode: 'readwrite' });
+    await hSet('vaultDir', dir);
+    await initVault(new FsVault(dir));
+    await renderTree();
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Open vault failed: ' + e.message, 'error');
   }
 });
 
-// -------- Boot --------
-tryRestoreVault();
+async function detectV1AndWarn(vault) {
+  if (vault.kind !== 'fs') return;
+  let v1 = false;
+  try {
+    for await (const [name, h] of vault.root.entries()) {
+      if (h.kind === 'directory' && !name.startsWith('_')) {
+        try {
+          for await (const [n2] of h.entries()) {
+            if (n2 === 'notes.md' || n2 === 'attachments') { v1 = true; break; }
+          }
+        } catch {}
+      }
+      if (v1) break;
+    }
+  } catch {}
+  if (v1) {
+    const c = el('div', {});
+    c.appendChild(el('h3', {}, 'v1 vault detected'));
+    c.appendChild(el('p', {}, 'This folder has v1-style files (notes.md / attachments/). v2 uses a new ID-based layout. Pick a different folder for v2 — your old folder is untouched on disk.'));
+    c.appendChild(el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => back.remove() }, 'OK')));
+    const back = showModal(c);
+  }
+}
 
+async function initVault(vault) {
+  State.vault = vault;
+  State.index = null;
+  State.selectedId = null;
+  State.expanded.clear();
+  State.noteTextCache.clear();
+  for (const url of State.blobUrlCache.values()) try { URL.revokeObjectURL(url); } catch {}
+  State.blobUrlCache.clear();
+  if (!vault) {
+    $('#vaultStatus').className = 'vault';
+    $('#vaultStatus').textContent = 'No vault selected.';
+    return;
+  }
+  $('#vaultStatus').className = 'vault connected';
+  $('#vaultStatus').textContent = `${vault.kind === 'fs' ? '📂' : '📦'} ${vault.label}`;
+  State.index = await vault.readIndex();
+  if (!State.index || !State.index.items) State.index = { schema: 2, items: {} };
+  const root = await vault.readLinks(null, null);
+  if (!root.order.length && Object.keys(State.index.items).length === 0) {
+    const a1 = makeItem('app', 'Whokna Design');
+    const a2 = makeItem('app', 'Whokna Database');
+    await vault.writeLinks(null, null, { schema: 2, order: [a1, a2] });
+    await persistIndex();
+  }
+  await detectV1AndWarn(vault);
+  await openEditor();
+  renderBreadcrumb();
+}
+
+function applyMobile() {
+  State.isMobile = window.innerWidth < 760;
+  document.body.classList.toggle('mobile', State.isMobile);
+}
+window.addEventListener('resize', applyMobile);
+applyMobile();
+
+(async function bootstrap() {
+  await idbOpen();
+  try {
+    const h = await hGet('vaultDir');
+    if (h && (await h.queryPermission?.({ mode: 'readwrite' })) === 'granted') {
+      await initVault(new FsVault(h));
+      await renderTree();
+      return;
+    }
+    if (h) $('#vaultStatus').textContent = `Last vault: ${h.name} — click Open Vault to reconnect.`;
+  } catch {}
+})();
 </script>
 </body>
 </html>
