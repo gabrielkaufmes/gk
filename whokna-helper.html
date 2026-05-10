@@ -410,6 +410,57 @@
   #toast.error { border-color: var(--danger); color: var(--danger); }
   #toast.ok { border-color: var(--ok); color: var(--ok); }
 
+  /* Drag reorder visuals */
+  .node-row.dragging { opacity: .35; }
+  .node-row.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+  .node-row.drop-after  { box-shadow: inset 0 -2px 0 var(--accent); }
+  .node-row .grip {
+    color: #555c75;
+    font-size: 11px;
+    cursor: grab;
+    margin-right: 2px;
+    user-select: none;
+  }
+  .node-row:hover .grip { color: var(--muted); }
+  .node-row.dragging .grip { cursor: grabbing; }
+
+  /* Notes-match panel */
+  #matchPanel {
+    border-top: 1px solid var(--border);
+    background: #20253390;
+    overflow: auto;
+    flex-shrink: 0;
+    max-height: 45%;
+  }
+  #matchPanel .match-head {
+    padding: 6px 10px;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .match-row {
+    padding: 6px 10px;
+    border-top: 1px solid #2a2f40;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .match-row:hover { background: #2f3548; }
+  .match-where { color: var(--muted); margin-bottom: 2px; }
+  .match-where b { color: var(--text); }
+  .match-snip {
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 11.5px;
+  }
+  .match-snip mark { background: #5a4a1a; color: #fff7c0; padding: 0 2px; border-radius: 2px; }
+
   /* Lightbox */
   #lightbox {
     position: fixed; inset: 0;
@@ -444,12 +495,13 @@
   <main>
     <aside id="sidebar">
       <div class="sidebar-head">
-        <input id="searchBox" type="search" placeholder="Filter…">
+        <input id="searchBox" type="search" placeholder="Search names &amp; notes…">
         <button id="addAppBtn" title="Add a top-level app">+ App</button>
       </div>
       <div id="treeWrap">
         <div class="tree-empty">Pick a folder to begin.</div>
       </div>
+      <div id="matchPanel" style="display:none;"></div>
     </aside>
     <section id="content">
       <div id="breadcrumb"><span class="crumb">No selection</span></div>
@@ -461,6 +513,8 @@
             <li><b>Notes:</b> markdown in the editor, live preview on the right tab.</li>
             <li><b>Screenshots:</b> press <code>Win+Shift+S</code> in Windows, then <code>Ctrl+V</code> in the editor.</li>
             <li><b>Audio / video / pdf / docx:</b> drag-drop into the editor or attachments panel.</li>
+            <li><b>Search:</b> type in the box top-left — matches both names and notes content.</li>
+            <li><b>Reorder:</b> drag the <code>⋮⋮</code> handle on any tree row up or down.</li>
             <li><b>Import:</b> Markdown headings (<code>#</code> App, <code>##</code> Chapter, <code>###</code> Sub-chapter) or CSV (<code>App,Chapter,Sub-chapter</code>).</li>
           </ul>
         </div>
@@ -550,6 +604,10 @@ let selected = null;           // {appName, chapterName, subName, dirHandle, typ
 let dirty = false;
 let saveTimer = null;
 let blobUrls = [];             // track to revoke
+let contentMatches = new Map();    // key "App|Ch|Sub" -> snippet HTML
+let contentCache = new Map();      // key -> { text, lastModified }
+let searchTimer = null;
+let dragState = null;              // { srcPath, srcRow }
 
 // -------- Toast --------
 const toast = document.getElementById("toast");
@@ -651,6 +709,36 @@ async function listDirs(dirHandle) {
   out.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
   return out;
 }
+async function readMetaOrder(dirHandle) {
+  try {
+    const fh = await dirHandle.getFileHandle("_meta.json");
+    const j = JSON.parse(await (await fh.getFile()).text());
+    return Array.isArray(j.order) ? j.order : [];
+  } catch { return []; }
+}
+async function writeMetaOrder(dirHandle, names) {
+  await writeFileText(dirHandle, "_meta.json", JSON.stringify({ order: names }, null, 2));
+}
+async function listOrderedDirs(dirHandle) {
+  const all = await listDirs(dirHandle);
+  const order = await readMetaOrder(dirHandle);
+  const seen = new Set();
+  const ordered = [];
+  for (const n of order) {
+    const f = all.find(d => d.name === n);
+    if (f) { ordered.push(f); seen.add(n); }
+  }
+  for (const d of all) if (!seen.has(d.name)) ordered.push(d);
+  return ordered;
+}
+async function replaceInMetaOrder(parentHandle, oldName, newName) {
+  const order = await readMetaOrder(parentHandle);
+  const i = order.indexOf(oldName);
+  if (i >= 0) {
+    order[i] = newName;
+    await writeMetaOrder(parentHandle, order);
+  }
+}
 async function listFiles(dirHandle) {
   const out = [];
   for await (const [name, entry] of dirHandle.entries()) {
@@ -671,14 +759,14 @@ function safeName(name) {
 async function refreshTree() {
   tree = [];
   if (!vaultHandle) return renderTree();
-  const apps = await listDirs(vaultHandle);
+  const apps = await listOrderedDirs(vaultHandle);
   for (const app of apps) {
     if (app.name.startsWith(".") || app.name === "_attachments") continue;
-    const chapters = await listDirs(app.handle);
+    const chapters = await listOrderedDirs(app.handle);
     const chArr = [];
     for (const ch of chapters) {
       if (ch.name === "attachments") continue;
-      const subs = await listDirs(ch.handle);
+      const subs = await listOrderedDirs(ch.handle);
       const subArr = subs
         .filter(s => s.name !== "attachments")
         .map(s => ({ name: s.name, handle: s.handle }));
@@ -697,27 +785,32 @@ function renderTree() {
   const wrap = document.getElementById("treeWrap");
   if (!vaultHandle) {
     wrap.innerHTML = `<div class="tree-empty">Pick a folder to begin.</div>`;
+    renderMatchPanel("");
     return;
   }
   if (tree.length === 0) {
     wrap.innerHTML = `<div class="tree-empty">Empty. Click <b>+ App</b> above.</div>`;
+    renderMatchPanel("");
     return;
   }
   const filter = document.getElementById("searchBox").value.trim().toLowerCase();
-  const matches = (s) => !filter || s.toLowerCase().includes(filter);
+  const matchesName = (s) => !filter || s.toLowerCase().includes(filter);
+  const subContent = (a, c, s) => contentMatches.has(`${a}|${c}|${s}`);
+  const isSubVisible = (a, ch, s) =>
+    !filter || matchesName(a.name) || matchesName(ch.name) || matchesName(s.name) || subContent(a.name, ch.name, s.name);
+  const isChVisible = (a, ch) =>
+    !filter || matchesName(a.name) || matchesName(ch.name) || ch.children.some(s => isSubVisible(a, ch, s));
+  const isAppVisible = (a) =>
+    !filter || matchesName(a.name) || a.children.some(ch => isChVisible(a, ch));
 
-  const html = tree.map(app => {
-    const appMatch = matches(app.name);
-    const chHtml = app.children.map(ch => {
-      const chMatch = matches(ch.name);
+  const html = tree.filter(isAppVisible).map(app => {
+    const chHtml = app.children.filter(ch => isChVisible(app, ch)).map(ch => {
       const subHtml = ch.children
-        .filter(s => !filter || matches(s.name) || chMatch || appMatch)
+        .filter(s => isSubVisible(app, ch, s))
         .map(s => nodeRow({
           level: 2, name: s.name,
           path: { app: app.name, ch: ch.name, sub: s.name, type: "sub" }
         })).join("");
-      const visible = !filter || chMatch || appMatch || ch.children.some(s => matches(s.name));
-      if (!visible) return "";
       return `
         <div class="node level-1">
           ${nodeRow({ level: 1, name: ch.name, hasChildren: ch.children.length > 0,
@@ -725,9 +818,6 @@ function renderTree() {
           <div class="node-children">${subHtml}</div>
         </div>`;
     }).join("");
-    const visible = !filter || appMatch || app.children.some(ch =>
-      matches(ch.name) || ch.children.some(s => matches(s.name)));
-    if (!visible) return "";
     return `
       <div class="node level-0">
         ${nodeRow({ level: 0, name: app.name, hasChildren: app.children.length > 0,
@@ -740,10 +830,11 @@ function renderTree() {
 
   wrap.querySelectorAll(".node-row").forEach(row => {
     row.addEventListener("click", (e) => {
-      if (e.target.closest(".row-actions")) return;
+      if (e.target.closest(".row-actions") || e.target.closest(".grip")) return;
       const path = JSON.parse(row.dataset.path);
       selectNode(path);
     });
+    attachDragHandlers(row);
   });
   wrap.querySelectorAll(".row-actions [data-act]").forEach(btn => {
     btn.addEventListener("click", async (e) => {
@@ -764,6 +855,34 @@ function renderTree() {
       if (r.dataset.key === sel) r.classList.add("selected");
     });
   }
+
+  renderMatchPanel(filter);
+}
+
+function renderMatchPanel(filter) {
+  const panel = document.getElementById("matchPanel");
+  if (!filter || contentMatches.size === 0) {
+    panel.style.display = "none";
+    panel.innerHTML = "";
+    return;
+  }
+  panel.style.display = "block";
+  const rows = [...contentMatches.entries()].map(([k, snip]) => {
+    const [a, c, s] = k.split("|");
+    const path = { app: a, ch: c, sub: s, type: "sub" };
+    return `
+      <div class="match-row" data-path='${escapeAttr(JSON.stringify(path))}'>
+        <div class="match-where">${escapeHtml(a)} › ${escapeHtml(c)} › <b>${escapeHtml(s)}</b></div>
+        <div class="match-snip">${snip}</div>
+      </div>`;
+  }).join("");
+  panel.innerHTML = `
+    <div class="match-head">
+      <span>Notes matches (${contentMatches.size})</span>
+    </div>${rows}`;
+  panel.querySelectorAll(".match-row").forEach(r => {
+    r.addEventListener("click", () => selectNode(JSON.parse(r.dataset.path)));
+  });
 }
 
 function nodeRow({ level, name, path, hasChildren = true }) {
@@ -772,17 +891,145 @@ function nodeRow({ level, name, path, hasChildren = true }) {
   const addLabel = level === 0 ? "+ Chapter" : level === 1 ? "+ Sub-chapter" : "";
   const actions = `
     <span class="row-actions">
-      ${level < 2 ? `<button data-act="add" title="${addLabel}">＋</button>` : ""}
-      <button data-act="rename" title="Rename">✎</button>
-      <button data-act="delete" title="Delete">🗑</button>
+      ${level < 2 ? `<button data-act="add" title="${addLabel}" draggable="false">＋</button>` : ""}
+      <button data-act="rename" title="Rename" draggable="false">✎</button>
+      <button data-act="delete" title="Delete" draggable="false">🗑</button>
     </span>`;
   return `
-    <div class="node-row" data-path='${escapeAttr(JSON.stringify(path))}' data-key="${escapeAttr(key)}">
+    <div class="node-row" draggable="true" data-level="${level}" data-path='${escapeAttr(JSON.stringify(path))}' data-key="${escapeAttr(key)}">
+      <span class="grip" title="Drag to reorder">⋮⋮</span>
       <span class="twist empty">▾</span>
       <span class="icon">${icon}</span>
       <span class="label">${escapeHtml(name)}</span>
       ${actions}
     </div>`;
+}
+
+// -------- Drag-reorder --------
+function attachDragHandlers(row) {
+  row.addEventListener("dragstart", (e) => {
+    const path = JSON.parse(row.dataset.path);
+    dragState = { srcPath: path, srcRow: row };
+    e.dataTransfer.effectAllowed = "move";
+    // Set data so the browser treats this as a drag operation
+    try { e.dataTransfer.setData("application/x-whokna-node", row.dataset.path); } catch {}
+    row.classList.add("dragging");
+    e.stopPropagation();
+  });
+  row.addEventListener("dragend", () => {
+    row.classList.remove("dragging");
+    clearAllDropIndicators();
+    dragState = null;
+  });
+  row.addEventListener("dragover", (e) => {
+    if (!dragState) return;
+    const dst = JSON.parse(row.dataset.path);
+    if (!sameLevelSameParent(dragState.srcPath, dst)) return;
+    if (samePath(dragState.srcPath, dst)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const rect = row.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height / 2;
+    clearAllDropIndicators();
+    row.classList.add(before ? "drop-before" : "drop-after");
+  });
+  row.addEventListener("dragleave", () => {
+    row.classList.remove("drop-before", "drop-after");
+  });
+  row.addEventListener("drop", async (e) => {
+    if (!dragState) return;
+    const dst = JSON.parse(row.dataset.path);
+    if (!sameLevelSameParent(dragState.srcPath, dst) || samePath(dragState.srcPath, dst)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = row.getBoundingClientRect();
+    const before = (e.clientY - rect.top) < rect.height / 2;
+    const src = dragState.srcPath;
+    clearAllDropIndicators();
+    dragState = null;
+    await moveNode(src, dst, before);
+  });
+}
+
+function clearAllDropIndicators() {
+  document.querySelectorAll(".node-row.drop-before, .node-row.drop-after")
+    .forEach(r => r.classList.remove("drop-before", "drop-after"));
+}
+
+function sameLevelSameParent(a, b) {
+  if (a.type !== b.type) return false;
+  if (a.type === "app") return true;
+  if (a.type === "chapter") return a.app === b.app;
+  if (a.type === "sub") return a.app === b.app && a.ch === b.ch;
+  return false;
+}
+function samePath(a, b) {
+  return a.type === b.type && a.app === b.app && a.ch === b.ch && a.sub === b.sub;
+}
+
+async function moveNode(src, dst, before) {
+  let parentHandle, names;
+  if (src.type === "app") {
+    parentHandle = vaultHandle;
+    names = tree.map(a => a.name);
+  } else if (src.type === "chapter") {
+    const app = tree.find(a => a.name === src.app);
+    parentHandle = app.handle;
+    names = app.children.map(c => c.name);
+  } else {
+    const app = tree.find(a => a.name === src.app);
+    const ch = app.children.find(c => c.name === src.ch);
+    parentHandle = ch.handle;
+    names = ch.children.map(s => s.name);
+  }
+  const srcName = src.type === "app" ? src.app : src.type === "chapter" ? src.ch : src.sub;
+  const dstName = dst.type === "app" ? dst.app : dst.type === "chapter" ? dst.ch : dst.sub;
+  names = names.filter(n => n !== srcName);
+  let idx = names.indexOf(dstName);
+  if (idx < 0) idx = names.length;
+  if (!before) idx += 1;
+  names.splice(idx, 0, srcName);
+  try {
+    await writeMetaOrder(parentHandle, names);
+    await refreshTree();
+  } catch (e) {
+    showToast("Reorder failed: " + e.message, "error");
+  }
+}
+
+// -------- Content search --------
+async function runContentSearch(term) {
+  contentMatches.clear();
+  if (!term || term.length < 2 || !vaultHandle) return;
+  const t = term.toLowerCase();
+  for (const app of tree) {
+    for (const ch of app.children) {
+      for (const sub of ch.children) {
+        const key = `${app.name}|${ch.name}|${sub.name}`;
+        try {
+          const fh = await sub.handle.getFileHandle("notes.md");
+          const file = await fh.getFile();
+          let cached = contentCache.get(key);
+          if (!cached || cached.lastModified !== file.lastModified) {
+            cached = { text: await file.text(), lastModified: file.lastModified };
+            contentCache.set(key, cached);
+          }
+          const lower = cached.text.toLowerCase();
+          const idx = lower.indexOf(t);
+          if (idx >= 0) {
+            const start = Math.max(0, idx - 30);
+            const end = Math.min(cached.text.length, idx + term.length + 60);
+            const raw = (start > 0 ? "…" : "") +
+                        cached.text.slice(start, end).replace(/\s+/g, " ").trim() +
+                        (end < cached.text.length ? "…" : "");
+            const escaped = escapeHtml(raw);
+            const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
+            contentMatches.set(key, escaped.replace(re, "<mark>$1</mark>"));
+          }
+        } catch { /* no notes.md yet */ }
+      }
+    }
+  }
 }
 
 function escapeHtml(s) {
@@ -872,6 +1119,9 @@ async function flushSave() {
   try {
     await writeFileText(selected.dirHandle, "notes.md", editor.value);
     setDirty(false);
+    // Refresh cache entry so an open search reflects the new content
+    const key = `${selected.appName}|${selected.chapterName}|${selected.subName}`;
+    contentCache.set(key, { text: editor.value, lastModified: Date.now() });
   } catch (e) {
     showToast("Save failed: " + e.message, "error");
   }
@@ -1264,6 +1514,11 @@ async function onRename(path) {
   if (!newName) { showToast("Invalid name", "error"); return; }
   try {
     await renameDir(parentHandle, oldName, newName);
+    await replaceInMetaOrder(parentHandle, oldName, newName);
+    // Drop any stale content-search cache for this path
+    for (const k of [...contentCache.keys()]) {
+      if (k.split("|").includes(oldName)) contentCache.delete(k);
+    }
     await refreshTree();
     // Adjust selection if affected
     if (selected) {
@@ -1378,8 +1633,15 @@ document.getElementById("addAppBtn").addEventListener("click", async () => {
   } catch (e) { showToast("Create failed: " + e.message, "error"); }
 });
 
-// -------- Search filter --------
-document.getElementById("searchBox").addEventListener("input", () => renderTree());
+// -------- Search filter (names + notes content) --------
+document.getElementById("searchBox").addEventListener("input", () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(async () => {
+    const term = document.getElementById("searchBox").value.trim();
+    await runContentSearch(term);
+    renderTree();
+  }, 180);
+});
 
 // -------- Import structure (Markdown / CSV) --------
 document.getElementById("importBtn").addEventListener("click", () => openImportModal());
@@ -1551,6 +1813,8 @@ document.getElementById("helpBtn").addEventListener("click", () => {
       <ul>
         <li><b>Pick learning folder…</b> — choose any folder (e.g. <code>Documents/Whokna</code>). All notes &amp; attachments live there.</li>
         <li><b>+ App</b>, then ＋ on a row to add chapters and sub-chapters.</li>
+        <li><b>Reorder:</b> drag the <code>⋮⋮</code> handle up/down within the same parent. Order is saved in <code>_meta.json</code>.</li>
+        <li><b>Search:</b> the box at the top-left filters tree names <i>and</i> notes content. Matching notes show as snippets below the tree — click to jump.</li>
         <li><b>Notes</b> use markdown. Switch tabs <i>Edit / Preview / Split</i>.</li>
         <li><b>Screenshots:</b> press <code>Win + Shift + S</code>, capture, then <code>Ctrl + V</code> in the editor.</li>
         <li><b>Other files:</b> drag-drop into the editor or use <i>+ Add files</i>.</li>
