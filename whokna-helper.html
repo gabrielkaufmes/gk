@@ -64,6 +64,7 @@
     display: grid;
     grid-template-rows: auto 1fr;
     height: 100vh;
+    height: 100dvh; /* respects mobile URL/nav bars when supported */
   }
 
   header {
@@ -526,6 +527,24 @@
     #breadcrumb { padding: 6px 10px; gap: 4px; }
     .node-row { padding: 6px 10px; font-size: 14px; }
     .node-row .row-actions button { padding: 4px 7px; font-size: 13px; }
+
+    /* In the content (detail) view, stack everything and let the whole pane
+       scroll, so the Attachments panel below the editor is always reachable. */
+    body.mobile-show-content #content {
+      display: block;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    body.mobile-show-content #breadcrumb {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    body.mobile-show-content #editorPane { flex: none; height: auto; }
+    body.mobile-show-content #editorWrap { height: auto !important; }
+    body.mobile-show-content .editor-body { height: 55vh; overflow: auto; }
+    body.mobile-show-content #notesEditor { height: 100%; }
+    body.mobile-show-content #attachments { max-height: none; flex-shrink: 0; }
   }
 
   /* Lightbox */
