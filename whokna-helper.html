@@ -461,6 +461,70 @@
   }
   .match-snip mark { background: #5a4a1a; color: #fff7c0; padding: 0 2px; border-radius: 2px; }
 
+  /* Mobile back button (in breadcrumb) — desktop hides it */
+  .mobile-back {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 13px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    margin-right: 4px;
+  }
+
+  /* ===== Mobile / narrow-viewport layout ===== */
+  @media (max-width: 760px) {
+    header { padding: 6px 10px; gap: 6px; }
+    header .brand { font-size: 13px; }
+    header .vault {
+      flex-basis: 100%;
+      order: 99;
+      margin: 2px 0 0;
+      font-size: 11px;
+    }
+    header .actions { gap: 4px; }
+    header button { padding: 5px 9px; font-size: 12.5px; }
+
+    main { grid-template-columns: 1fr; }
+    #sidebar {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Master-detail switch driven by body class */
+    body.mobile-show-content #sidebar { display: none; }
+    body:not(.mobile-show-content) #content { display: none; }
+
+    .mobile-back { display: inline-flex; }
+
+    .modal {
+      min-width: 0;
+      max-width: 96vw;
+      max-height: 88vh;
+      overflow: auto;
+      padding: 14px 16px;
+    }
+    .modal pre { max-height: 30vh; }
+    .modal .actions { flex-wrap: wrap; }
+
+    #notesEditor { padding: 10px 12px; font-size: 14px; }
+    #preview { padding: 10px 14px; }
+
+    #attachments { max-height: 30vh; }
+    .att { max-width: 100%; }
+
+    .editor-tabs { padding: 4px 6px 0; }
+    .editor-tabs button { padding: 5px 10px; font-size: 12.5px; }
+
+    #breadcrumb { padding: 6px 10px; gap: 4px; }
+    .node-row { padding: 6px 10px; font-size: 14px; }
+    .node-row .row-actions button { padding: 4px 7px; font-size: 13px; }
+  }
+
   /* Lightbox */
   #lightbox {
     position: fixed; inset: 0;
@@ -1219,6 +1283,7 @@ async function selectNode(path) {
   }
   updateBreadcrumb();
   renderTree(); // update selected highlight
+  if (isMobileLayout()) document.body.classList.add("mobile-show-content");
 }
 
 function showSubEditor() {
@@ -1242,13 +1307,25 @@ function showSummary() {
 
 function updateBreadcrumb() {
   const bc = document.getElementById("breadcrumb");
-  if (!selected) { bc.innerHTML = `<span class="crumb">No selection</span>`; return; }
+  const backBtn = `<button class="mobile-back" id="mobileBack" title="Back to tree">← Tree</button>`;
+  if (!selected) { bc.innerHTML = `${backBtn}<span class="crumb">No selection</span>`; return; }
   const parts = [selected.appName, selected.chapterName, selected.subName].filter(Boolean);
   const crumbs = parts.map(p => `<span class="crumb">${escapeHtml(p)}</span>`).join(`<span class="sep">›</span>`);
-  bc.innerHTML = `${crumbs}<div class="actions">${
+  bc.innerHTML = `${backBtn}${crumbs}<div class="actions">${
     selected.type === "sub" ? `<button id="openInExplorerHint" title="Files are in the folder you picked">📁 On disk</button>` : ""
   }</div>`;
 }
+
+function isMobileLayout() {
+  return window.matchMedia("(max-width: 760px)").matches;
+}
+
+// One-time delegation for the Back button (re-rendered on every breadcrumb update)
+document.getElementById("breadcrumb").addEventListener("click", (e) => {
+  if (e.target.closest("#mobileBack")) {
+    document.body.classList.remove("mobile-show-content");
+  }
+});
 
 // -------- Editor: tabs, autosave, paste, drop --------
 const editor = document.getElementById("notesEditor");
@@ -1721,6 +1798,7 @@ function showSummaryEmpty() {
   const empty = document.getElementById("emptyState");
   empty.style.display = "flex";
   empty.innerHTML = `<h2>Nothing open</h2><p>Pick a sub-chapter on the left.</p>`;
+  document.body.classList.remove("mobile-show-content");
 }
 
 // File System Access API has no native rename; copy+remove
