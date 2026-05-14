@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Whokna Learning Helper</title>
+<style>
+  :root {
+    --bg: #1f2430;
+    --panel: #262b3a;
+    --panel-2: #2e3446;
+    --border: #3a4159;
+    --text: #e6e8ee;
+    --muted: #9aa0b4;
+    --accent: #4f8cff;
+    --accent-2: #7aa8ff;
+    --danger: #e26464;
+    --ok: #6cc380;
+    --warn: #e2b164;
+    --code-bg: #1a1e29;
+    --shadow: 0 4px 14px rgba(0,0,0,.35);
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  button:hover { background: #353c52; border-color: #4a5170; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+  button.danger { color: var(--danger); border-color: #553a44; }
+  button.danger:hover { background: #3a2730; }
+  button.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  button.ghost:hover { background: var(--panel-2); color: var(--text); }
+  button.icon { padding: 4px 8px; font-size: 12px; }
+  input[type=text], input[type=search], textarea, select {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px;
+    width: 100%;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+
+  #app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    flex-wrap: wrap;
+  }
+  header .brand { font-weight: 600; font-size: 15px; margin-right: 4px; }
+  header .vault {
+    color: var(--muted);
+    font-size: 12px;
+    flex: 1;
+    min-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  header .vault.connected { color: var(--ok); }
+  header .vault.error { color: var(--danger); }
+  header .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  #sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: relative;
+  }
+  .sidebar-head {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .sidebar-head input { padding: 4px 8px; }
+  #treeWrap { overflow: auto; flex: 1; padding: 6px 0; }
+  #notesMatches {
+    border-top: 1px solid var(--border);
+    padding: 6px 10px;
+    max-height: 30%;
+    overflow: auto;
+    background: var(--panel-2);
+    font-size: 12px;
+  }
+  #notesMatches:empty { display: none; }
+  #notesMatches .nm-head {
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: .08em;
+    margin-bottom: 4px;
+  }
+  #notesMatches .nm { padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+  #notesMatches .nm:hover { background: #2f3548; }
+  #notesMatches .nm-name { font-weight: 600; color: var(--text); }
+  #notesMatches .nm-snip { color: var(--muted); }
+  #notesMatches mark { background: #4f3a16; color: #fff; padding: 0 2px; border-radius: 2px; }
+  .tree-empty { color: var(--muted); padding: 16px; font-size: 13px; text-align: center; }
+
+  .node { user-select: none; }
+  .node-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 1px 4px;
+    font-size: 13px;
+    position: relative;
+  }
+  .node-row:hover { background: #2f3548; }
+  .node-row.selected { background: #3a4880; }
+  .node-row .grip {
+    width: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: grab;
+    text-align: center;
+    flex-shrink: 0;
+    touch-action: none;
+  }
+  .node-row .grip:active { cursor: grabbing; }
+  .node-row .twist { width: 14px; text-align: center; color: var(--muted); font-size: 10px; flex-shrink: 0; }
+  .node-row .twist.empty { visibility: hidden; }
+  .node-row .icon { width: 14px; text-align: center; color: var(--muted); flex-shrink: 0; }
+  .node-row .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .node-row .badge { color: var(--accent-2); font-size: 11px; flex-shrink: 0; }
+  .node-row .row-actions { display: none; gap: 2px; }
+  .node-row:hover .row-actions { display: flex; }
+  .node-row .row-actions button {
+    padding: 2px 5px;
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+  }
+  .node-row .row-actions button:hover { background: #1c2030; border-color: var(--border); color: var(--text); }
+  .node-children { margin-left: 14px; }
+  .level-0 > .node-row { font-weight: 600; }
+  .level-1 > .node-row { font-weight: 500; }
+  .att-row .label { color: var(--muted); }
+  .att-row:hover .label { color: var(--text); }
+  .att-row, .note-row { font-size: 12.5px; }
+
+  .node-row.drag-over-into { background: #2c5e3c; outline: 1px dashed var(--ok); }
+  .node-row.drag-over-before { box-shadow: inset 0 2px 0 var(--accent); }
+  .node-row.drag-over-after { box-shadow: inset 0 -2px 0 var(--accent); }
+  .node-row.dragging { opacity: 0.4; }
+
+  #dragGhost {
+    position: fixed;
+    z-index: 200;
+    background: var(--panel-2);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--text);
+    pointer-events: none;
+    box-shadow: var(--shadow);
+    display: none;
+  }
+  #dragGhost.link::before { content: "🔗 "; }
+
+  #content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--bg);
+    position: relative;
+  }
+  #breadcrumb {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 5;
+  }
+  #breadcrumb .crumb { color: var(--text); cursor: pointer; }
+  #breadcrumb .crumb:hover { text-decoration: underline; }
+  #breadcrumb .sep { color: var(--muted); }
+  #breadcrumb .actions { margin-left: auto; display: flex; gap: 6px; }
+  #backToTree { display: none; }
+
+  #editorPane { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    padding: 40px 20px;
+    text-align: center;
+    gap: 12px;
+    height: 100%;
+  }
+  .empty-state h2 { color: var(--text); margin: 0; }
+  .empty-state code { background: var(--code-bg); padding: 1px 6px; border-radius: 4px; }
+  .empty-state ul { text-align: left; max-width: 540px; }
+
+  .editor-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 6px 10px 0 10px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .editor-tabs button {
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    color: var(--muted);
+    padding: 6px 12px;
+  }
+  .editor-tabs button.active {
+    background: var(--panel);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .editor-tabs .save-status {
+    margin-left: auto;
+    align-self: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding-right: 8px;
+  }
+  .editor-tabs .save-status.dirty { color: var(--warn); }
+  .editor-tabs .save-status.saved { color: var(--ok); }
+
+  .linked-hint {
+    background: var(--panel-2);
+    color: var(--muted);
+    font-size: 12px;
+    padding: 4px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .linked-hint b { color: var(--accent-2); }
+
+  .editor-body {
+    overflow: auto;
+    background: var(--panel);
+    flex: 1;
+    min-height: 0;
+    display: grid;
+  }
+  .editor-body.split { grid-template-columns: 1fr 1fr; }
+  .editor-body.edit  { grid-template-columns: 1fr; }
+  .editor-body.preview { grid-template-columns: 1fr; }
+  .editor-body.split #notesEditor { border-right: 1px solid var(--border); }
+
+  #notesEditor {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: var(--panel);
+    padding: 14px 18px;
+    font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    resize: none;
+    color: var(--text);
+  }
+  #notesEditor:focus { outline: none; }
+
+  #preview {
+    padding: 14px 22px;
+    color: var(--text);
+    overflow: auto;
+    height: 100%;
+  }
+  #preview h1 { font-size: 22px; margin: 0 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  #preview h2 { font-size: 18px; margin: 18px 0 8px; }
+  #preview h3 { font-size: 16px; margin: 14px 0 6px; }
+  #preview p { margin: 8px 0; }
+  #preview code { background: var(--code-bg); padding: 1px 5px; border-radius: 3px; font-family: ui-monospace, monospace; font-size: 12.5px; }
+  #preview pre { background: var(--code-bg); padding: 10px 12px; border-radius: 6px; overflow: auto; }
+  #preview pre code { background: transparent; padding: 0; }
+  #preview a { color: var(--accent-2); }
+  #preview img { max-width: 100%; border-radius: 6px; box-shadow: var(--shadow); margin: 6px 0; cursor: zoom-in; }
+  #preview ul, #preview ol { margin: 8px 0 8px 22px; }
+  #preview blockquote { border-left: 3px solid var(--accent); padding: 4px 12px; color: var(--muted); margin: 8px 0; }
+  #preview audio, #preview video { max-width: 100%; margin: 6px 0; border-radius: 6px; }
+  #preview hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  #attachments {
+    border-top: 1px solid var(--border);
+    background: var(--panel-2);
+    padding: 8px 12px;
+    max-height: 220px;
+    overflow: auto;
+  }
+  #attachments h3 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #attachments .attach-list { display: flex; gap: 8px; flex-wrap: wrap; }
+  .att {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+    cursor: pointer;
+    max-width: 260px;
+  }
+  .att:hover { border-color: var(--accent); }
+  .att .att-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .att .att-link-badge { color: var(--accent-2); font-size: 10px; }
+  .att .att-del {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 0 4px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .att .att-del:hover { color: var(--danger); }
+
+  .drop-active::after {
+    content: "Drop files to attach";
+    position: absolute;
+    inset: 0;
+    background: rgba(79, 140, 255, .15);
+    border: 2px dashed var(--accent);
+    color: var(--accent-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    min-width: 320px;
+    max-width: 92vw;
+    max-height: 92vh;
+    overflow: auto;
+    box-shadow: var(--shadow);
+  }
+  .modal h3 { margin: 0 0 12px; }
+  .modal .row { margin: 8px 0; }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+  .modal .hint { color: var(--muted); font-size: 12px; }
+  .modal pre { background: var(--code-bg); padding: 10px; border-radius: 6px; overflow: auto; font-size: 12px; max-height: 200px; }
+  .modal kbd { background: var(--code-bg); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: ui-monospace, monospace; }
+
+  #lightbox {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 150;
+    padding: 24px;
+    cursor: zoom-out;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img, #lightbox video, #lightbox audio {
+    max-width: 95vw;
+    max-height: 90vh;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  #lightbox .lb-close {
+    position: absolute; top: 16px; right: 20px;
+    background: rgba(0,0,0,.5);
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+  }
+
+  #toast {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    font-size: 13px;
+    z-index: 220;
+    display: none;
+    max-width: 90vw;
+  }
+  #toast.show { display: block; }
+  #toast.error { border-color: var(--danger); color: #ffd0d0; }
+  #toast.ok { border-color: var(--ok); color: #d0ffd6; }
+
+  .menu {
+    position: absolute;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    padding: 4px;
+    z-index: 80;
+    min-width: 180px;
+  }
+  .menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+  .menu button:hover { background: var(--panel); }
+  .menu .sep { border-top: 1px solid var(--border); margin: 4px 0; }
+
+  body.mobile #app { grid-template-rows: auto 1fr; }
+  body.mobile main { grid-template-columns: 1fr; }
+  body.mobile #content { display: none; }
+  body.mobile.show-content #sidebar { display: none; }
+  body.mobile.show-content #content { display: flex; }
+  body.mobile #backToTree { display: inline-flex; }
+  body.mobile .editor-body { max-height: 55vh; }
+  body.mobile .editor-body.split { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  body.mobile .editor-body.split #notesEditor { border-right: none; border-bottom: 1px solid var(--border); }
+  body.mobile #attachments { max-height: none; }
+  body.mobile .node-row .row-actions { display: flex; }
+  body.mobile .node-row .row-actions button { font-size: 13px; padding: 4px 8px; }
+
+  .pulse { animation: pulse .4s ease-out; }
+  @keyframes pulse {
+    0% { background: rgba(79,140,255,.4); }
+    100% { background: transparent; }
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="brand">📚 Whokna Helper <span id="buildStamp" style="font-weight:400;color:var(--muted);font-size:11px"></span></div>
+      <div id="vaultStatus" class="vault">No vault selected.</div>
+      <div class="actions">
+        <button id="btnOpenVault" class="primary">Open Vault…</button>
+        <button id="btnAddApp" class="ghost" title="Add app">+ App</button>
+        <button id="btnTools" class="ghost">Tools ▾</button>
+        <button id="btnTest" class="ghost">Test data…</button>
+        <button id="btnHelp" class="ghost">?</button>
+      </div>
+    </header>
+    <main>
+      <aside id="sidebar">
+        <div class="sidebar-head">
+          <input id="search" type="search" placeholder="Search names + notes…">
+        </div>
+        <div id="treeWrap"></div>
+        <div id="notesMatches"></div>
+      </aside>
+      <section id="content">
+        <div id="breadcrumb">
+          <button id="backToTree" class="ghost icon">← Tree</button>
+          <span id="crumbBox"></span>
+          <div class="actions">
+            <button id="btnAddChild" class="ghost icon" title="Add child">+ Child</button>
+            <button id="btnAddNote" class="ghost icon" title="Add note">+ Note</button>
+            <button id="btnAddFiles" class="ghost icon" title="Attach files">+ Files</button>
+          </div>
+        </div>
+        <div id="editorPane">
+          <div id="emptyState" class="empty-state">
+            <h2>Pick a vault to begin</h2>
+            <p>On desktop, click <b>Open Vault…</b> to choose a folder.<br>
+               On mobile, open <b>Test data…</b> to start an in-browser sandbox.</p>
+            <ul>
+              <li>Notes are autosaved as Markdown.</li>
+              <li>Paste screenshots, drag-drop audio/video/PDFs.</li>
+              <li>Hold <kbd>Alt</kbd> while dragging to <b>link</b> an item into another place.</li>
+              <li>Long-press the grip on mobile to start link-drag.</li>
+            </ul>
+          </div>
+          <div id="editorWrap" style="display:none; flex-direction:column; height: 100%; min-height: 0;">
+            <div id="linkedHint" class="linked-hint" style="display:none;"></div>
+            <div class="editor-tabs">
+              <button data-tab="edit" class="active">Edit</button>
+              <button data-tab="preview">Preview</button>
+              <button data-tab="split">Split</button>
+              <span class="save-status" id="saveStatus">—</span>
+            </div>
+            <div class="editor-body edit" id="editorBody">
+              <textarea id="notesEditor" spellcheck="true" placeholder="# Notes…&#10;&#10;Type or paste here. Drop files to attach."></textarea>
+              <div id="preview"></div>
+            </div>
+            <div id="attachments">
+              <h3>
+                <span>Attachments <span id="attCount">(0)</span></span>
+                <span class="hint" id="attHint">paste · drag · + Files</span>
+              </h3>
+              <div class="attach-list" id="attachList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="dragGhost"></div>
+  <div id="lightbox"><button class="lb-close">×</button><div class="lb-inner"></div></div>
+  <div id="toast"></div>
+
+  <input type="file" id="filePicker" multiple style="display:none">
+
+<script>
+"use strict";
+
+/* ============================================================
+   Whokna Learning Helper v2 — single-file build
+   ID-based, multi-parent linking, FS Access + IDB sandbox
+   ============================================================ */
+
+const $ = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const k in props) {
+    if (k === 'class') n.className = props[k];
+    else if (k === 'style' && typeof props[k] === 'object') Object.assign(n.style, props[k]);
+    else if (k.startsWith('on') && typeof props[k] === 'function') n.addEventListener(k.slice(2), props[k]);
+    else if (k === 'dataset') Object.assign(n.dataset, props[k]);
+    else if (k in n) n[k] = props[k];
+    else n.setAttribute(k, props[k]);
+  }
+  for (const k of kids.flat()) {
+    if (k == null || k === false) continue;
+    n.appendChild(typeof k === 'string' ? document.createTextNode(k) : k);
+  }
+  return n;
+};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+const toastEl = $('#toast');
+let toastT;
+function toast(msg, type = '') {
+  toastEl.textContent = msg;
+  toastEl.className = 'show ' + type;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { toastEl.className = ''; }, 2400);
+}
+
+function newId() {
+  const t = Date.now().toString(36);
+  const r = Math.random().toString(36).slice(2, 8).padEnd(6, '0');
+  return `t-${t}-${r}`;
+}
+
+const BUILD_ID = 'v2.4-debug';
+const IDB_NAME = 'whokna-helper';
+const IDB_VER = 4;
+const REQUIRED_STORES = ['kv', 'sandbox', 'handles'];
+let _idb;
+
+function idbOpenAt(version) {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(IDB_NAME, version);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      for (const s of REQUIRED_STORES) {
+        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s);
+      }
+    };
+    req.onblocked = () => {
+      toast('IDB upgrade blocked — close other tabs of this app and reload', 'error');
+    };
+    req.onsuccess = () => res(req.result);
+    req.onerror = () => rej(req.error);
+  });
+}
+
+async function idbDeleteEntirely() {
+  if (_idb) { try { _idb.close(); } catch {} _idb = null; }
+  return new Promise((res, rej) => {
+    const req = indexedDB.deleteDatabase(IDB_NAME);
+    req.onsuccess = () => res();
+    req.onerror = () => rej(req.error);
+    req.onblocked = () => rej(new Error('Delete blocked — close other tabs'));
+  });
+}
+
+async function idbOpen() {
+  if (_idb) return _idb;
+  let db = await idbOpenAt(IDB_VER);
+  // Self-heal: if any required store is missing, force-bump version
+  const missing = REQUIRED_STORES.filter(s => !db.objectStoreNames.contains(s));
+  if (missing.length) {
+    console.warn('IDB missing stores after open:', missing, '— forcing upgrade');
+    const ver = db.version;
+    db.close();
+    db = await idbOpenAt(ver + 1);
+  }
+  _idb = db;
+  // If browser silently closes the connection (e.g. another tab upgrades), reset cache
+  _idb.onversionchange = () => { try { _idb.close(); } catch {} _idb = null; };
+  _idb.onclose = () => { _idb = null; };
+  return _idb;
+}
+
+function idbReq(store, mode, fn) {
+  return idbOpen().then(db => new Promise((res, rej) => {
+    let r;
+    try {
+      const tx = db.transaction(store, mode);
+      const s = tx.objectStore(store);
+      r = fn(s);
+      tx.oncomplete = () => res(r && 'result' in r ? r.result : undefined);
+      tx.onerror = () => rej(tx.error || new Error('idb tx error'));
+      tx.onabort = () => rej(tx.error || new Error('idb tx aborted'));
+    } catch (e) { rej(e); }
+  })).catch(async e => {
+    // Self-heal: store missing → reopen with bumped version once, retry
+    if (e && /object stores? was not found/i.test(e.message)) {
+      console.warn('Store missing — self-healing:', e.message);
+      if (_idb) { try { _idb.close(); } catch {} _idb = null; }
+      const probe = await idbOpenAt(IDB_VER);
+      const ver = probe.version; probe.close();
+      _idb = await idbOpenAt(ver + 1);
+      return new Promise((res, rej) => {
+        const tx = _idb.transaction(store, mode);
+        const s = tx.objectStore(store);
+        const r = fn(s);
+        tx.oncomplete = () => res(r && 'result' in r ? r.result : undefined);
+        tx.onerror = () => rej(tx.error);
+        tx.onabort = () => rej(tx.error);
+      });
+    }
+    throw e;
+  });
+}
+const sbxGet = k => idbReq('sandbox', 'readonly', s => s.get(k));
+const sbxSet = (k, v) => idbReq('sandbox', 'readwrite', s => s.put(v, k));
+const sbxDel = k => idbReq('sandbox', 'readwrite', s => s.delete(k));
+const sbxKeys = () => idbReq('sandbox', 'readonly', s => s.getAllKeys());
+const sbxClearAll = () => idbReq('sandbox', 'readwrite', s => s.clear());
+const hGet = k => idbReq('handles', 'readonly', s => s.get(k));
+const hSet = (k, v) => idbReq('handles', 'readwrite', s => s.put(v, k));
+
+/* ============================================================
+   Vault layer — abstracts FS Access (desktop) and IDB (sandbox)
+   ============================================================ */
+
+const KIND_DIR = { app: '_apps', chapter: '_chapters', sub: '_subs' };
+
+class VaultBase {
+  constructor() { this.label = 'unknown'; this.kind = 'unknown'; }
+  async readIndex() { return (await this._readJson('_index.json')) || { schema: 2, items: {} }; }
+  async writeIndex(idx) { return this._writeJson('_index.json', idx); }
+  async readLinks(containerId, kind) {
+    const path = containerId == null ? '_links.json' : `${KIND_DIR[kind]}/${containerId}/_links.json`;
+    return (await this._readJson(path)) || { schema: 2, order: [] };
+  }
+  async writeLinks(containerId, kind, links) {
+    const path = containerId == null ? '_links.json' : `${KIND_DIR[kind]}/${containerId}/_links.json`;
+    await this._ensureContainerDir(containerId, kind);
+    return this._writeJson(path, links);
+  }
+  async deleteContainerDir(containerId, kind) {
+    return this._removeDir(`${KIND_DIR[kind]}/${containerId}`);
+  }
+  async readNote(id) { return (await this._readText(`_notes/${id}.md`)) || ''; }
+  async writeNote(id, txt) { return this._writeText(`_notes/${id}.md`, txt); }
+  async deleteNote(id) { return this._remove(`_notes/${id}.md`); }
+  async readAsset(id, ext) { return this._readBlob(`_assets/${id}.${ext}`); }
+  async writeAsset(id, ext, blob) { return this._writeBlob(`_assets/${id}.${ext}`, blob); }
+  async deleteAsset(id, ext) { return this._remove(`_assets/${id}.${ext}`); }
+  async _ensureContainerDir(containerId, kind) { /* override */ }
+}
+
+class IdbVault extends VaultBase {
+  constructor() {
+    super();
+    this.label = 'In-browser sandbox';
+    this.kind = 'sandbox';
+  }
+  async _readJson(path) {
+    const v = await sbxGet('f:' + path);
+    if (v == null) return null;
+    try { return JSON.parse(v); } catch { return null; }
+  }
+  async _writeJson(path, obj) { await sbxSet('f:' + path, JSON.stringify(obj)); }
+  async _readText(path) {
+    const v = await sbxGet('f:' + path);
+    return v == null ? null : v;
+  }
+  async _writeText(path, txt) { await sbxSet('f:' + path, txt); }
+  async _readBlob(path) {
+    const v = await sbxGet('f:' + path);
+    return v instanceof Blob ? v : null;
+  }
+  async _writeBlob(path, blob) {
+    if (blob.size > 100 * 1024 * 1024) throw new Error('Sandbox file size cap is 100 MB');
+    await sbxSet('f:' + path, blob);
+  }
+  async _remove(path) { await sbxDel('f:' + path); }
+  async _removeDir(prefix) {
+    const keys = await sbxKeys();
+    for (const k of keys) if (typeof k === 'string' && k.startsWith('f:' + prefix + '/')) await sbxDel(k);
+    await sbxDel('f:' + prefix + '/_links.json');
+  }
+  async wipe() { return sbxClearAll(); }
+}
+
+class FsVault extends VaultBase {
+  constructor(rootHandle) {
+    super();
+    this.root = rootHandle;
+    this.label = rootHandle.name;
+    this.kind = 'fs';
+  }
+  async _dir(parts, create = true) {
+    let h = this.root;
+    for (const p of parts) {
+      if (!p) continue;
+      h = await h.getDirectoryHandle(p, { create });
+    }
+    return h;
+  }
+  async _file(path, create = false) {
+    const segs = path.split('/');
+    const name = segs.pop();
+    const dir = await this._dir(segs, create);
+    return dir.getFileHandle(name, { create });
+  }
+  async _readJson(path) {
+    try {
+      const f = await (await this._file(path, false)).getFile();
+      return JSON.parse(await f.text());
+    } catch { return null; }
+  }
+  async _writeJson(path, obj) {
+    const fh = await this._file(path, true);
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify(obj, null, 2));
+    await w.close();
+  }
+  async _readText(path) {
+    try {
+      const f = await (await this._file(path, false)).getFile();
+      return await f.text();
+    } catch { return null; }
+  }
+  async _writeText(path, txt) {
+    const fh = await this._file(path, true);
+    const w = await fh.createWritable();
+    await w.write(txt);
+    await w.close();
+  }
+  async _readBlob(path) {
+    try { return await (await this._file(path, false)).getFile(); }
+    catch { return null; }
+  }
+  async _writeBlob(path, blob) {
+    const fh = await this._file(path, true);
+    const w = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+  }
+  async _remove(path) {
+    const segs = path.split('/');
+    const name = segs.pop();
+    try {
+      const dir = await this._dir(segs, false);
+      await dir.removeEntry(name);
+    } catch {}
+  }
+  async _removeDir(path) {
+    const segs = path.split('/');
+    const name = segs.pop();
+    try {
+      const dir = await this._dir(segs, false);
+      await dir.removeEntry(name, { recursive: true });
+    } catch {}
+  }
+  async _ensureContainerDir(containerId, kind) {
+    if (containerId == null) return;
+    await this._dir([KIND_DIR[kind], containerId], true);
+  }
+}
+
+/* ============================================================
+   Registry / model operations
+   ============================================================ */
+
+const State = {
+  vault: null,
+  index: null,
+  selectedId: null,
+  selectedParentId: null,
+  selectedParentKind: null,
+  currentNoteId: null,
+  expanded: new Set(),
+  noteTextCache: new Map(),
+  blobUrlCache: new Map(),
+  searchQuery: '',
+  editorTab: 'edit',
+  notesDirty: false,
+  isMobile: false,
+  inOrphansView: false,
+};
+
+function isContainer(kind) { return kind === 'app' || kind === 'chapter' || kind === 'sub'; }
+function childKindAllowed(parentKind, childKind) {
+  if (parentKind === 'app')     return childKind === 'chapter' || childKind === 'note' || childKind === 'asset';
+  if (parentKind === 'chapter') return childKind === 'sub'     || childKind === 'note' || childKind === 'asset';
+  if (parentKind === 'sub')     return childKind === 'note'    || childKind === 'asset';
+  return false;
+}
+
+async function persistIndex() { await State.vault.writeIndex(State.index); }
+
+function makeItem(kind, displayName, opts = {}) {
+  const id = newId();
+  const now = Date.now();
+  State.index.items[id] = {
+    kind,
+    displayName,
+    originalName: opts.originalName,
+    mime: opts.mime,
+    ext: opts.ext,
+    createdAt: now,
+    updatedAt: now,
+    parents: [],
+    isTest: !!opts.isTest,
+  };
+  return id;
+}
+
+async function addChild(parentId, parentKind, childId, atIndex = -1) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  if (!links.order.includes(childId)) {
+    if (atIndex < 0 || atIndex > links.order.length) links.order.push(childId);
+    else links.order.splice(atIndex, 0, childId);
+  }
+  await State.vault.writeLinks(parentId, parentKind, links);
+  const item = State.index.items[childId];
+  if (parentId != null && item && !item.parents.includes(parentId)) item.parents.push(parentId);
+  if (item) item.updatedAt = Date.now();
+  await persistIndex();
+}
+
+async function removeChild(parentId, parentKind, childId) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  links.order = links.order.filter(x => x !== childId);
+  await State.vault.writeLinks(parentId, parentKind, links);
+  const item = State.index.items[childId];
+  if (item && parentId != null) item.parents = item.parents.filter(x => x !== parentId);
+  if (item) item.updatedAt = Date.now();
+  await persistIndex();
+}
+
+async function reorderChild(parentId, parentKind, childId, targetIndex) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  const cur = links.order.indexOf(childId);
+  if (cur < 0) return;
+  links.order.splice(cur, 1);
+  let ti = targetIndex;
+  if (cur < ti) ti -= 1;
+  if (ti < 0) ti = 0;
+  if (ti > links.order.length) ti = links.order.length;
+  links.order.splice(ti, 0, childId);
+  await State.vault.writeLinks(parentId, parentKind, links);
+}
+
+async function descendantSet(rootId) {
+  const out = new Set();
+  const stack = [rootId];
+  while (stack.length) {
+    const id = stack.pop();
+    if (out.has(id)) continue;
+    out.add(id);
+    const item = State.index.items[id];
+    if (!item || !isContainer(item.kind)) continue;
+    const links = await State.vault.readLinks(id, item.kind);
+    for (const c of links.order) stack.push(c);
+  }
+  return out;
+}
+
+async function hardDelete(id) {
+  const item = State.index.items[id];
+  if (!item) return;
+  if (isContainer(item.kind)) {
+    const links = await State.vault.readLinks(id, item.kind);
+    for (const c of [...links.order]) {
+      await removeChild(id, item.kind, c);
+      const child = State.index.items[c];
+      if (child && child.parents.length === 0) await hardDelete(c);
+    }
+    await State.vault.deleteContainerDir(id, item.kind);
+  } else if (item.kind === 'note') {
+    await State.vault.deleteNote(id);
+  } else if (item.kind === 'asset') {
+    await State.vault.deleteAsset(id, item.ext);
+    const url = State.blobUrlCache.get(id);
+    if (url) try { URL.revokeObjectURL(url); } catch {}
+    State.blobUrlCache.delete(id);
+  }
+  delete State.index.items[id];
+  await persistIndex();
+}
+
+async function renameItem(id, newName) {
+  const item = State.index.items[id];
+  if (!item) return;
+  item.displayName = newName.trim() || item.displayName;
+  item.updatedAt = Date.now();
+  await persistIndex();
+}
+
+function parentNames(id) {
+  const item = State.index.items[id];
+  if (!item) return [];
+  return item.parents.map(p => State.index.items[p]?.displayName).filter(Boolean);
+}
+
+function firstChain(id) {
+  const item = State.index.items[id];
+  if (!item) return [];
+  if (item.kind === 'app') return [id];
+  const p = item.parents[0];
+  if (!p) return [id];
+  return [...firstChain(p), id];
+}
+
+/* ============================================================
+   Tree render
+   ============================================================ */
+
+const treeWrap = $('#treeWrap');
+
+async function getRootOrder() {
+  const links = await State.vault.readLinks(null, null);
+  return links.order;
+}
+
+async function renderTree() {
+  try { return await renderTreeInner(); }
+  catch (e) {
+    console.error('renderTree failed:', e);
+    treeWrap.innerHTML = '';
+    treeWrap.appendChild(el('div', { class: 'tree-empty', style: { color: 'var(--danger)' } },
+      'Tree error: ' + e.message,
+      el('br'), el('br'),
+      el('button', { class: 'danger', onclick: () => resetEverything() }, 'Reset sandbox & reload')
+    ));
+  }
+}
+
+async function renderTreeInner() {
+  treeWrap.innerHTML = '';
+  if (!State.vault) {
+    treeWrap.appendChild(el('div', { class: 'tree-empty' }, 'No vault open.'));
+    return;
+  }
+  const matchSet = State.searchQuery ? await computeSearchMatches(State.searchQuery) : null;
+
+  if (State.inOrphansView) {
+    const orphans = Object.keys(State.index.items).filter(id => (State.index.items[id].parents || []).length === 0 && State.index.items[id].kind !== 'app');
+    const head = el('div', { class: 'tree-empty', style: { textAlign: 'left', padding: '6px 12px' } });
+    head.appendChild(el('button', { class: 'ghost icon', onclick: () => { State.inOrphansView = false; renderTree(); } }, '← Back to apps'));
+    head.appendChild(el('div', { style: { marginTop: '6px', color: 'var(--muted)' } }, `${orphans.length} orphan(s)`));
+    treeWrap.appendChild(head);
+    if (!orphans.length) {
+      treeWrap.appendChild(el('div', { class: 'tree-empty' }, 'No orphans yet.'));
+      return;
+    }
+    for (const id of orphans) {
+      treeWrap.appendChild(renderRow({ id, parentId: null, parentKind: null, level: 0, matchSet, orphan: true }));
+    }
+    return;
+  }
+
+  const rootOrder = await getRootOrder();
+  if (!rootOrder.length) {
+    treeWrap.appendChild(el('div', { class: 'tree-empty' }, 'No apps yet. Click "+ App" to add one.'));
+    return;
+  }
+  for (const appId of rootOrder) {
+    if (matchSet && !matchSet.has(appId)) continue;
+    treeWrap.appendChild(await renderNode(appId, null, null, 0, matchSet));
+  }
+}
+
+async function renderNode(id, parentId, parentKind, level, matchSet) {
+  const item = State.index.items[id];
+  if (!item) return el('div');
+  const wrap = el('div', { class: `node level-${level}`, dataset: { id, parentId: parentId || '', parentKind: parentKind || '' } });
+  wrap.appendChild(renderRow({ id, parentId, parentKind, level, matchSet }));
+  if (isContainer(item.kind)) {
+    const expanded = State.expanded.has(id) || (matchSet != null);
+    if (expanded) {
+      const childWrap = el('div', { class: 'node-children' });
+      const links = await State.vault.readLinks(id, item.kind);
+      for (const c of links.order) {
+        if (matchSet && !matchSet.has(c)) continue;
+        childWrap.appendChild(await renderNode(c, id, item.kind, level + 1, matchSet));
+      }
+      wrap.appendChild(childWrap);
+    }
+  }
+  return wrap;
+}
+
+function kindIcon(kind, ext) {
+  if (kind === 'app') return '📦';
+  if (kind === 'chapter') return '📁';
+  if (kind === 'sub') return '📂';
+  if (kind === 'note') return '📝';
+  if (kind === 'asset') {
+    if (!ext) return '📎';
+    const e = ext.toLowerCase();
+    if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(e)) return '🖼';
+    if (['mp4','webm','mov','m4v','avi'].includes(e)) return '🎬';
+    if (['mp3','wav','m4a','ogg','flac'].includes(e)) return '🔊';
+    if (e === 'pdf') return '📄';
+    return '📎';
+  }
+  return '•';
+}
+
+function renderRow({ id, parentId, parentKind, level, matchSet, orphan }) {
+  const item = State.index.items[id];
+  const linked = (item.parents || []).length > 1;
+  const row = el('div', { class: 'node-row' + (item.kind === 'asset' ? ' att-row' : item.kind === 'note' ? ' note-row' : ''), dataset: { id, parentId: parentId || '', parentKind: parentKind || '' } });
+  if (State.selectedId === id) row.classList.add('selected');
+
+  if (level > 0 || !isContainer(item.kind)) {
+    row.appendChild(el('span', { class: 'grip', title: 'Drag to reorder. Hold Alt or long-press to link.' }, '⋮⋮'));
+  } else {
+    row.appendChild(el('span', { class: 'grip' }, ' '));
+  }
+  if (isContainer(item.kind)) {
+    const exp = State.expanded.has(id) || (matchSet != null);
+    row.appendChild(el('span', { class: 'twist', onclick: e => { e.stopPropagation(); if (exp) State.expanded.delete(id); else State.expanded.add(id); renderTree(); } }, exp ? '▼' : '▶'));
+  } else {
+    row.appendChild(el('span', { class: 'twist empty' }, ' '));
+  }
+
+  row.appendChild(el('span', { class: 'icon' }, kindIcon(item.kind, item.ext)));
+  row.appendChild(el('span', { class: 'label' }, item.displayName));
+  if (linked) {
+    const others = parentNames(id);
+    row.appendChild(el('span', { class: 'badge', title: 'Linked in: ' + others.join(', ') }, '🔗'));
+  }
+
+  const acts = el('span', { class: 'row-actions' });
+  acts.appendChild(el('button', { title: 'Rename', onclick: e => { e.stopPropagation(); promptRename(id); } }, '✎'));
+  if (isContainer(item.kind)) {
+    acts.appendChild(el('button', { title: 'Add child', onclick: e => { e.stopPropagation(); promptAddChild(id, item.kind); } }, '+'));
+  }
+  if (linked) acts.appendChild(el('button', { title: 'Open canonical (first parent)', onclick: e => { e.stopPropagation(); jumpToCanonical(id); } }, '↗'));
+  acts.appendChild(el('button', { class: 'danger', title: orphan ? 'Hard delete' : 'Delete here', onclick: e => { e.stopPropagation(); deleteHere(id, parentId, parentKind, !!orphan); } }, '✕'));
+  row.appendChild(acts);
+
+  row.addEventListener('click', () => selectItem(id, parentId, parentKind));
+  bindRowDrag(row, { id, parentId, parentKind });
+  return row;
+}
+
+function jumpToCanonical(id) {
+  const item = State.index.items[id];
+  if (!item || !item.parents.length) return;
+  const p = item.parents[0];
+  const pk = State.index.items[p]?.kind;
+  for (const a of firstChain(id)) State.expanded.add(a);
+  selectItem(id, p, pk);
+  renderTree().then(() => {
+    const r = treeWrap.querySelector(`.node-row[data-id="${id}"][data-parent-id="${p}"]`);
+    if (r) { r.scrollIntoView({ block: 'center' }); r.classList.add('pulse'); }
+  });
+}
+
+/* ============================================================
+   Selection / editor / breadcrumb
+   ============================================================ */
+
+const editorWrap = $('#editorWrap');
+const emptyState = $('#emptyState');
+const notesEditor = $('#notesEditor');
+const previewEl = $('#preview');
+const editorBody = $('#editorBody');
+const linkedHint = $('#linkedHint');
+const saveStatus = $('#saveStatus');
+const crumbBox = $('#crumbBox');
+
+function setSaveStatus(s) {
+  saveStatus.className = 'save-status ' + s;
+  saveStatus.textContent = s === 'dirty' ? 'unsaved…' : s === 'saving' ? 'saving…' : s === 'saved' ? 'saved ✓' : '—';
+}
+
+async function selectItem(id, parentId, parentKind) {
+  State.selectedId = id;
+  State.selectedParentId = parentId;
+  State.selectedParentKind = parentKind;
+  document.body.classList.add('show-content');
+  $$('.node-row.selected').forEach(r => r.classList.remove('selected'));
+  const sel = treeWrap.querySelector(`.node-row[data-id="${id}"][data-parent-id="${parentId || ''}"]`);
+  if (sel) sel.classList.add('selected');
+  await openEditor();
+  renderBreadcrumb();
+}
+
+function renderBreadcrumb() {
+  crumbBox.innerHTML = '';
+  if (!State.selectedId) { crumbBox.textContent = ''; return; }
+  const chain = firstChain(State.selectedId);
+  chain.forEach((cid, i) => {
+    if (i > 0) crumbBox.appendChild(el('span', { class: 'sep' }, '›'));
+    const it = State.index.items[cid];
+    if (!it) return;
+    crumbBox.appendChild(el('span', { class: 'crumb', onclick: () => {
+      const pid = it.parents[0] || null;
+      const pk = pid ? State.index.items[pid]?.kind : null;
+      selectItem(cid, pid, pk);
+    } }, it.displayName));
+  });
+}
+
+async function openEditor() {
+  const id = State.selectedId;
+  if (!id) {
+    emptyState.style.display = '';
+    editorWrap.style.display = 'none';
+    return;
+  }
+  const item = State.index.items[id];
+  if (!item) return;
+  emptyState.style.display = 'none';
+  editorWrap.style.display = 'flex';
+
+  if ((item.parents || []).length > 1) {
+    linkedHint.style.display = '';
+    linkedHint.innerHTML = `🔗 Linked in <b>${esc(parentNames(id).join(', '))}</b>. Edits sync everywhere.`;
+  } else {
+    linkedHint.style.display = 'none';
+  }
+
+  let noteId = null;
+  if (item.kind === 'note') {
+    noteId = id;
+  } else if (isContainer(item.kind)) {
+    const links = await State.vault.readLinks(id, item.kind);
+    for (const c of links.order) {
+      if (State.index.items[c]?.kind === 'note') { noteId = c; break; }
+    }
+  } else if (item.kind === 'asset') {
+    notesEditor.value = '';
+    setSaveStatus('—');
+    State.currentNoteId = null;
+    notesEditor.disabled = true;
+    previewEl.innerHTML = await renderAssetPreviewHtml(id, item);
+    setEditorTab('preview');
+    await renderAttachments();
+    return;
+  }
+  notesEditor.disabled = false;
+
+  if (!noteId && isContainer(item.kind)) {
+    State.currentNoteId = null;
+    notesEditor.value = '';
+    setSaveStatus('—');
+    previewEl.innerHTML = '<p style="color:var(--muted)">No note yet. Start typing to create one.</p>';
+  } else if (noteId) {
+    State.currentNoteId = noteId;
+    const txt = await State.vault.readNote(noteId);
+    State.noteTextCache.set(noteId, txt);
+    notesEditor.value = txt;
+    setSaveStatus(txt ? 'saved' : '—');
+    await renderPreview();
+  }
+  setEditorTab(State.editorTab);
+  await renderAttachments();
+}
+
+async function renderAssetPreviewHtml(id, item) {
+  const url = await assetUrl(id, item);
+  const e = (item.ext || '').toLowerCase();
+  if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(e))
+    return `<img src="${esc(url)}" alt="${esc(item.displayName)}">`;
+  if (['mp4','webm','mov','m4v'].includes(e))
+    return `<video controls src="${esc(url)}" style="max-width:100%"></video>`;
+  if (['mp3','wav','m4a','ogg','flac'].includes(e))
+    return `<audio controls src="${esc(url)}"></audio>`;
+  if (e === 'pdf')
+    return `<p><a href="${esc(url)}" target="_blank" rel="noopener">Open PDF: ${esc(item.displayName)}</a></p>`;
+  return `<p><a href="${esc(url)}" download="${esc(item.originalName || item.displayName)}">Download ${esc(item.displayName)}</a></p>`;
+}
+
+$$('.editor-tabs button[data-tab]').forEach(b => b.addEventListener('click', () => setEditorTab(b.dataset.tab)));
+function setEditorTab(t) {
+  State.editorTab = t;
+  $$('.editor-tabs button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  editorBody.className = 'editor-body ' + t;
+  notesEditor.style.display = (t === 'preview') ? 'none' : '';
+  previewEl.style.display = (t === 'edit') ? 'none' : '';
+  if (t !== 'edit') renderPreview();
+}
+
+const saveNote = debounce(async () => {
+  if (!State.notesDirty) return;
+  setSaveStatus('saving');
+  try {
+    let noteId = State.currentNoteId;
+    if (!noteId) {
+      const parent = State.selectedId;
+      const pkind = State.index.items[parent]?.kind;
+      if (!isContainer(pkind)) { setSaveStatus('—'); return; }
+      noteId = makeItem('note', 'Notes');
+      await addChild(parent, pkind, noteId);
+      State.currentNoteId = noteId;
+      await renderTree();
+    }
+    const txt = notesEditor.value;
+    await State.vault.writeNote(noteId, txt);
+    State.noteTextCache.set(noteId, txt);
+    State.index.items[noteId].updatedAt = Date.now();
+    await persistIndex();
+    State.notesDirty = false;
+    setSaveStatus('saved');
+    if (State.editorTab !== 'edit') renderPreview();
+  } catch (e) {
+    console.error(e);
+    setSaveStatus('dirty');
+    toast('Save failed: ' + e.message, 'error');
+  }
+}, 600);
+
+notesEditor.addEventListener('input', () => {
+  State.notesDirty = true;
+  setSaveStatus('dirty');
+  saveNote();
+});
+
+window.addEventListener('beforeunload', e => {
+  if (State.notesDirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ============================================================
+   Markdown renderer (minimal)
+   ============================================================ */
+function renderMd(src) {
+  src = String(src || '').replace(/\r\n/g, '\n');
+  const codeBlocks = [];
+  src = src.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (m, lang, code) => {
+    codeBlocks.push(`<pre><code class="lang-${esc(lang)}">${esc(code)}</code></pre>`);
+    return ` CB${codeBlocks.length - 1} `;
+  });
+  const lines = src.split('\n');
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    let m;
+    if ((m = line.match(/^(#{1,6})\s+(.*)$/))) {
+      out.push(`<h${m[1].length}>${inlineMd(m[2])}</h${m[1].length}>`);
+      i++; continue;
+    }
+    if (/^>/.test(line)) {
+      const buf = [];
+      while (i < lines.length && /^>/.test(lines[i])) { buf.push(lines[i].replace(/^>\s?/, '')); i++; }
+      out.push(`<blockquote>${inlineMd(buf.join('\n'))}</blockquote>`);
+      continue;
+    }
+    if (/^[-*+]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^[-*+]\s+/.test(lines[i])) {
+        items.push(`<li>${inlineMd(lines[i].replace(/^[-*+]\s+/, ''))}</li>`); i++;
+      }
+      out.push(`<ul>${items.join('')}</ul>`);
+      continue;
+    }
+    if (/^\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
+        items.push(`<li>${inlineMd(lines[i].replace(/^\d+\.\s+/, ''))}</li>`); i++;
+      }
+      out.push(`<ol>${items.join('')}</ol>`);
+      continue;
+    }
+    if (/^---+$/.test(line)) { out.push('<hr>'); i++; continue; }
+    if (line.trim() === '') { i++; continue; }
+    const para = [line]; i++;
+    while (i < lines.length && lines[i].trim() !== '' && !/^(#{1,6}\s|>|[-*+]\s|\d+\.\s|---+$|```)/.test(lines[i])) { para.push(lines[i]); i++; }
+    out.push(`<p>${inlineMd(para.join('\n'))}</p>`);
+  }
+  let html = out.join('\n');
+  html = html.replace(/ CB(\d+) /g, (m, n) => codeBlocks[+n]);
+  return html;
+}
+function inlineMd(s) {
+  s = esc(s);
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (m, alt, src) => mediaTag(src, alt));
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (m, t, h) => `<a href="${h}" target="_blank" rel="noopener">${t}</a>`);
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^\w*])\*([^*\n]+)\*(?!\w)/g, '$1<em>$2</em>');
+  s = s.replace(/(^|[^\w_])_([^_\n]+)_(?!\w)/g, '$1<em>$2</em>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\n/g, '<br>');
+  return s;
+}
+function mediaTag(src, alt) {
+  let resolved = src;
+  let ext = (src.split('.').pop() || '').toLowerCase();
+  if (/^_assets\//.test(src)) {
+    const m = src.match(/^_assets\/([^.\/]+)\.([a-zA-Z0-9]+)$/);
+    if (m) {
+      ext = m[2].toLowerCase();
+      const url = State.blobUrlCache.get(m[1]);
+      if (url) resolved = url;
+    }
+  }
+  if (['mp4','webm','mov','m4v'].includes(ext)) return `<video controls src="${esc(resolved)}"></video>`;
+  if (['mp3','wav','m4a','ogg','flac'].includes(ext)) return `<audio controls src="${esc(resolved)}"></audio>`;
+  if (ext === 'pdf') return `<a href="${esc(resolved)}" target="_blank" rel="noopener">📄 ${esc(alt || src)}</a>`;
+  return `<img src="${esc(resolved)}" alt="${esc(alt)}">`;
+}
+
+async function renderPreview() {
+  const txt = notesEditor.value;
+  const refs = new Set();
+  txt.replace(/_assets\/([a-z0-9-]+)\.([a-zA-Z0-9]+)/gi, (m, id) => { refs.add(id); return m; });
+  for (const id of refs) {
+    if (!State.blobUrlCache.has(id) && State.index.items[id]) await assetUrl(id, State.index.items[id]);
+  }
+  previewEl.innerHTML = renderMd(txt);
+  $$('img', previewEl).forEach(img => img.addEventListener('click', () => openLightbox(img.src, 'img')));
+}
+
+/* ============================================================
+   Attachments panel
+   ============================================================ */
+const attachListEl = $('#attachList');
+const attCountEl = $('#attCount');
+
+async function renderAttachments() {
+  attachListEl.innerHTML = '';
+  const id = State.selectedId;
+  if (!id) { attCountEl.textContent = '(0)'; return; }
+  const item = State.index.items[id];
+  if (!item || !isContainer(item.kind)) { attCountEl.textContent = '(–)'; return; }
+  const links = await State.vault.readLinks(id, item.kind);
+  const assets = links.order.filter(c => State.index.items[c]?.kind === 'asset');
+  attCountEl.textContent = `(${assets.length})`;
+  for (const aid of assets) {
+    const a = State.index.items[aid];
+    if (!a) continue;
+    const linked = (a.parents || []).length > 1;
+    const node = el('div', { class: 'att', title: a.originalName || a.displayName });
+    node.appendChild(el('span', { class: 'icon' }, kindIcon('asset', a.ext)));
+    node.appendChild(el('span', { class: 'att-name' }, a.displayName));
+    if (linked) node.appendChild(el('span', { class: 'att-link-badge', title: 'Linked in: ' + parentNames(aid).join(', ') }, '🔗'));
+    node.addEventListener('click', () => previewAsset(aid, a));
+    const del = el('button', { class: 'att-del', title: 'Remove from this container', onclick: async e => {
+      e.stopPropagation();
+      await deleteHere(aid, id, item.kind, false);
+    } }, '×');
+    node.appendChild(del);
+    attachListEl.appendChild(node);
+  }
+}
+
+async function previewAsset(id, item) {
+  const url = await assetUrl(id, item);
+  const e = (item.ext || '').toLowerCase();
+  if (['png','jpg','jpeg','gif','webp','svg','bmp'].includes(e)) openLightbox(url, 'img');
+  else if (['mp4','webm','mov','m4v'].includes(e)) openLightbox(url, 'video');
+  else if (['mp3','wav','m4a','ogg','flac'].includes(e)) openLightbox(url, 'audio');
+  else if (e === 'pdf') window.open(url, '_blank');
+  else {
+    const a = el('a', { href: url, download: item.originalName || item.displayName });
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+}
+
+async function assetUrl(id, item) {
+  if (State.blobUrlCache.has(id)) return State.blobUrlCache.get(id);
+  const blob = await State.vault.readAsset(id, item.ext);
+  if (!blob) return '';
+  const url = URL.createObjectURL(blob);
+  State.blobUrlCache.set(id, url);
+  return url;
+}
+
+const lightbox = $('#lightbox');
+const lbInner = $('.lb-inner', lightbox);
+function openLightbox(src, kind) {
+  lbInner.innerHTML = '';
+  let node;
+  if (kind === 'img') node = el('img', { src });
+  else if (kind === 'video') node = el('video', { src, controls: true, autoplay: true });
+  else if (kind === 'audio') node = el('audio', { src, controls: true, autoplay: true });
+  if (node) lbInner.appendChild(node);
+  lightbox.classList.add('open');
+}
+lightbox.addEventListener('click', e => {
+  if (e.target === lightbox || e.target.classList.contains('lb-close')) {
+    lightbox.classList.remove('open'); lbInner.innerHTML = '';
+  }
+});
+
+/* ============================================================
+   Drag & Drop: reorder / move / link
+   ============================================================ */
+let dragState = null;
+
+function bindRowDrag(row, info) {
+  row.draggable = true;
+  row.addEventListener('dragstart', e => {
+    dragState = { id: info.id, parentId: info.parentId, parentKind: info.parentKind, link: e.altKey };
+    e.dataTransfer.effectAllowed = e.altKey ? 'link' : 'move';
+    e.dataTransfer.setData('text/plain', info.id);
+    row.classList.add('dragging');
+  });
+  row.addEventListener('dragend', () => { row.classList.remove('dragging'); clearDragHints(); dragState = null; });
+  row.addEventListener('dragover', e => {
+    if (!dragState) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = e.altKey ? 'link' : 'move';
+    decorateDropTarget(row, e);
+  });
+  row.addEventListener('dragleave', () => row.classList.remove('drag-over-into', 'drag-over-before', 'drag-over-after'));
+  row.addEventListener('drop', async e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const target = decideDropTarget(row, e);
+    clearDragHints();
+    if (!dragState) return;
+    await performDrop(dragState, target, e.altKey);
+    dragState = null;
+  });
+
+  let touchStart = null;
+  let longPressTimer = null;
+  let longPressed = false;
+  const grip = row.querySelector('.grip');
+  if (!grip) return;
+  grip.addEventListener('touchstart', e => {
+    touchStart = e.touches[0];
+    longPressed = false;
+    longPressTimer = setTimeout(() => {
+      longPressed = true;
+      navigator.vibrate?.(20);
+      startTouchDrag(row, info, true, touchStart);
+      toast('Link mode — drop on a target to link', 'ok');
+    }, 450);
+  }, { passive: true });
+  grip.addEventListener('touchmove', e => {
+    if (!touchStart) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchStart.clientX, dy = t.clientY - touchStart.clientY;
+    if (!dragState && (Math.abs(dx) + Math.abs(dy)) > 8) {
+      clearTimeout(longPressTimer);
+      if (!longPressed) startTouchDrag(row, info, false, touchStart);
+    }
+    if (dragState) handleTouchMove(t);
+  }, { passive: true });
+  grip.addEventListener('touchend', async e => {
+    clearTimeout(longPressTimer);
+    if (dragState && dragState.touch) {
+      const t = (e.changedTouches || [])[0];
+      const tgtRow = t ? findRowAt(t.clientX, t.clientY) : null;
+      const target = tgtRow ? decideDropTarget(tgtRow, { clientY: t.clientY }) : null;
+      clearDragHints();
+      if (target) await performDrop(dragState, target, dragState.link);
+      $('#dragGhost').style.display = 'none';
+      dragState = null;
+    }
+    touchStart = null;
+  });
+  grip.addEventListener('touchcancel', () => {
+    clearTimeout(longPressTimer);
+    $('#dragGhost').style.display = 'none';
+    clearDragHints();
+    dragState = null; touchStart = null;
+  });
+}
+
+function startTouchDrag(row, info, isLink, touch) {
+  dragState = { id: info.id, parentId: info.parentId, parentKind: info.parentKind, link: isLink, touch: true };
+  const g = $('#dragGhost');
+  g.textContent = State.index.items[info.id]?.displayName || '?';
+  g.className = isLink ? 'link' : '';
+  g.style.display = 'block';
+  g.style.left = (touch.clientX + 8) + 'px';
+  g.style.top = (touch.clientY + 8) + 'px';
+}
+function handleTouchMove(t) {
+  const g = $('#dragGhost');
+  g.style.left = (t.clientX + 8) + 'px';
+  g.style.top = (t.clientY + 8) + 'px';
+  const r = findRowAt(t.clientX, t.clientY);
+  clearDragHints();
+  if (r) decorateDropTarget(r, { clientY: t.clientY });
+}
+function findRowAt(x, y) {
+  const els = document.elementsFromPoint(x, y);
+  return els.find(e => e.classList && e.classList.contains('node-row'));
+}
+function clearDragHints() {
+  $$('.drag-over-into,.drag-over-before,.drag-over-after').forEach(r => r.classList.remove('drag-over-into', 'drag-over-before', 'drag-over-after'));
+}
+function decorateDropTarget(row, e) {
+  const target = decideDropTarget(row, e);
+  if (!target) return;
+  if (target.position === 'into') row.classList.add('drag-over-into');
+  else if (target.position === 'before') row.classList.add('drag-over-before');
+  else row.classList.add('drag-over-after');
+}
+function decideDropTarget(row, e) {
+  const id = row.dataset.id;
+  const item = State.index.items[id];
+  if (!item) return null;
+  const r = row.getBoundingClientRect();
+  const y = e.clientY - r.top;
+  if (isContainer(item.kind)) {
+    if (y < r.height * 0.25) return { position: 'before', refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+    if (y > r.height * 0.75) return { position: 'after',  refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+    return { position: 'into', containerId: id, containerKind: item.kind };
+  } else {
+    if (y < r.height * 0.5) return { position: 'before', refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+    return { position: 'after', refId: id, parentId: row.dataset.parentId || null, parentKind: row.dataset.parentKind || null };
+  }
+}
+
+async function performDrop(drag, target, modifierLink) {
+  if (!target) return;
+  const sourceId = drag.id;
+  const sourceItem = State.index.items[sourceId];
+  if (!sourceItem) return;
+
+  let destParentId, destParentKind, destIndex;
+  if (target.position === 'into') {
+    destParentId = target.containerId;
+    destParentKind = target.containerKind;
+    destIndex = -1;
+  } else {
+    destParentId = target.parentId || null;
+    destParentKind = target.parentKind || null;
+    const links = await State.vault.readLinks(destParentId || null, destParentKind);
+    destIndex = links.order.indexOf(target.refId);
+    if (target.position === 'after') destIndex += 1;
+  }
+
+  if (sourceId === destParentId) { toast('Cannot drop into itself', 'error'); return; }
+  if (destParentKind !== null && !childKindAllowed(destParentKind, sourceItem.kind)) {
+    toast(`A ${destParentKind} cannot host a ${sourceItem.kind}`, 'error'); return;
+  }
+  if (destParentKind === null && sourceItem.kind !== 'app') {
+    toast('Only apps can be at the root.', 'error'); return;
+  }
+  if (isContainer(sourceItem.kind) && destParentId) {
+    const desc = await descendantSet(sourceId);
+    if (desc.has(destParentId)) { toast('Cannot move/link into own descendant', 'error'); return; }
+  }
+
+  const isLink = drag.link || modifierLink;
+  const samePlace = (drag.parentId || null) === (destParentId || null);
+
+  if (samePlace) {
+    await reorderChild(destParentId, destParentKind, sourceId, destIndex);
+  } else if (isLink) {
+    await addChild(destParentId, destParentKind, sourceId, destIndex);
+    toast('Linked', 'ok');
+  } else {
+    if (drag.parentId !== undefined) await removeChild(drag.parentId || null, drag.parentKind || null, sourceId);
+    await addChild(destParentId, destParentKind, sourceId, destIndex);
+  }
+  await renderTree();
+}
+
+/* ============================================================
+   Add / rename / delete dialogs
+   ============================================================ */
+
+function showModal(content) {
+  const back = el('div', { class: 'modal-backdrop' });
+  const m = el('div', { class: 'modal' });
+  back.appendChild(m);
+  back.addEventListener('click', e => { if (e.target === back) back.remove(); });
+  m.appendChild(content);
+  document.body.appendChild(back);
+  return back;
+}
+
+function promptText({ title, label, value = '', placeholder = '' }) {
+  return new Promise(res => {
+    const inp = el('input', { type: 'text', value, placeholder });
+    const c = el('div', {},
+      el('h3', {}, title),
+      el('div', { class: 'row' }, el('label', {}, label, el('br'), inp)),
+      el('div', { class: 'actions' },
+        el('button', { onclick: () => { back.remove(); res(null); } }, 'Cancel'),
+        el('button', { class: 'primary', onclick: () => { back.remove(); res(inp.value.trim()); } }, 'OK')
+      )
+    );
+    const back = showModal(c);
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { back.remove(); res(inp.value.trim()); }
+      if (e.key === 'Escape') { back.remove(); res(null); }
+    });
+  });
+}
+
+async function promptRename(id) {
+  const item = State.index.items[id];
+  if (!item) return;
+  const name = await promptText({ title: 'Rename', label: 'Display name', value: item.displayName });
+  if (name) { await renameItem(id, name); renderTree(); renderBreadcrumb(); }
+}
+
+async function promptAddChild(parentId, parentKind) {
+  const choices = [];
+  if (parentKind === 'app') choices.push('chapter');
+  if (parentKind === 'chapter') choices.push('sub');
+  choices.push('note', 'asset');
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, `Add to ${State.index.items[parentId]?.displayName || ''}`));
+  const row = el('div', { class: 'row', style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
+  for (const k of choices) {
+    row.appendChild(el('button', { onclick: async () => {
+      back.remove();
+      if (k === 'asset') {
+        $('#filePicker').onchange = async e => {
+          for (const f of e.target.files) await ingestFile(f, parentId, parentKind);
+          await renderTree(); await renderAttachments();
+          $('#filePicker').value = '';
+        };
+        $('#filePicker').click();
+      } else {
+        const name = await promptText({ title: `New ${k}`, label: 'Display name', value: k === 'note' ? 'Notes' : '' });
+        if (!name) return;
+        const id = makeItem(k, name);
+        await addChild(parentId, parentKind, id);
+        await renderTree();
+        if (k !== 'asset') selectItem(id, parentId, parentKind);
+      }
+    } }, kindIcon(k), ' ', k));
+  }
+  c.appendChild(row);
+  c.appendChild(el('div', { class: 'actions' }, el('button', { onclick: () => back.remove() }, 'Close')));
+  const back = showModal(c);
+}
+
+async function deleteHere(id, parentId, parentKind, hardOnly) {
+  const item = State.index.items[id];
+  if (!item) return;
+  if (hardOnly) {
+    if (!confirm(`Hard delete "${item.displayName}"? This removes data permanently.`)) return;
+    await hardDelete(id);
+    if (State.selectedId === id) { State.selectedId = null; openEditor(); }
+    await renderTree();
+    return;
+  }
+  if (parentId == null) {
+    if (item.kind === 'app') {
+      if (!confirm(`Remove app "${item.displayName}" from root?`)) return;
+      const links = await State.vault.readLinks(null, null);
+      links.order = links.order.filter(x => x !== id);
+      await State.vault.writeLinks(null, null, links);
+    }
+  } else {
+    await removeChild(parentId, parentKind, id);
+  }
+  if ((item.parents || []).length === 0 && item.kind !== 'app') {
+    const c = el('div', {});
+    c.appendChild(el('h3', {}, `Last link removed`));
+    c.appendChild(el('p', {}, `"${item.displayName}" is no longer linked anywhere.`));
+    const acts = el('div', { class: 'actions' });
+    acts.appendChild(el('button', { onclick: () => { back.remove(); renderTree(); } }, 'Move to Orphans'));
+    acts.appendChild(el('button', { class: 'danger', onclick: async () => {
+      back.remove();
+      await hardDelete(id);
+      if (State.selectedId === id) { State.selectedId = null; openEditor(); }
+      renderTree();
+    } }, 'Hard delete'));
+    acts.appendChild(el('button', { class: 'primary', onclick: async () => {
+      back.remove();
+      if (parentId != null && parentKind) await addChild(parentId, parentKind, id);
+      renderTree();
+    } }, 'Cancel (undo)'));
+    c.appendChild(acts);
+    const back = showModal(c);
+  } else {
+    if (State.selectedId === id) { State.selectedId = null; openEditor(); }
+    renderTree();
+  }
+}
+
+/* ============================================================
+   File ingest (paste / drop / + Add)
+   ============================================================ */
+async function ingestFile(file, parentId, parentKind) {
+  if (!parentId) { toast('Select a chapter or sub-chapter first', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024 && State.vault.kind === 'sandbox')
+    toast('Large file (' + (file.size/1024/1024).toFixed(1) + ' MB) in sandbox.', 'warn');
+  const ext = guessExt(file);
+  const name = file.name || `pasted-${Date.now()}.${ext}`;
+  const id = makeItem('asset', name, { originalName: file.name, mime: file.type, ext });
+  await State.vault.writeAsset(id, ext, file);
+  await addChild(parentId, parentKind, id);
+  return id;
+}
+function guessExt(file) {
+  if (file.name && file.name.includes('.')) return file.name.split('.').pop().toLowerCase();
+  const m = (file.type || '').match(/\/([a-z0-9]+)/i);
+  return m ? m[1] : 'bin';
+}
+
+const contentArea = $('#content');
+contentArea.addEventListener('paste', async e => {
+  if (!State.selectedId) return;
+  const items = e.clipboardData?.items || [];
+  let parent = State.selectedId, parentKind = State.index.items[State.selectedId]?.kind;
+  if (!isContainer(parentKind)) { parent = State.selectedParentId; parentKind = State.selectedParentKind; }
+  if (!isContainer(parentKind)) return;
+  let ingested = false;
+  for (const it of items) {
+    if (it.kind === 'file') {
+      const f = it.getAsFile();
+      if (f) { await ingestFile(f, parent, parentKind); ingested = true; }
+    }
+  }
+  if (ingested) { e.preventDefault(); await renderTree(); await renderAttachments(); toast('Pasted', 'ok'); }
+});
+contentArea.addEventListener('dragover', e => {
+  if (!e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  contentArea.classList.add('drop-active');
+});
+contentArea.addEventListener('dragleave', e => { if (e.target === contentArea) contentArea.classList.remove('drop-active'); });
+contentArea.addEventListener('drop', async e => {
+  contentArea.classList.remove('drop-active');
+  if (!e.dataTransfer.files.length) return;
+  e.preventDefault();
+  let parent = State.selectedId, parentKind = State.index.items[State.selectedId]?.kind;
+  if (!isContainer(parentKind)) { parent = State.selectedParentId; parentKind = State.selectedParentKind; }
+  if (!isContainer(parentKind)) { toast('Select a container first', 'error'); return; }
+  for (const f of e.dataTransfer.files) await ingestFile(f, parent, parentKind);
+  await renderTree(); await renderAttachments();
+  toast('Files added', 'ok');
+});
+
+$('#btnAddFiles').addEventListener('click', () => {
+  if (!State.selectedId) { toast('Select a container first', 'error'); return; }
+  const item = State.index.items[State.selectedId];
+  let p = State.selectedId, pk = item.kind;
+  if (!isContainer(pk)) { p = State.selectedParentId; pk = State.selectedParentKind; }
+  if (!isContainer(pk)) return;
+  $('#filePicker').onchange = async e => {
+    for (const f of e.target.files) await ingestFile(f, p, pk);
+    await renderTree(); await renderAttachments();
+    $('#filePicker').value = '';
+  };
+  $('#filePicker').click();
+});
+$('#btnAddNote').addEventListener('click', async () => {
+  const sel = State.selectedId;
+  let p = sel, pk = State.index.items[sel]?.kind;
+  if (!isContainer(pk)) { p = State.selectedParentId; pk = State.selectedParentKind; }
+  if (!isContainer(pk)) { toast('Select a container first', 'error'); return; }
+  const name = await promptText({ title: 'New note', label: 'Display name', value: 'Notes' });
+  if (!name) return;
+  const id = makeItem('note', name);
+  await addChild(p, pk, id);
+  await renderTree();
+  selectItem(id, p, pk);
+});
+$('#btnAddChild').addEventListener('click', async () => {
+  if (!State.selectedId) { toast('Select an item first', 'error'); return; }
+  const it = State.index.items[State.selectedId];
+  if (isContainer(it.kind)) promptAddChild(State.selectedId, it.kind);
+  else promptAddChild(State.selectedParentId, State.selectedParentKind);
+});
+$('#btnAddApp').addEventListener('click', async () => {
+  if (!State.vault) { toast('Open a vault first', 'error'); return; }
+  const name = await promptText({ title: 'New app', label: 'App name' });
+  if (!name) return;
+  const id = makeItem('app', name);
+  const links = await State.vault.readLinks(null, null);
+  links.order.push(id);
+  await State.vault.writeLinks(null, null, links);
+  await renderTree();
+  selectItem(id, null, null);
+});
+$('#backToTree').addEventListener('click', () => { document.body.classList.remove('show-content'); });
+
+/* ============================================================
+   Search
+   ============================================================ */
+const searchInput = $('#search');
+const notesMatchesEl = $('#notesMatches');
+
+searchInput.addEventListener('input', debounce(async () => {
+  State.searchQuery = searchInput.value.trim().toLowerCase();
+  await renderTree();
+  await renderNotesMatches();
+}, 180));
+
+async function computeSearchMatches(q) {
+  const set = new Set();
+  q = q.toLowerCase();
+  const direct = new Set();
+  for (const id in State.index.items) {
+    const it = State.index.items[id];
+    if ((it.displayName || '').toLowerCase().includes(q)) direct.add(id);
+    if (it.kind === 'note') {
+      let txt = State.noteTextCache.get(id);
+      if (txt == null) {
+        try { txt = await State.vault.readNote(id); State.noteTextCache.set(id, txt); } catch { txt = ''; }
+      }
+      if ((txt || '').toLowerCase().includes(q)) direct.add(id);
+    }
+  }
+  for (const id of direct) {
+    const stack = [id];
+    while (stack.length) {
+      const cur = stack.pop();
+      if (set.has(cur)) continue;
+      set.add(cur);
+      const it = State.index.items[cur];
+      if (it && it.parents) for (const p of it.parents) stack.push(p);
+    }
+  }
+  return set;
+}
+
+async function renderNotesMatches() {
+  notesMatchesEl.innerHTML = '';
+  if (!State.searchQuery) return;
+  const q = State.searchQuery.toLowerCase();
+  const list = [];
+  for (const id in State.index.items) {
+    const it = State.index.items[id];
+    if (it.kind !== 'note') continue;
+    let txt = State.noteTextCache.get(id);
+    if (txt == null) continue;
+    const i = txt.toLowerCase().indexOf(q);
+    if (i < 0) continue;
+    const start = Math.max(0, i - 30), end = Math.min(txt.length, i + q.length + 50);
+    list.push({ id, snip: txt.slice(start, end), at: i - start });
+    if (list.length > 30) break;
+  }
+  if (!list.length) return;
+  notesMatchesEl.appendChild(el('div', { class: 'nm-head' }, `Notes matches (${list.length})`));
+  for (const m of list) {
+    const it = State.index.items[m.id];
+    const before = esc(m.snip.slice(0, m.at));
+    const hit = esc(m.snip.slice(m.at, m.at + State.searchQuery.length));
+    const after = esc(m.snip.slice(m.at + State.searchQuery.length));
+    const node = el('div', { class: 'nm', onclick: () => {
+      const p = it.parents[0] || null;
+      const pk = p ? State.index.items[p].kind : null;
+      selectItem(m.id, p, pk);
+    } });
+    node.appendChild(el('div', { class: 'nm-name' }, it.displayName));
+    const snip = el('div', { class: 'nm-snip' });
+    snip.innerHTML = `…${before}<mark>${hit}</mark>${after}…`;
+    node.appendChild(snip);
+    notesMatchesEl.appendChild(node);
+  }
+}
+
+/* ============================================================
+   Tools menu
+   ============================================================ */
+$('#btnTools').addEventListener('click', e => {
+  const existing = $('#toolsMenu');
+  if (existing) { existing.remove(); return; }
+  const m = el('div', { class: 'menu', id: 'toolsMenu' });
+  m.style.right = '12px';
+  m.style.top = (e.target.getBoundingClientRect().bottom + 4) + 'px';
+  m.style.position = 'fixed';
+  m.appendChild(el('button', { onclick: () => { m.remove(); State.inOrphansView = true; renderTree(); } }, '🗃 Orphans'));
+  m.appendChild(el('button', { onclick: () => { m.remove(); exportTree(); } }, '⇩ Export tree (Markdown)'));
+  m.appendChild(el('button', { onclick: () => { m.remove(); importStructure(); } }, '⇪ Import structure'));
+  m.appendChild(el('div', { class: 'sep' }));
+  m.appendChild(el('button', { onclick: () => { m.remove(); garbageCollect(); } }, '🧹 GC orphan files'));
+  m.appendChild(el('div', { class: 'sep' }));
+  m.appendChild(el('button', { onclick: () => { m.remove(); resetEverything(); }, style: { color: 'var(--danger)' } }, '⚠ Reset everything (wipe IDB)'));
+  document.body.appendChild(m);
+  setTimeout(() => {
+    document.addEventListener('click', function once(ev) {
+      if (!m.contains(ev.target)) { m.remove(); document.removeEventListener('click', once); }
+    });
+  }, 0);
+});
+
+async function exportTree() {
+  const out = ['# Vault export', ''];
+  const root = await State.vault.readLinks(null, null);
+  async function walk(id) {
+    const it = State.index.items[id]; if (!it) return;
+    const linked = (it.parents || []).length > 1 ? '  🔗' : '';
+    if (it.kind === 'app') out.push(`# ${it.displayName}${linked}`);
+    else if (it.kind === 'chapter') out.push(`## ${it.displayName}${linked}`);
+    else if (it.kind === 'sub') out.push(`### ${it.displayName}${linked}`);
+    else if (it.kind === 'note') out.push(`- 📝 ${it.displayName}${linked}`);
+    else if (it.kind === 'asset') out.push(`- 📎 ${it.displayName}${linked}`);
+    if (isContainer(it.kind)) {
+      const ch = await State.vault.readLinks(id, it.kind);
+      for (const c of ch.order) await walk(c);
+    }
+  }
+  for (const a of root.order) await walk(a);
+  const blob = new Blob([out.join('\n')], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: 'whokna-export.md' });
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('Exported', 'ok');
+}
+
+async function importStructure() {
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, 'Import structure'));
+  c.appendChild(el('p', { class: 'hint' }, 'Markdown headings (# app, ## chapter, ### sub-chapter) OR 3-column CSV: app,chapter,sub.'));
+  const ta = el('textarea', { rows: 10, style: { width: '100%', height: '180px' }, placeholder: '# Whokna Design\n## Frames\n### Hinges\n### Locks\n## Glass\n### Insulation' });
+  c.appendChild(ta);
+  c.appendChild(el('div', { class: 'actions' },
+    el('button', { onclick: () => back.remove() }, 'Cancel'),
+    el('button', { class: 'primary', onclick: async () => {
+      back.remove();
+      await runImport(ta.value);
+      await renderTree();
+      toast('Imported', 'ok');
+    } }, 'Import')
+  ));
+  const back = showModal(c);
+}
+
+async function runImport(txt) {
+  const lines = txt.split(/\r?\n/);
+  let appId = null, chapterId = null;
+  const isCsv = !lines.some(l => /^#{1,3}\s/.test(l)) && lines.some(l => l.includes(','));
+  if (isCsv) {
+    for (const line of lines) {
+      const cols = line.split(',').map(s => s.trim());
+      if (!cols[0]) continue;
+      appId = await ensureChild(null, null, 'app', cols[0]);
+      if (cols[1]) chapterId = await ensureChild(appId, 'app', 'chapter', cols[1]);
+      if (cols[2]) await ensureChild(chapterId, 'chapter', 'sub', cols[2]);
+    }
+  } else {
+    for (const line of lines) {
+      const m1 = line.match(/^#\s+(.+)$/);
+      const m2 = line.match(/^##\s+(.+)$/);
+      const m3 = line.match(/^###\s+(.+)$/);
+      if (m1) { appId = await ensureChild(null, null, 'app', m1[1]); chapterId = null; }
+      else if (m2 && appId) { chapterId = await ensureChild(appId, 'app', 'chapter', m2[1]); }
+      else if (m3 && chapterId) { await ensureChild(chapterId, 'chapter', 'sub', m3[1]); }
+    }
+  }
+}
+async function ensureChild(parentId, parentKind, kind, name) {
+  const links = await State.vault.readLinks(parentId, parentKind);
+  for (const c of links.order) {
+    const it = State.index.items[c];
+    if (it && it.kind === kind && it.displayName === name) return c;
+  }
+  const id = makeItem(kind, name);
+  await addChild(parentId, parentKind, id);
+  return id;
+}
+
+async function garbageCollect() {
+  if (State.vault.kind !== 'sandbox') { toast('GC available in sandbox only', 'warn'); return; }
+  const keys = await sbxKeys();
+  let removed = 0;
+  for (const k of keys) {
+    if (typeof k !== 'string' || !k.startsWith('f:_')) continue;
+    const m = k.match(/^f:(_assets|_notes)\/([^.\/]+)/);
+    if (m && !State.index.items[m[2]]) { await sbxDel(k); removed++; }
+  }
+  toast(`GC removed ${removed} file(s)`, 'ok');
+}
+
+/* ============================================================
+   Test data + sandbox modal
+   ============================================================ */
+const TEST_TOPICS = [
+  ['Window','window'],['Door','door'],['Hinge','hinge'],['Mortise lock','mortise lock'],
+  ['Casement','casement window'],['Sash window','sash window'],['Glazing','insulated glazing'],
+  ['Weatherstrip','weatherstripping'],['Frame (construction)','frame'],['PVC window','PVC window'],
+  ['Profile (extrusion)','profile'],['Aluminium','aluminium'],['Wood','wood'],
+  ['Door handle','door handle'],['Lock and key','lock and key'],['Cylinder lock','cylinder lock'],
+  ['SQL','SQL'],['PostgreSQL','PostgreSQL'],['Database normalization','database normalization'],
+  ['Index (database)','database index'],['Foreign key','foreign key'],['Backup','backup'],
+  ['Schema migration','schema migration'],['SAP','SAP SE'],['CSV','CSV'],['XML','XML'],['JSON','JSON']
+];
+
+const PLACEHOLDER_SVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <rect width="320" height="200" fill="#262b3a"/>
+  <rect x="20" y="20" width="280" height="160" fill="none" stroke="#7aa8ff" stroke-width="3"/>
+  <rect x="50" y="40" width="100" height="120" fill="#3a4880" stroke="#7aa8ff" stroke-width="2"/>
+  <rect x="170" y="40" width="100" height="120" fill="#3a4880" stroke="#7aa8ff" stroke-width="2"/>
+  <line x1="50" y1="100" x2="270" y2="100" stroke="#7aa8ff" stroke-width="1"/>
+  <text x="160" y="195" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#9aa0b4">demo SVG</text>
+</svg>`;
+
+$('#btnTest').addEventListener('click', () => openTestModal());
+function openTestModal() {
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, 'Test data & sandbox'));
+  if (State.vault) {
+    const p = el('p', { class: 'hint' });
+    p.innerHTML = `Active vault: <b>${esc(State.vault.label)}</b> (${State.vault.kind})`;
+    c.appendChild(p);
+  } else {
+    c.appendChild(el('p', { class: 'hint' }, 'No vault open. Start sandbox to try without picking a folder.'));
+  }
+  const row = el('div', { class: 'row', style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } });
+  row.appendChild(el('button', { onclick: async () => { back.remove(); await openSandbox(); } }, '▶ Start / Resume sandbox'));
+  row.appendChild(el('button', { class: 'primary', onclick: async () => {
+    if (!State.vault) { toast('Open a vault first or start sandbox', 'error'); return; }
+    back.remove(); await generateTestData();
+  } }, '✨ Generate test data'));
+  row.appendChild(el('button', { class: 'danger', onclick: async () => {
+    if (!State.vault) return;
+    if (!confirm('Delete all items marked isTest=true?')) return;
+    back.remove(); await deleteTestData();
+  } }, '🗑 Delete test data'));
+  if (State.vault?.kind === 'sandbox') {
+    row.appendChild(el('button', { class: 'danger', onclick: async () => {
+      if (!confirm('Wipe the entire sandbox?')) return;
+      back.remove();
+      await State.vault.wipe();
+      await initVault(null);
+      await renderTree();
+      toast('Sandbox wiped', 'ok');
+    } }, '⚠ Wipe sandbox'));
+  }
+  c.appendChild(row);
+  c.appendChild(el('div', { class: 'actions' }, el('button', { onclick: () => back.remove() }, 'Close')));
+  const back = showModal(c);
+}
+
+async function openSandbox() {
+  await initVault(new IdbVault());
+  await renderTree();
+  toast('Sandbox open', 'ok');
+}
+
+async function fetchWiki(title) {
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 2500);
+    const r = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { mode: 'cors', signal: ctrl.signal });
+    clearTimeout(tid);
+    if (!r.ok) throw new Error('http ' + r.status);
+    const j = await r.json();
+    return j.extract || '';
+  } catch { return ''; }
+}
+
+function showProgress(msg) {
+  toastEl.textContent = msg;
+  toastEl.className = 'show';
+  clearTimeout(toastT);
+}
+
+async function generateTestData() {
+  try {
+    showProgress('Generating test data…');
+    const apps = ['[TEST] Whokna Design','[TEST] Whokna Database','[TEST] Reference'];
+    const root = await State.vault.readLinks(null, null);
+    const appIds = [];
+    for (const name of apps) {
+      let id = root.order.find(x => State.index.items[x]?.displayName === name);
+      if (!id) {
+        id = makeItem('app', name, { isTest: true });
+        root.order.push(id);
+      } else {
+        State.index.items[id].isTest = true;
+      }
+      appIds.push(id);
+    }
+    await State.vault.writeLinks(null, null, root);
+    await persistIndex();
+    await renderTree();
+
+    const topics = TEST_TOPICS.slice(0, 27);
+    const total = appIds.length * 3 * 3;
+    let topicIdx = 0, done = 0;
+    const allSubs = [];
+    for (let a = 0; a < appIds.length; a++) {
+      const appId = appIds[a];
+      State.expanded.add(appId);
+      for (let c = 0; c < 3; c++) {
+        const chapName = ['Foundations','Components','Workflows'][c];
+        const chapId = await ensureChild(appId, 'app', 'chapter', chapName);
+        State.index.items[chapId].isTest = true;
+        for (let s = 0; s < 3; s++) {
+          const tp = topics[topicIdx % topics.length]; topicIdx++;
+          const subName = tp[0];
+          const subId = await ensureChild(chapId, 'chapter', 'sub', subName);
+          State.index.items[subId].isTest = true;
+          const noteId = makeItem('note', `${subName} notes`, { isTest: true });
+          await addChild(subId, 'sub', noteId);
+          const blob = new Blob([PLACEHOLDER_SVG], { type: 'image/svg+xml' });
+          const aid = makeItem('asset', `${subName} diagram.svg`, { isTest: true, ext: 'svg', mime: 'image/svg+xml', originalName: `${subName}.svg` });
+          await State.vault.writeAsset(aid, 'svg', blob);
+          await addChild(subId, 'sub', aid);
+          const summary = await fetchWiki(tp[1]);
+          const noteTxt = `# ${subName}\n\n${summary || `_(offline placeholder for ${subName})_`}\n\n![diagram](_assets/${aid}.svg)\n`;
+          await State.vault.writeNote(noteId, noteTxt);
+          State.noteTextCache.set(noteId, noteTxt);
+          allSubs.push({ subId, chapId, appId, aid, noteId });
+          done++;
+          showProgress(`Generating test data… ${done}/${total}`);
+        }
+        await renderTree();
+      }
+    }
+    await persistIndex();
+    if (allSubs.length >= 4) {
+      const a = allSubs[1], b = allSubs[2];
+      await addChild(b.subId, 'sub', a.aid);
+      await addChild(a.subId, 'sub', b.aid);
+    }
+    if (allSubs.length >= 5) {
+      const s = allSubs[3];
+      const targetChapter = allSubs[allSubs.length - 1].chapId;
+      if (s.chapId !== targetChapter) await addChild(targetChapter, 'chapter', s.subId);
+    }
+    await renderTree();
+    toast(`Test data ready (${total} sub-chapters)`, 'ok');
+  } catch (e) {
+    console.error('generateTestData failed:', e);
+    toast('Test data failed: ' + e.message, 'error');
+  }
+}
+
+async function deleteTestData() {
+  for (const id of Object.keys(State.index.items)) {
+    const it = State.index.items[id];
+    if (!it || !it.isTest) continue;
+    if (it.kind === 'app') {
+      const root = await State.vault.readLinks(null, null);
+      root.order = root.order.filter(x => x !== id);
+      await State.vault.writeLinks(null, null, root);
+    }
+    for (const p of [...(it.parents || [])]) {
+      const pkind = State.index.items[p]?.kind;
+      if (pkind) await removeChild(p, pkind, id);
+    }
+    await hardDelete(id);
+  }
+  await renderTree();
+  toast('Test data removed', 'ok');
+}
+
+/* ============================================================
+   Help modal
+   ============================================================ */
+$('#btnHelp').addEventListener('click', () => {
+  const c = el('div', {});
+  c.appendChild(el('h3', {}, 'Whokna Helper — Help'));
+  c.innerHTML += `
+    <p><b>Layout</b><br>
+    Vault → App → Chapter → Sub-chapter → notes &amp; attachments. Everything is referenced by stable ID, so renames never break links.</p>
+
+    <p><b>Adding</b><br>
+    Use <kbd>+ App</kbd>, <kbd>+ Child</kbd>, <kbd>+ Note</kbd>, <kbd>+ Files</kbd> in the header. Click the <kbd>+</kbd> on a row in the tree. Paste images directly into the editor.</p>
+
+    <p><b>Drag &amp; drop</b><br>
+    • Plain drag inside the same parent → <b>reorder</b>.<br>
+    • Plain drag to a different parent → <b>move</b>.<br>
+    • Hold <kbd>Alt</kbd> while dragging → <b>link</b> (item appears in both places).<br>
+    • Mobile: short hold-and-drag the <kbd>⋮⋮</kbd> grip = reorder/move; long-press (~450 ms) = link.</p>
+
+    <p><b>Linked items</b><br>
+    Show a 🔗 badge. Editing one updates them all. Use <kbd>↗</kbd> on a row to jump to the canonical (first-parent) location.</p>
+
+    <p><b>Delete</b><br>
+    The <kbd>✕</kbd> on a row removes it from <i>this</i> location. If it has no other parents, you'll get a dialog: move to Orphans, hard delete, or undo. Recover from <b>Tools → Orphans</b>.</p>
+
+    <p><b>Search</b><br>
+    Filters the tree by name <i>and</i> note content. Notes-matches panel below the tree shows snippets.</p>
+
+    <p><b>Test data</b><br>
+    <b>Test data…</b> creates 3 demo apps prefixed <code>[TEST]</code> with linked attachments and a cross-linked sub. Delete-test-data only removes those.</p>
+  `;
+  c.appendChild(el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => back.remove() }, 'Got it')));
+  const back = showModal(c);
+});
+
+/* ============================================================
+   Vault open / migration check
+   ============================================================ */
+$('#btnOpenVault').addEventListener('click', async () => {
+  if (!('showDirectoryPicker' in window)) {
+    toast('No folder picker on this device — using sandbox', 'warn');
+    await openSandbox();
+    return;
+  }
+  try {
+    const dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    await dir.requestPermission?.({ mode: 'readwrite' });
+    await hSet('vaultDir', dir);
+    await initVault(new FsVault(dir));
+    await renderTree();
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('Open vault failed: ' + e.message, 'error');
+  }
+});
+
+async function detectV1AndWarn(vault) {
+  if (vault.kind !== 'fs') return;
+  let v1 = false;
+  try {
+    for await (const [name, h] of vault.root.entries()) {
+      if (h.kind === 'directory' && !name.startsWith('_')) {
+        try {
+          for await (const [n2] of h.entries()) {
+            if (n2 === 'notes.md' || n2 === 'attachments') { v1 = true; break; }
+          }
+        } catch {}
+      }
+      if (v1) break;
+    }
+  } catch {}
+  if (v1) {
+    const c = el('div', {});
+    c.appendChild(el('h3', {}, 'v1 vault detected'));
+    c.appendChild(el('p', {}, 'This folder has v1-style files (notes.md / attachments/). v2 uses a new ID-based layout. Pick a different folder for v2 — your old folder is untouched on disk.'));
+    c.appendChild(el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => back.remove() }, 'OK')));
+    const back = showModal(c);
+  }
+}
+
+async function initVault(vault) {
+  State.vault = vault;
+  State.index = null;
+  State.selectedId = null;
+  State.expanded.clear();
+  State.noteTextCache.clear();
+  for (const url of State.blobUrlCache.values()) try { URL.revokeObjectURL(url); } catch {}
+  State.blobUrlCache.clear();
+  if (!vault) {
+    $('#vaultStatus').className = 'vault';
+    $('#vaultStatus').textContent = 'No vault selected.';
+    return;
+  }
+  $('#vaultStatus').className = 'vault connected';
+  $('#vaultStatus').textContent = `${vault.kind === 'fs' ? '📂' : '📦'} ${vault.label}`;
+  State.index = await vault.readIndex();
+  if (!State.index || !State.index.items) State.index = { schema: 2, items: {} };
+  const root = await vault.readLinks(null, null);
+  if (!root.order.length && Object.keys(State.index.items).length === 0) {
+    const a1 = makeItem('app', 'Whokna Design');
+    const a2 = makeItem('app', 'Whokna Database');
+    await vault.writeLinks(null, null, { schema: 2, order: [a1, a2] });
+    await persistIndex();
+  }
+  await detectV1AndWarn(vault);
+  await openEditor();
+  renderBreadcrumb();
+}
+
+function applyMobile() {
+  State.isMobile = window.innerWidth < 760;
+  document.body.classList.toggle('mobile', State.isMobile);
+}
+window.addEventListener('resize', applyMobile);
+applyMobile();
+
+async function resetEverything() {
+  if (!confirm('Wipe all local data (sandbox + saved folder handle) and reload?')) return;
+  try {
+    await idbDeleteEntirely();
+    location.reload();
+  } catch (e) {
+    toast('Reset failed: ' + e.message, 'error');
+  }
+}
+
+// Surface any unhandled error/rejection as a toast
+window.addEventListener('error', e => {
+  console.error('window error:', e.error || e.message);
+  toast('Error: ' + (e.error?.message || e.message), 'error');
+});
+window.addEventListener('unhandledrejection', e => {
+  console.error('unhandled rejection:', e.reason);
+  const msg = e.reason?.message || String(e.reason || 'unknown');
+  toast('Promise error: ' + msg, 'error');
+});
+
+document.getElementById('buildStamp').textContent = BUILD_ID;
+
+(async function bootstrap() {
+  await idbOpen();
+  try {
+    const h = await hGet('vaultDir');
+    if (h && (await h.queryPermission?.({ mode: 'readwrite' })) === 'granted') {
+      await initVault(new FsVault(h));
+      await renderTree();
+      return;
+    }
+    if (h) $('#vaultStatus').textContent = `Last vault: ${h.name} — click Open Vault to reconnect.`;
+  } catch {}
+})();
+</script>
+</body>
+</html>
