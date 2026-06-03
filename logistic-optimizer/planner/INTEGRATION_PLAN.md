@@ -75,11 +75,33 @@ global, exactly like the existing `vendor/codemirror-sql.js` / `vendor/sheetjs.j
 Friday deadline, hours for scans, countdown = full working days + partial-day
 hours; granularity — element-grain, aggregated at slowest element.
 
-### Remaining tabs ⏳
-2 Flow grid → 3 Capacity/OEE + what-if → 4 WFL → 5 Layout → 6 Learning.
-Tabs 2/3/6 need a WHNet per-station scan-count aggregation query (add to Mapping)
-+ station capacity defs persisted under `currentMapping.planner` (seed from
-`EXAMPLE_LINE`). Tab 1 already runs on real order/element data.
+### All six tabs ✅ (v5.43 → v5.48)
+1. **Orchestrator** (v5.43) — feasibility, trucks, ranked actions, deadlines.
+2. **Flow grid** (v5.46) — real station×day heatmap from the `sql_05` scan trail
+   (completed/section/day) + live queue-now per section. Engine `gridFlow`
+   forward sim intentionally omitted (can't take real per-station state/due-days).
+3. **Capacity** (v5.47) — editable line seeded from `EXAMPLE_LINE` (persisted
+   `currentMapping.planner.line`); engine `lineReport` gives load/binding/
+   overbooked; editing People/Machines/Shifts = live what-if.
+4. **WFL** (v5.44) — editable rule program (`currentMapping.planner.wfl`) run via
+   engine `parse`/`run` over the order rows → KPIs + CTAs.
+5. **Layout** (v5.45) — vanilla SVG floor editor (the 10-zone PVC line), drag/
+   edit/add/delete, Export/Import → `currentMapping.planner.layout`.
+6. **Learning** (v5.48) — observed throughput + scan-to-scan dwell per section +
+   days-to-clear forecast bottleneck, from the scan trail.
+
+All tabs persist their config under a single `currentMapping.planner` sub-tree.
+Engine never modified (52/52 throughout). Orders/Production/Mapping untouched.
+
+### Known follow-ups (data not yet in the app)
+- **Per-order BOM codes** → load the code-filtered Capacity stations (specialty
+  saws / fittings) and route work-content properly.
+- **Nominal per-section rate store** → enables `recordActuals`/`calibrateRates`
+  true variance in Learning, and OEE (needs machine run-time).
+- **Optional**: a dedicated WHNet scan-aggregation query (the tabs currently
+  derive scans from the existing `sql_05` trail, which works but is heavier).
+- **Truck `dest`** uses `deliveryCity` (raw order-join column); address-aware
+  consolidation is future.
 
 ## Open: data-mapping decisions for the adapter (Step 2)
 

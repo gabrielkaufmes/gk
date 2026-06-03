@@ -143,3 +143,11 @@
 .plan-cap-over { background: var(--red); }
 .plan-cap-load { font-family: var(--mono); font-weight: 700; text-align: right; }
 span.plan-cap-ok { color: var(--green); } span.plan-cap-tight { color: var(--amber); } span.plan-cap-load.plan-cap-over { color: var(--red); }
+
+/* Learning (own wrapper so the 6-col grid never touches Capacity's 7-col) */
+.plan-lrn .plan-cap-row { grid-template-columns: 240px 90px 90px 70px 1fr 56px; }
+.plan-lrn .plan-cap-row .num { font-family: var(--mono); font-size: 11.5px; text-align: right; color: var(--ink-2); }
+.plan-cap-head { background: var(--ink); color: #fff; font: 700 10.5px/1 var(--sans); text-transform: uppercase; letter-spacing: .03em; border-radius: 8px 8px 0 0; }
+.plan-cap-head .plan-cap-name, .plan-cap-head .num, .plan-cap-head span { color: #fff; }
+.plan-fc-card { background: var(--amber-soft); border: 1px solid var(--amber); border-radius: 8px; padding: 12px 14px; font: 400 13.5px/1.5 var(--sans); color: var(--ink); margin-bottom: 12px; }
+.plan-fc-card b { color: var(--ink); }

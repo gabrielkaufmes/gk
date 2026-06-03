@@ -375,6 +375,68 @@
     return { ok:true, product, sections, dayLabels, scans, backlog, doneTotal, todayIdx: pastDays-1 };
   }
 
+  /**
+   * Learning / calibration stats from the scan trail (Layer 4, real-data view).
+   * Per section: observed throughput (pieces/day), observed avg scan-to-scan dwell
+   * (hours), current backlog, and days-to-clear at the observed pace. The section
+   * with the most days-to-clear (and backlog) is the forecast bottleneck.
+   * @returns { ok, product, rows:[{key,label,throughputPerDay,avgDwellH,backlog,daysToClear}], bottleneck }
+   */
+  function learningStats(opts){
+    opts = opts || {};
+    const product = (opts.product === 'ALU') ? 'ALU' : 'PVC';
+    const pastDays = opts.pastDays || 20;
+    const now = opts.now ? new Date(opts.now) : new Date();
+    const windowStart = new Date(now); windowStart.setDate(now.getDate() - pastDays);
+    if (typeof lastResultRows !== 'object' || !lastResultRows) return { ok:false, reason:'no-cache' };
+    const sp = spineId();
+    const rows = (sp && lastResultRows[sp]) ? lastResultRows[sp] : [];
+    if (!rows.length) return { ok:false, reason:'no-spine-rows' };
+
+    const cKeyEl = colFor('keyElement'), cProduct = colFor('product'), cLastNo = colFor('lastNo');
+    const cZ = colFor('zakonczone'), cScanNo = colFor('scanNo'), cScanData = colFor('scanData');
+    const sections = sectionsFor(product);
+    const secIdx = new Map(sections.map((s,i)=>[s.key,i]));
+    const completed = sections.map(()=>0), dwellSum = sections.map(()=>0), dwellN = sections.map(()=>0), backlog = sections.map(()=>0);
+    const pipe = PIPELINE[product];
+
+    // collect per-element scan trails + position
+    const elems = new Map();
+    for (const r of rows){
+      if (((String(r[cProduct]).toUpperCase()==='ALU')?'ALU':'PVC') !== product) continue;
+      const key = r[cKeyEl]; if (key==null||key==='') continue;
+      let e = elems.get(key);
+      if (!e){ const lr=r[cLastNo]; e = { lastNo:(lr==null||lr==='')?null:Number(lr), zak:(String(r[cZ])==='1'||r[cZ]===1||r[cZ]===true), scans:[] }; elems.set(key, e); }
+      const noRaw=r[cScanNo], no=(noRaw==null||noRaw==='')?null:Number(noRaw); const sd=parseDate(r[cScanData]);
+      if (no!=null && sd) e.scans.push({ no, t:sd });
+    }
+    for (const e of elems.values()){
+      e.scans.sort((a,b)=>a.t-b.t);
+      for (let i=0;i<e.scans.length;i++){
+        const cur=e.scans[i]; const st=FLOW_BY_NO[product][cur.no]; if(!st) continue;
+        const si=secIdx.get(st.prodStatus); if(si==null) continue;
+        if (cur.t>=windowStart){ completed[si]++; }
+        if (i>0){ const dh=(cur.t-e.scans[i-1].t)/HOUR_MS; if (dh>0 && dh<24*30){ dwellSum[si]+=dh; dwellN[si]++; } }
+      }
+      // backlog (not-done) by section it waits to enter
+      const isDone = e.zak || (e.lastNo!=null && e.lastNo>=MAX_NO[product]);
+      if (isDone) continue;
+      let q; if (e.lastNo==null) q=pipe[0]; else { const ix=pipe.indexOf(e.lastNo); q=(ix>=0&&ix+1<pipe.length)?pipe[ix+1]:null; }
+      if (q==null) continue; const st=FLOW_BY_NO[product][q]; const si=st?secIdx.get(st.prodStatus):null;
+      if (si!=null) backlog[si]++;
+    }
+
+    const out = sections.map((s,i)=>{
+      const thr = completed[i]/pastDays;
+      const avgD = dwellN[i] ? dwellSum[i]/dwellN[i] : null;
+      const dtc = backlog[i] > 0 ? (thr>0 ? backlog[i]/thr : Infinity) : 0;
+      return { key:s.key, label:s.label, throughputPerDay:+thr.toFixed(2), avgDwellH: avgD==null?null:+avgD.toFixed(1), backlog:backlog[i], daysToClear: isFinite(dtc)?+dtc.toFixed(1):Infinity };
+    });
+    let bottleneck = null;
+    for (const r of out){ if (r.backlog>0 && (bottleneck==null || r.daysToClear>bottleneck.daysToClear)) bottleneck=r; }
+    return { ok:true, product, pastDays, rows:out, bottleneck };
+  }
+
   // Self-test against the engine's regression baseline (no live data needed).
   function __baseline(){
     const E = window.PlannerEngine; if(!E) return 'engine-missing';
@@ -390,7 +452,7 @@
   }
 
   window.PlannerAdapter = {
-    build, orchestrateLive, flowGrid, deadlineParts, fridayOfProdWeek,
+    build, orchestrateLive, flowGrid, learningStats, deadlineParts, fridayOfProdWeek,
     FLOW, FLOW_BY_NO, MAX_NO, PIPELINE, MATERIAL_LETTERS, sectionsFor, __baseline,
   };
 })();

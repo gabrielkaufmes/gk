@@ -69,7 +69,53 @@
     if (activeTab === 'layout')       return renderLayout(inner);
     if (activeTab === 'flow')         return renderFlow(inner);
     if (activeTab === 'capacity')     return renderCapacity(inner);
+    if (activeTab === 'learning')     return renderLearning(inner);
     inner.innerHTML = `<div class="orders-empty"><p>${esc(activeTab)} — coming next.</p></div>`;
+  }
+
+  // ---- Tab: Learning (observed pace + days-to-clear forecast) --------------
+  function renderLearning(inner) {
+    const A = window.PlannerAdapter;
+    const s = A.learningStats({ product: activeProduct, pastDays: 20 });
+    if (!s.ok) {
+      const msg = (s.reason === 'no-spine-rows' || s.reason === 'no-cache') ? 'No data loaded — click Refresh in the ribbon.' : 'Could not compute: ' + s.reason;
+      banner(msg); inner.innerHTML = `<div class="orders-empty"><p>${esc(msg)}</p></div>`; return;
+    }
+    banner('');
+    const active = s.rows.filter(r => r.backlog > 0 || r.throughputPerDay > 0 || r.avgDwellH != null);
+    const maxDtc = Math.max(1, ...active.map(r => isFinite(r.daysToClear) ? r.daysToClear : 0));
+    const fc = s.bottleneck;
+    const fcText = fc
+      ? (isFinite(fc.daysToClear)
+          ? `At the observed pace, <b>${esc(fc.label)}</b> is the constraint — ~<b>${fc.daysToClear}</b> working days to clear its ${fc.backlog}-piece queue.`
+          : `<b>${esc(fc.label)}</b> has a ${fc.backlog}-piece queue but <b>no recent throughput</b> — stalled constraint.`)
+      : 'No backlog — nothing queued.';
+
+    const rowsHTML = active.map(r => {
+      const dtcStr = isFinite(r.daysToClear) ? r.daysToClear + 'd' : (r.backlog ? '∞' : '—');
+      const barW = isFinite(r.daysToClear) ? Math.min(100, (r.daysToClear / maxDtc) * 100) : 100;
+      const cls = (!isFinite(r.daysToClear) && r.backlog) ? 'over' : (r.daysToClear >= maxDtc * 0.66 ? 'tight' : 'ok');
+      const isB = fc && r.key === fc.key;
+      return `<div class="plan-cap-row${isB ? ' bind' : ''}">
+        <span class="plan-cap-name">${esc(r.label)}${isB ? ' <span class="plan-bind-tag">forecast bottleneck</span>' : ''}</span>
+        <span class="num">${r.throughputPerDay}/d</span>
+        <span class="num">${r.avgDwellH == null ? '—' : r.avgDwellH + 'h'}</span>
+        <span class="num">${r.backlog || ''}</span>
+        <span class="plan-cap-bar"><span class="plan-cap-fill plan-cap-${cls}" style="width:${barW}%"></span></span>
+        <span class="plan-cap-load num plan-cap-${cls}">${dtcStr}</span>
+      </div>`;
+    }).join('');
+
+    const totals = $('#planTotals');
+    if (totals) totals.innerHTML = fc ? `Forecast bottleneck <b class="prod-stuck-num">${esc(fc.label)}</b>` : `<span class="muted">No backlog</span>`;
+
+    inner.innerHTML =
+      `<div class="plan-fc-card">${fcText}</div>` +
+      `<div class="plan-cap-legend muted">Observed over the last ${s.pastDays} days from scans: throughput (pieces/day), avg scan-to-scan dwell (h), live queue, and days-to-clear at that pace. Per-station rate calibration (calibrateRates) wires in once a nominal-rate store is added.</div>` +
+      `<div class="plan-lrn">` +
+      `<div class="plan-cap-row plan-cap-head"><span class="plan-cap-name">Section</span><span class="num">Throughput</span><span class="num">Avg dwell</span><span class="num">Queue</span><span>Days to clear</span><span class="num">ETA</span></div>` +
+      `<div class="plan-cap-tbl">${rowsHTML}</div></div>`;
+    lastFetchAt = new Date(); setInfo();
   }
 
   // ---- Tab: Capacity / load (editable line, live what-if) ------------------
