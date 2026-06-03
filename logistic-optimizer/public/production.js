@@ -1148,7 +1148,7 @@
 
   function renderSectionElementHeaderRow() {
     return `<div class="prod-secerow prod-secerow-hdr">
-      <span>Element</span><span>F/S</span><span>Color</span><span>Dim</span><span>Since</span><span class="num">Stuck</span>
+      <span>Element</span><span>F/S</span><span>Color</span><span>Dim</span><span>Since</span><span class="num">Stuck</span><span>Pipeline</span>
     </div>`;
   }
   function renderSectionElementRow(e) {
@@ -1162,6 +1162,7 @@
       <span>${escapeHTML(e.dims)}</span>
       <span>${escapeHTML(since)}</span>
       <span class="num">${stuckTxt}</span>
+      ${pipelineStripHTML(e)}
     </div>`;
   }
 

@@ -193,7 +193,7 @@
 /* element rows inside an expanded section-order */
 .prod-secerow{
   display:grid;
-  grid-template-columns:220px 36px 90px 90px 90px 60px;
+  grid-template-columns:220px 36px 90px 90px 90px 60px 1fr;
   align-items:center;gap:8px;
   padding:3px 0;
   font-size:11px;
