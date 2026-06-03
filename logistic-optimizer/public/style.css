@@ -1,0 +1,2128 @@
+/* =============================================================
+   Logistic Optimizer — Phase 1 styles
+   Lifted from existing single-file wireframe + new form styles
+   ============================================================= */
+
+:root{
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --ink: #0f1419;
+  --ink-2: #2e3338;
+  --ink-3: #6b727a;
+  --ink-4: #9ba3ab;
+  --border: #e3e6ea;
+  --border-2: #eef1f4;
+  --accent: #0b5cff;
+  --green: #0a6e3b;
+  --green-soft: #e6f7ee;
+  --red: #a4361b;
+  --red-soft: #fee9e2;
+  --amber: #a35a00;
+  --amber-soft: #fff4e0;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html, body{margin:0;padding:0;height:100%;font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--bg);overflow:hidden}
+
+button{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ============ App shell ============ */
+.app{display:flex;height:100vh;width:100vw}
+
+.sb{
+  width:auto;min-width:64px;
+  background:var(--ink);color:#fff;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px 0;height:100vh;
+}
+.logo{width:32px;height:32px;border-radius:6px;background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;margin-bottom:18px}
+.nav{display:flex;flex-direction:column;gap:0;width:100%;padding:0 6px}
+.nav .it{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 6px;border-radius:6px;cursor:pointer;
+  color:rgba(255,255,255,.6);margin-bottom:4px;transition:background .12s,color .12s;
+}
+.nav .it:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav .it.active{background:rgba(255,255,255,.15);color:#fff}
+.nav .it svg{width:18px;height:18px}
+.nav-label{font-size:9px;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+
+/* ============ Screens ============ */
+.screen{display:none;flex:1;flex-direction:column;min-height:0}
+.screen.active{display:flex}
+
+/* ============ Header (shared) ============ */
+.hdr{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:10px 18px;
+  display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;flex-shrink:0;
+}
+.title-block{padding-right:8px}
+.hdr h1{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1;color:var(--ink);margin:0}
+.spacer{flex:1}
+
+.toggle-all{
+  padding:0 10px;height:26px;
+  border:1px solid var(--border);background:var(--surface);border-radius:4px;
+  color:var(--ink-2);display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;font-weight:500;cursor:pointer;transition:background .12s;
+  box-sizing:border-box;
+}
+.toggle-all:hover:not(:disabled){background:var(--surface-2);border-color:var(--ink-3)}
+.toggle-all:disabled{opacity:.5;cursor:not-allowed}
+.toggle-all svg{width:12px;height:12px}
+
+/* ============ Orders placeholder ============ */
+.orders-placeholder{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:40px;background:var(--bg);
+}
+.placeholder-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:32px 40px;
+  max-width:520px;text-align:center;
+}
+.placeholder-card h2{margin:0 0 12px 0;font-size:18px;font-weight:600}
+.placeholder-card p{margin:6px 0;line-height:1.6;color:var(--ink-2)}
+.placeholder-card p.muted{color:var(--ink-3);font-size:12px;margin-top:18px}
+
+/* ============ Mapping screen header / tabs ============ */
+.mapping-hdr{padding:10px 18px}
+
+.mapping-tabs{
+  display:inline-flex;border:1px solid var(--border);
+  border-radius:4px;overflow:hidden;background:var(--surface);height:26px;
+}
+.m-tab{
+  padding:0 14px;height:100%;background:var(--surface);border:0;
+  border-right:1px solid var(--border);
+  font-family:var(--sans);font-size:11.5px;font-weight:500;
+  color:var(--ink-3);cursor:pointer;transition:background .12s;
+}
+.m-tab:last-child{border-right:0}
+.m-tab:hover{background:var(--surface-2)}
+.m-tab.active{background:var(--ink);color:#fff}
+
+.mapping-body{flex:1;overflow-y:auto;padding:0;background:var(--bg)}
+
+.m-panel{display:none;padding:24px 28px;min-height:100%}
+.m-panel.active{display:block}
+
+/* ============ Mapping sections (cards) ============ */
+.m-section{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:22px 26px;
+  margin-bottom:18px;
+}
+.m-section.info-section{background:var(--surface-2)}
+.m-section h2{margin:0 0 6px 0;font-size:15px;font-weight:700;color:var(--ink)}
+.m-section h3{margin:0 0 6px 0;font-size:13px;font-weight:600;color:var(--ink)}
+.m-section p{margin:4px 0;line-height:1.5}
+.m-section p.muted, .muted{color:var(--ink-3);font-size:11.5px}
+.m-section code{font-family:var(--mono);font-size:11px;background:var(--surface-2);padding:1px 5px;border-radius:3px;color:var(--ink-2)}
+
+/* ============ Form ============ */
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px 18px;
+  margin-top:14px;
+}
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-field-full{grid-column:1 / -1;flex-direction:row;gap:18px;flex-wrap:wrap}
+.form-field label{font-size:10.5px;font-weight:600;letter-spacing:.04em;color:var(--ink-3);text-transform:uppercase}
+.form-field input[type="text"], .form-field input[type="password"]{
+  width:100%;padding:7px 10px;
+  border:1px solid var(--border);border-radius:4px;
+  font-family:var(--sans);font-size:12.5px;color:var(--ink);background:#fff;
+  height:32px;box-sizing:border-box;
+}
+.form-field input::placeholder{
+  color:var(--ink-4);
+  font-style:italic;
+  opacity:.7;
+}
+.form-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(11,92,255,.15)}
+
+.checkbox-label{
+  display:inline-flex;align-items:center;gap:8px;cursor:pointer;
+  font-size:12px;color:var(--ink-2);text-transform:none;letter-spacing:0;font-weight:500;
+}
+.checkbox-label input{width:14px;height:14px;cursor:pointer}
+
+/* ============ Connection actions ============ */
+.conn-actions{
+  display:flex;align-items:center;gap:14px;
+  margin-top:18px;padding-top:16px;
+  border-top:1px solid var(--border-2);
+}
+.btn-primary{
+  padding:0 16px;height:32px;
+  background:var(--ink);color:#fff;border:0;border-radius:4px;
+  font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.02em;
+  cursor:pointer;transition:background .12s;
+}
+.btn-primary:hover{background:#1a2128}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+
+.conn-status{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;
+}
+.conn-status.testing{color:var(--ink-3)}
+.conn-status.success{color:var(--green)}
+.conn-status.error{color:var(--red)}
+.conn-status .dot{
+  display:inline-block;width:8px;height:8px;border-radius:50%;
+  background:var(--ink-4);
+}
+.conn-status.success .dot{background:var(--green)}
+.conn-status.error .dot{background:var(--red)}
+.conn-status.testing .dot{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{
+  0%,100%{opacity:1}50%{opacity:.4}
+}
+
+/* =============================================================
+   Query editor panel (Phase 2 — Aluplast / WHNet tabs)
+   ============================================================= */
+.query-panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:18px 20px;
+  display:flex;flex-direction:column;gap:14px;
+  height:calc(100vh - 130px);
+  min-height:500px;
+}
+
+.query-panel-header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:18px;
+}
+.query-panel-header h2{margin:0;font-size:15px;font-weight:700}
+.query-panel-header .muted{margin:4px 0 0 0;font-size:11.5px;max-width:680px;line-height:1.5}
+.query-panel-actions{display:flex;gap:8px;flex-shrink:0}
+
+.btn-secondary{
+  padding:0 12px;height:32px;
+  background:var(--surface);color:var(--ink-2);
+  border:1px solid var(--border);border-radius:4px;
+  font-family:var(--sans);font-size:12px;font-weight:500;
+  cursor:pointer;transition:background .12s;
+}
+.btn-secondary:hover{background:var(--surface-2);border-color:var(--ink-3)}
+
+.btn-primary{display:inline-flex;align-items:center;gap:6px}
+.btn-primary svg{width:11px;height:11px}
+
+/* Editor + result columns side-by-side */
+.query-editor-row{
+  display:flex;gap:14px;
+  flex:1;min-height:0;
+}
+.query-editor-wrap{
+  flex:1;
+  border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;
+  background:#fff;
+  min-height:0;
+}
+.cm-host{height:100%;width:100%}
+.cm-host .cm-editor{height:100%}
+
+.result-columns-wrap{
+  width:240px;flex-shrink:0;
+  border:1px solid var(--border);border-radius:6px;
+  background:var(--surface);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.result-columns-header{
+  padding:8px 12px;
+  border-bottom:1px solid var(--border-2);
+  background:var(--surface-2);
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.result-columns-list{flex:1;overflow-y:auto;padding:6px 0}
+.result-columns-empty{
+  padding:24px 12px;text-align:center;font-size:11px;color:var(--ink-4);line-height:1.5;
+}
+.result-col-row{
+  padding:6px 12px;font-family:var(--mono);font-size:11.5px;
+  display:flex;justify-content:space-between;gap:8px;
+  border-bottom:1px solid var(--border-2);
+}
+.result-col-row:last-child{border-bottom:0}
+.result-col-row .name{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.result-col-row .type{color:var(--ink-4);font-size:9.5px;letter-spacing:.02em;text-transform:uppercase;flex-shrink:0;align-self:center}
+
+/* Query status line */
+.query-status{
+  font-size:11.5px;
+  display:flex;align-items:center;gap:8px;
+  padding:6px 0;
+}
+.query-status.success{color:var(--green)}
+.query-status.error{color:var(--red)}
+.query-status.running{color:var(--ink-3)}
+.query-status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ink-4)}
+.query-status.success .dot{background:var(--green)}
+.query-status.error .dot{background:var(--red)}
+.query-status.running .dot{background:var(--amber);animation:pulse 1s infinite}
+
+/* Preview panel */
+.preview-panel{
+  border:1px solid var(--border);border-radius:6px;
+  display:flex;flex-direction:column;
+  flex-shrink:0;
+  max-height:320px;
+  min-height:120px;
+  background:var(--surface);
+  overflow:hidden;
+}
+.preview-header{
+  padding:8px 12px;
+  border-bottom:1px solid var(--border-2);
+  background:var(--surface-2);
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.preview-body{flex:1;overflow:auto}
+.preview-empty{padding:24px;text-align:center;font-size:11.5px;color:var(--ink-4)}
+.preview-table{
+  width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;
+}
+.preview-table thead{position:sticky;top:0;background:var(--surface-2);z-index:1}
+.preview-table th{
+  padding:6px 10px;text-align:left;
+  font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+  font-weight:700;color:var(--ink-3);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.preview-table td{
+  padding:5px 10px;border-bottom:1px solid var(--border-2);
+  color:var(--ink-2);
+  white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;
+}
+.preview-table td.is-null{color:var(--ink-4);font-style:italic}
+/* hover effect removed for perf reasons on large result sets */
+
+/* SQL error display */
+.sql-error-detail{
+  background:#fef2f2;color:#7f1d1d;
+  padding:12px 16px;border-radius:4px;
+  font-family:var(--mono);font-size:11px;
+  white-space:pre-wrap;word-break:break-word;
+  margin:10px 0;
+  border:1px solid #fecaca;
+}
+
+/* Preview controls & toggle */
+.preview-controls{display:flex;align-items:center;gap:12px}
+.btn-link{
+  background:transparent;border:0;color:var(--accent);
+  font-family:var(--sans);font-size:11px;font-weight:600;
+  cursor:pointer;padding:0;letter-spacing:.02em;
+}
+.btn-link:hover{text-decoration:underline}
+.btn-link:disabled{opacity:.5;cursor:not-allowed}
+
+/* Virtualized preview (used when "Show all" is on) */
+.preview-vlist{
+  position:relative;
+  font-family:var(--mono);font-size:11px;
+}
+.preview-vlist .vlist-spacer{
+  /* makes the parent scroll the full virtual height */
+  width:1px;
+}
+.preview-vlist .vlist-window{
+  position:absolute;
+  top:0;left:0;
+  /* width set inline by JS to match total column width — keeps rows aligned with header */
+  /* rows positioned with translateY in JS */
+}
+.preview-vlist-row{
+  display:flex;
+  height:22px;
+  border-bottom:1px solid var(--border-2);
+  align-items:center;
+  white-space:nowrap;
+}
+.preview-vlist-row > .cell{
+  padding:0 10px;
+  overflow:hidden;text-overflow:ellipsis;
+  flex:0 0 auto;
+  box-sizing:border-box;
+  color:var(--ink-2);
+}
+.preview-vlist-row > .cell.is-null{color:var(--ink-4);font-style:italic}
+.preview-vlist-head{
+  display:flex;
+  position:sticky;top:0;
+  background:var(--surface-2);
+  z-index:2;
+  border-bottom:1px solid var(--border);
+}
+.preview-vlist-head > .cell{
+  padding:6px 10px;
+  font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+  font-weight:700;color:var(--ink-3);
+  white-space:nowrap;
+  flex:0 0 auto;
+  box-sizing:border-box;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.preview-vlist-head .col-num{
+  display:inline-block;
+  margin-right:6px;
+  padding:0 4px;
+  background:var(--ink);
+  color:#fff;
+  border-radius:3px;
+  font-size:9px;font-weight:700;
+  letter-spacing:0;
+  text-transform:none;
+}
+
+/* Dirty/unsaved indicator on the Save button */
+.toggle-all.dirty{
+  position:relative;
+}
+.toggle-all.dirty::after{
+  content:"";
+  position:absolute;
+  top:3px;right:3px;
+  width:7px;height:7px;
+  background:var(--accent);
+  border-radius:50%;
+  border:1.5px solid var(--surface);
+}
+
+/* =============================================================
+   Variable mapping screen (Phase 4)
+   ============================================================= */
+
+.vm-panel{
+  display:flex;flex-direction:column;gap:14px;
+  /* Let the panel grow naturally; the .mapping-body parent scrolls. */
+}
+
+.vm-header{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:18px 20px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:18px;
+}
+.vm-header h2{margin:0;font-size:15px;font-weight:700}
+.vm-header .muted{margin:4px 0 0 0;font-size:11.5px;max-width:700px;line-height:1.5}
+.vm-actions{display:flex;gap:8px;flex-shrink:0}
+
+.auto-badge{
+  display:inline-block;
+  padding:1px 6px;
+  background:#dbeafe;color:#1e40af;
+  border-radius:3px;font-size:9.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+  vertical-align:middle;
+  margin:0 2px;
+}
+
+.vm-warning{
+  background:var(--amber-soft);
+  border:1px solid #fbcf8c;color:var(--amber);
+  padding:10px 14px;border-radius:6px;
+  font-size:12px;
+}
+
+.vm-hint{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  padding:14px 16px;border-radius:6px;
+  font-size:12px;color:var(--ink-2);line-height:1.5;
+}
+
+.vm-groups{
+  display:flex;flex-direction:column;gap:14px;
+  padding-bottom:24px;
+}
+
+.vm-group{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.vm-group-header{
+  padding:10px 16px;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border-2);
+  font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.vm-group-header .vm-group-count{color:var(--ink-4);font-weight:600}
+
+.vm-table{
+  width:100%;border-collapse:collapse;font-size:12px;
+}
+.vm-table th{
+  padding:8px 12px;text-align:left;
+  font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+  font-weight:700;color:var(--ink-3);
+  background:var(--surface);
+  border-bottom:1px solid var(--border-2);
+  font-family:var(--sans);
+}
+.vm-table th.vm-col-var       { width:200px }
+.vm-table th.vm-col-source    { width:130px }
+.vm-table th.vm-col-column    { width:230px }
+.vm-table th.vm-col-sample    { width:220px }
+.vm-table th.vm-col-notes     { width:auto }
+
+.vm-table td{
+  padding:5px 12px;
+  border-bottom:1px solid var(--border-2);
+  color:var(--ink-2);
+  vertical-align:middle;
+  height:34px;
+}
+.vm-table tr:last-child td{border-bottom:0}
+
+.vm-table tr.vm-row-operator td{
+  background:#fafbfc;
+  color:var(--ink-4);
+}
+
+.vm-var-name{
+  font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink);
+  display:flex;align-items:center;gap:6px;
+}
+.vm-row-operator .vm-var-name{color:var(--ink-3)}
+
+.vm-operator-tag{
+  display:inline-block;
+  padding:1px 6px;
+  background:#e5e7eb;color:#4b5563;
+  border-radius:3px;font-size:9px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+}
+
+.vm-select{
+  width:100%;height:26px;
+  padding:0 8px;
+  border:1px solid var(--border);border-radius:4px;
+  background:#fff;
+  font-family:var(--sans);font-size:11.5px;
+  color:var(--ink);
+  cursor:pointer;
+}
+.vm-select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(11,92,255,.15)}
+.vm-select:disabled{
+  background:#f5f6f7;color:var(--ink-4);cursor:not-allowed;
+}
+.vm-select.unmapped{color:var(--ink-4);font-style:italic}
+
+.vm-sample{
+  font-family:var(--mono);font-size:11px;color:var(--ink-2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:220px;
+}
+.vm-sample.is-null{color:var(--ink-4);font-style:italic}
+.vm-sample.is-empty{color:var(--ink-4)}
+
+.vm-notes-input{
+  width:100%;height:26px;
+  padding:0 8px;
+  border:1px solid transparent;border-radius:4px;
+  background:transparent;
+  font-family:var(--sans);font-size:11.5px;
+  color:var(--ink-2);
+}
+.vm-notes-input:hover{border-color:var(--border-2);background:#fff}
+.vm-notes-input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 2px rgba(11,92,255,.15)}
+
+.vm-custom-delete{
+  background:transparent;border:0;
+  color:var(--ink-4);cursor:pointer;
+  padding:2px 6px;font-size:14px;line-height:1;
+  border-radius:3px;
+}
+.vm-custom-delete:hover{color:var(--red);background:var(--red-soft)}
+
+
+/* =============================================================
+   Dynamic query tabs (Phase 4.3)
+   ============================================================= */
+
+/* Tab close × button — removed in Phase 4.4 (was a click target hazard) */
+.m-tab{position:relative;display:inline-flex;align-items:center;padding:0 12px}
+.m-tab .m-tab-label{padding:0}
+.m-tab-static{padding:0 14px}
+
+/* + Query button */
+.m-tab-add{
+  margin-left:6px;
+  padding:0 10px;height:26px;
+  background:transparent;color:var(--ink-3);
+  border:1px dashed var(--border);border-radius:4px;
+  font-family:var(--sans);font-size:11.5px;font-weight:600;
+  cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+}
+.m-tab-add:hover:not(:disabled){background:var(--surface-2);color:var(--ink);border-color:var(--ink-3)}
+.m-tab-add:disabled{opacity:.4;cursor:not-allowed}
+
+/* − Query (delete) button */
+.m-tab-del{
+  margin-left:4px;
+  padding:0 10px;height:26px;
+  background:transparent;color:var(--ink-3);
+  border:1px dashed var(--border);border-radius:4px;
+  font-family:var(--sans);font-size:11.5px;font-weight:600;
+  cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+}
+.m-tab-del:hover:not(:disabled){background:var(--red-soft);color:var(--red);border-color:#fca5a5}
+.m-tab-del:disabled{opacity:.4;cursor:not-allowed}
+
+/* Preview limit dropdown */
+.preview-limit-label{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--ink-3);
+  margin-right:6px;
+}
+.preview-limit-select{
+  height:26px;
+  padding:0 6px;
+  border:1px solid var(--border);border-radius:4px;
+  background:#fff;
+  font-family:var(--sans);font-size:11.5px;color:var(--ink);
+  cursor:pointer;
+}
+.preview-limit-select:focus{outline:none;border-color:var(--accent)}
+
+/* Splitters */
+.query-split-v{
+  flex:0 0 6px;
+  background:transparent;
+  cursor:col-resize;
+  position:relative;
+  transition:background .12s;
+}
+.query-split-v::before{
+  content:"";
+  position:absolute;
+  left:50%;top:0;bottom:0;
+  transform:translateX(-50%);
+  width:1px;
+  background:var(--border);
+}
+.query-split-v:hover::before,
+.query-split-v:active::before{background:var(--accent);width:2px}
+
+.query-split-h{
+  height:6px;
+  background:transparent;
+  cursor:row-resize;
+  position:relative;
+  transition:background .12s;
+  margin:-3px 0;  /* overlap status/preview boundary visually */
+}
+.query-split-h::before{
+  content:"";
+  position:absolute;
+  top:50%;left:0;right:0;
+  transform:translateY(-50%);
+  height:1px;
+  background:var(--border-2);
+}
+.query-split-h:hover::before,
+.query-split-h:active::before{background:var(--accent);height:2px}
+
+
+/* =============================================================
+   Modal dialog (replaces native prompt/confirm which are no-ops
+   in sandboxed Electron renderers)
+   ============================================================= */
+.modal-backdrop{
+  position:fixed;inset:0;
+  background:rgba(15, 20, 25, 0.45);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;
+}
+.modal-backdrop[hidden]{display:none}
+
+.modal{
+  background:var(--surface);
+  border-radius:8px;
+  box-shadow:0 16px 40px rgba(0,0,0,.25);
+  width:440px;max-width:90vw;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+
+.modal-header{
+  padding:16px 20px;
+  border-bottom:1px solid var(--border-2);
+}
+.modal-header h3{
+  margin:0;font-size:14px;font-weight:700;color:var(--ink);
+}
+
+.modal-body{
+  padding:16px 20px;
+  max-height:50vh;overflow-y:auto;
+}
+.modal-body p{
+  margin:0 0 12px 0;font-size:13px;color:var(--ink-2);line-height:1.5;
+  white-space:pre-wrap;
+}
+.modal-body p:last-child{margin-bottom:0}
+
+#modalInput{
+  width:100%;padding:8px 10px;
+  border:1px solid var(--border);border-radius:4px;
+  font-family:var(--sans);font-size:13px;color:var(--ink);
+  height:34px;box-sizing:border-box;
+}
+#modalInput:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(11,92,255,.15)}
+
+#modalListWrap{
+  display:flex;flex-direction:column;gap:4px;
+  margin-top:8px;
+}
+.modal-list-item{
+  padding:8px 12px;
+  border:1px solid var(--border);border-radius:4px;
+  background:var(--surface);
+  cursor:pointer;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12.5px;color:var(--ink-2);
+  transition:background .12s,border-color .12s;
+}
+.modal-list-item:hover{
+  background:var(--surface-2);border-color:var(--ink-3);
+}
+.modal-list-item .ml-id{
+  font-family:var(--mono);font-size:11px;color:var(--ink-4);
+}
+
+.modal-footer{
+  padding:12px 20px;
+  border-top:1px solid var(--border-2);
+  background:var(--surface-2);
+  display:flex;justify-content:flex-end;gap:8px;
+}
+
+/* Excel export button — same shape as other secondary buttons but with icon */
+.btn-secondary[data-role="export-xlsx"]{
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-secondary[data-role="export-xlsx"] svg{width:11px;height:11px}
+.btn-secondary[data-role="export-xlsx"]:disabled{opacity:.5;cursor:not-allowed}
+
+/* =============================================================
+   Orders screen (Phase 5) — ported from wireframe
+   ============================================================= */
+
+/* --- Header sub-elements --- */
+.orders-refresh-info{
+  font-family:var(--mono);
+  font-size:11px;color:var(--ink-3);
+  margin-left:12px;
+}
+.orders-refresh-btn{
+  display:inline-flex;align-items:center;gap:6px;
+}
+.orders-refresh-btn svg{width:12px;height:12px}
+.orders-refresh-btn:disabled{opacity:.5;cursor:wait}
+
+/* ===========================================================================
+   PHASE 5 — WIREFRAME PORT (Orders + App Spec)
+   ---------------------------------------------------------------------------
+   The styles below are ported wholesale from the design wireframe.
+   Edits should be made here, not back-fitted into ad-hoc rules elsewhere.
+   ===========================================================================
+*/
+
+.hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;flex-wrap:wrap}
+.header-left{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding-right:18px;margin-right:6px}
+.hdr .title-block{padding-right:8px}
+.hdr h1{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1;color:var(--ink);margin:0}
+.hdr .sub{color:var(--ink-3);font-size:11px;margin-top:1px}
+.hdr .spacer{flex:1}
+.hdr .search{flex:0 0 220px;position:relative}
+.hdr .search input{width:100%;padding:5px 9px 5px 28px;border:1px solid var(--border);border-radius:4px;font-family:var(--sans);font-size:11.5px;background:var(--surface-2);color:var(--ink)}
+.hdr .search input::placeholder{color:var(--ink-4)}
+.hdr .search .ic{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--ink-4);width:12px;height:12px}
+.hdr .pill{padding:4px 9px;border:1px solid var(--border);background:var(--surface-2);border-radius:4px;color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;font-size:11px;cursor:default}
+.hdr .pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hdr .pill b{font-weight:600;margin-left:2px}
+.totals{font-family:var(--mono);font-size:11px;color:var(--ink-3);letter-spacing:.02em;align-self:flex-start}
+.totals b{color:var(--ink);font-weight:600}
+
+.toggle-all{
+  padding:5px 10px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  border-radius:4px;
+  color:var(--ink-2);
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+  font-family:var(--sans);
+  font-weight:500;
+  cursor:pointer;
+  transition:background .12s;
+}
+.toggle-all:hover{background:var(--surface-2);border-color:var(--ink-3)}
+.toggle-all svg{width:12px;height:12px;transition:transform .15s}
+.toggle-all.collapsed svg{transform:rotate(180deg)}
+
+.customer-filter{display:inline-flex;align-items:center}
+.cust-select{
+  padding:0 24px 0 9px;
+  height:26px;
+  border:1px solid var(--border);
+  background:var(--ink);
+  color:#fff;
+  border-radius:4px;
+  font-family:var(--sans);
+  font-size:11.5px;
+  font-weight:500;
+  cursor:pointer;
+  appearance:none;
+  -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 7px center;
+  box-sizing:border-box;
+}
+.cust-select:focus{outline:none;box-shadow:0 0 0 2px rgba(11,92,255,.3)}
+.cust-select option{background:#fff;color:var(--ink)}
+
+/* Segmented view switch */
+.view-switch{display:inline-flex;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--surface);vertical-align:middle}
+.vs-btn{
+  padding:5px 11px;
+  background:var(--surface);
+  border:0;
+  border-right:1px solid var(--border);
+  font-family:var(--sans);
+  font-size:11px;
+  font-weight:500;
+  color:var(--ink-3);
+  cursor:pointer;
+  transition:background .12s;
+}
+.vs-btn:last-child{border-right:0}
+.vs-btn:hover{background:var(--surface-2)}
+.vs-btn.active{background:var(--ink);color:#fff}
+
+/* Status tag classes from earlier phases — kept only as a no-op fallback if any
+   third-party CSS references them. Active rendering uses .band-cell now. */
+.status-tag{display:none}
+
+/* ===== Unified week-view grid =====
+   Status | Cust | OrderNo | Pcs | DD | TermRe | Materials | Time/Addr | Opti batch | Ready | Route | Description
+*/
+.grid-week{
+  grid-template-columns:
+    var(--col-status, 90px)
+    var(--col-cust, 40px)
+    var(--col-ord, 120px)
+    var(--col-pcs, 36px)
+    var(--col-finvalid, 54px)
+    var(--col-dd, 54px)
+    var(--col-termre, 54px)
+    var(--col-matlet, 140px)
+    var(--col-matdat, 140px)
+    var(--col-time, 66px)
+    var(--col-lastscan, 130px)
+    var(--col-addr, 130px)
+    var(--col-opti, 110px)
+    var(--col-ready, 80px)
+    var(--col-route, 100px)
+    var(--col-desc, 130px);
+}
+
+
+/* Empty week-view cell */
+.empty-cell{color:var(--ink-4);font-family:var(--mono);font-size:11px;text-align:center}
+
+/* Week-view body uses prod-week left rail too (pivot style, like the by-status view) */
+.week-grp-body .wk-block{display:flex;border-top:0}
+.week-grp-body .wk-block:first-of-type{border-top:0}
+.week-grp-body .wk-rail{width:105px;flex-shrink:0;padding:5px 12px;background:#f7f8fa;border-right:1px solid var(--border-2);font-family:var(--mono);display:flex;flex-direction:column;gap:1px;justify-content:flex-start;align-self:flex-start}
+.week-grp-body .wk-rows{flex:1;min-width:0}
+
+/* Switching view */
+#viewByWeek{display:none}
+body.view-week #viewByStatus{display:none}
+body.view-week #viewByWeek{display:block}
+
+/* In week view: rail shows week label + ord total + pcs total stacked */
+body.view-week .wk-rail{
+  width:88px;
+  padding:6px 10px;
+  background:#f7f8fa;
+  border-right:1px solid var(--border-2);
+  font-family:var(--mono);
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  align-items:flex-start;
+  justify-content:flex-start;
+  position:sticky;
+  top:58px;
+  align-self:flex-start;
+  z-index:4;
+  cursor:pointer;
+}
+body.view-week .wk-rail .wk-caret{
+  width:10px;
+  height:10px;
+  color:var(--ink-3);
+  transition:transform .15s;
+  margin-bottom:2px;
+}
+body.view-week .wk-rail .wk-num{font-weight:700;color:var(--ink);font-size:11.5px;letter-spacing:.02em;line-height:1.2}
+body.view-week .wk-rail .wk-sum{color:var(--ink-3);font-size:9.5px;line-height:1.4}
+body.view-week .wk-rail .wk-sum b{color:var(--ink-2);font-weight:600}
+body.view-week .wk-rail .overdue{margin-top:3px;color:var(--red);font-weight:700;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase}
+
+/* Per-week collapse — when collapsed, hide the rows */
+body.view-week .wk-block.collapsed .wk-rows{display:none}
+body.view-week .wk-block.collapsed .wk-caret{transform:rotate(-90deg)}
+body.view-week .wk-block.collapsed .wk-rail{
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border-2);
+  flex-direction:row;
+  width:100%;
+  align-items:center;
+  gap:10px;
+  padding:7px 14px;
+}
+body.view-week .wk-block.collapsed .wk-rail .wk-num{font-size:12px}
+body.view-week .wk-block.collapsed .wk-rail .wk-sum{font-size:10.5px}
+body.view-week .wk-block.collapsed{border-bottom:1px solid var(--border-2)}
+body.view-week .wk-block.collapsed:last-child{border-bottom:0}
+
+/* When week is collapsed, hide the rail's right-side border (only top/bottom matter) */
+
+/* Column header rail in week view */
+body.view-week .col-hdr-rail{
+  width:88px;
+  flex-shrink:0;
+  padding:5px 10px;
+  background:#f3f4f6;
+  border-right:1px solid var(--border-2);
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-4);
+  font-weight:600;
+}
+
+.info{display:flex;gap:18px;font-family:var(--mono)}
+.info .cell{padding:0;display:flex;flex-direction:column;gap:1px;background:transparent}
+.info .cell .k{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);font-weight:600}
+.info .cell .v{font-weight:600;color:var(--ink);font-size:12px}
+.info .cell.prod .v{color:var(--accent)}
+
+.list{flex:1;background:var(--bg);overflow:auto;min-height:0}
+.list-inner{padding:10px 18px 60px;min-width:1500px;width:max-content;box-sizing:border-box}
+
+/* Group */
+.grp{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px}
+.grp-hdr{padding:7px 14px;display:flex;align-items:center;gap:10px;cursor:default;background:var(--surface-2);border-bottom:1px solid var(--border-2);position:sticky;top:0;z-index:6}
+.grp.collapsed .grp-hdr{border-bottom:0}
+.grp-hdr .caret{width:11px;height:11px;color:var(--ink-3);transition:transform .15s;flex-shrink:0}
+.grp.collapsed .caret{transform:rotate(-90deg)}
+.grp-hdr .name{font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.06em;color:var(--ink)}
+.grp-hdr .meta{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.02em}
+.grp-hdr .meta b{color:var(--ink);font-weight:600}
+.grp-hdr .right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.grp-hdr .pcs{font-family:var(--mono);font-size:12.5px;font-weight:700;color:var(--ink)}
+.grp-hdr .pcs small{color:var(--ink-3);font-weight:500;margin-left:3px;font-size:10px}
+
+.grp.empty .grp-hdr{background:var(--surface);opacity:.5}
+.grp.empty .grp-hdr .name{color:var(--ink-3)}
+.grp-body{display:block}
+.grp.collapsed .grp-body{display:none}
+
+/* ===== PIVOT WEEK RAIL ===== */
+.wk-block{display:flex;border-top:1px solid var(--border-2)}
+.wk-block:first-of-type{border-top:0}
+.wk-rail{
+  width:105px;
+  flex-shrink:0;
+  padding:5px 12px;
+  background:#f7f8fa;
+  border-right:1px solid var(--border-2);
+  font-family:var(--mono);
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  justify-content:flex-start;
+  align-self:flex-start;
+  position:sticky;
+  top:58px;
+  z-index:4;
+}
+.wk-rail .wk-num{font-weight:700;color:var(--ink);font-size:11.5px;letter-spacing:.02em}
+.wk-rail .wk-sum{color:var(--ink-3);font-size:9.5px;line-height:1.3}
+.wk-rail .wk-sum b{color:var(--ink-2);font-weight:600}
+.wk-rail .overdue{color:var(--red);font-weight:700;font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.wk-rows{flex:1;min-width:0}
+
+/* ===== Column header (one per group) ===== */
+.col-hdr-block{display:flex;background:#fafbfc;border-bottom:1px solid var(--border-2);position:sticky;top:30px;z-index:7}
+.col-hdr-rail{
+  width:105px;
+  flex-shrink:0;
+  padding:5px 12px;
+  background:#f3f4f6;
+  border-right:1px solid var(--border-2);
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-4);
+  font-weight:600;
+}
+.col-hdr-cols{
+  flex:1;
+  display:grid;
+  gap:10px;
+  padding:5px 14px;
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-4);
+  font-weight:600;
+  min-width:0;
+  background:#fafbfc;
+  box-sizing:border-box;
+}
+.col-hdr-cols .num{text-align:right}
+
+/* Materials header — 7 letter cells */
+.mat-hdr{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  border:1px solid var(--border);
+  border-radius:3px;
+  background:#fff;
+  height:18px;
+  overflow:hidden;
+}
+.mat-hdr span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:var(--mono);
+  font-size:9px;
+  font-weight:700;
+  color:var(--ink-3);
+  border-right:1px solid var(--border-2);
+  letter-spacing:0;
+}
+.mat-hdr span:last-child{border-right:0}
+
+/* ===== Row ===== */
+.row{
+  display:grid;
+  gap:0;
+  align-items:center;
+  padding:3px 14px;
+  border-top:1px solid #f0f1f3;
+  font-size:11.5px;
+  cursor:default;
+  min-height:22px;
+  box-sizing:border-box;
+}
+.wk-rows .row:first-child{border-top:0}
+.row:hover{background:#f9fafb}
+.row:nth-of-type(even){background:#fcfcfd}
+.row:nth-of-type(even):hover{background:#f5f6f8}
+
+.row .badge{display:inline-flex;align-items:center;justify-content:center;padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.02em;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-2);width:max-content;line-height:1.3}
+.row .badge.f24{background:#dde8ff;color:#0b3a99;border-color:#a8c0f0}
+
+.row .ord{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--ink);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .ord.remake{color:var(--red);font-weight:600}
+.row .num{font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--ink);text-align:right}
+.row .dt{font-family:var(--mono);font-size:10.5px;color:var(--ink-2)}
+.row .dt.slip{color:var(--red);font-weight:700}
+
+/* Time-in-status / time-left */
+.tm{font-family:var(--mono);font-size:10.5px;font-weight:600}
+.tm.ok{color:var(--green)}
+.tm.warn{color:var(--amber)}
+.tm.over{color:var(--red)}
+
+/* Opti batch */
+.batch{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--accent)}
+
+/* Description */
+.desc{font-size:11px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Last scan */
+.scan{font-family:var(--mono);font-size:10px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scan b{color:var(--ink);font-weight:600}
+
+/* Address */
+.addr{font-size:10.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.addr b{color:var(--ink);font-weight:600}
+
+/* Route */
+.rt{font-family:var(--mono);font-size:10.5px;color:var(--accent);font-weight:600}
+.rt.none{color:var(--ink-4);font-weight:400}
+
+/* Readiness */
+.rd{display:flex;flex-direction:column;gap:1px}
+.rd .top{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:10px;color:var(--ink-2);gap:6px}
+.rd .top .pct{font-weight:700;color:var(--ink);font-size:10.5px}
+.rd .top .cnt{color:var(--ink-3);font-size:9.5px}
+.rd .bar{height:3px;background:var(--surface-3);border-radius:1.5px;overflow:hidden}
+.rd .bar .f{height:100%;background:var(--green);border-radius:1.5px}
+.rd .bar .f.mid{background:var(--amber)}
+.rd .bar .f.lo{background:var(--red)}
+.rd .bar .f.zero{background:var(--ink-4)}
+
+/* ===== Materials 7-position string (Px G20 _ etc) ===== */
+.mat{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  font-family:var(--mono);
+  font-size:9.5px;
+  font-weight:700;
+  border:1px solid var(--border);
+  border-radius:3px;
+  overflow:hidden;
+  background:var(--surface);
+  height:18px;
+}
+.mat span{display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border-2);line-height:1;letter-spacing:-.02em}
+.mat span:last-child{border-right:0}
+.mat .x{background:var(--green-soft);color:var(--green)}
+.mat .wk{background:var(--amber-soft);color:var(--amber)}
+.mat .blank{background:var(--surface);color:var(--ink-4)}
+.mat .miss{background:var(--red-soft);color:var(--red)}
+
+/* Materials date-style badge — second cell in the materials zone */
+.mat-dates{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  font-family:var(--mono);
+  font-size:7.5px;
+  font-weight:600;
+  border:1px solid var(--border);
+  border-radius:3px;
+  overflow:hidden;
+  background:var(--surface);
+  height:18px;
+}
+.mat-dates span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-right:1px solid var(--border-2);
+  line-height:1;
+  letter-spacing:-.05em;
+  padding:0;
+}
+.mat-dates span:last-child{border-right:0}
+
+/* Materials empty placeholder — used in flow #1 and #2 where materials are not
+   yet a concept. Centered "—" with same width as a real materials cell so the
+   row grid stays aligned. */
+.mat-empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--ink-4);
+  height:18px;
+}
+.mat-dates .delivered{background:var(--green-soft);color:var(--green)}
+.mat-dates .promised{background:var(--amber-soft);color:var(--amber)}
+.mat-dates .overdue{background:var(--red-soft);color:var(--red);font-weight:700}
+.mat-dates .blank{background:var(--surface);color:var(--ink-4)}
+
+
+/* ===== COLUMN GRID PER STATUS ===== */
+/* ===== UNIFIED grid for by-status view (no Status column since group header carries it) =====
+   badge · ord · num · DD · TermRe · materials · time/scan/addr · opti batch · ready · route · description
+*/
+.grid-status{
+  grid-template-columns:
+    var(--col-cust, 40px)
+    var(--col-ord, 120px)
+    var(--col-pcs, 36px)
+    var(--col-finvalid, 54px)
+    var(--col-dd, 54px)
+    var(--col-termre, 54px)
+    var(--col-matlet, 140px)
+    var(--col-matdat, 140px)
+    var(--col-time, 66px)
+    var(--col-lastscan, 130px)
+    var(--col-addr, 130px)
+    var(--col-opti, 110px)
+    var(--col-ready, 80px)
+    var(--col-route, 100px)
+    var(--col-desc, 130px);
+}
+
+
+
+/* Notes panel */
+.notes{position:fixed;right:18px;bottom:18px;width:300px;background:var(--ink);color:#fff;border-radius:6px;padding:12px 14px;font-size:11px;line-height:1.5;z-index:20;box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
+.notes.hidden{display:none}
+.notes .h{font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#9ba3ad;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.notes .h .x-btn{margin-left:auto;cursor:pointer;color:#fff;opacity:.6;font-size:13px}
+.notes p{color:#cfd4db;margin-bottom:5px}
+.notes p b{color:#fff;font-weight:500}
+.notes code{font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.1);padding:1px 4px;border-radius:2px;color:#fff}
+.notes .legend{display:flex;gap:4px;margin:4px 0;font-family:var(--mono);font-size:9px;flex-wrap:wrap}
+.notes .legend span{padding:2px 4px;border-radius:2px;font-weight:700;font-size:9.5px}
+.notes .legend .x{background:var(--green-soft);color:var(--green)}
+.notes .legend .wk{background:var(--amber-soft);color:var(--amber)}
+.notes .legend .blank{background:#fff;color:#666;border:1px solid #ddd}
+.notes .legend .miss{background:var(--red-soft);color:var(--red)}
+
+@media(max-width:900px){
+  .notes{position:static;width:auto;margin:14px 18px}
+}
+/* ============================================
+   APP SPEC SCREEN
+   ============================================ */
+
+/* Screen switching */
+.screen{display:none;flex:1;flex-direction:column;min-height:0}
+.screen.active{display:flex}
+
+/* Sidebar — make it accommodate labels */
+.nav .it{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  padding:8px 6px;
+  border-radius:6px;
+  cursor:pointer;
+  color:var(--ink-3);
+  margin-bottom:4px;
+  transition:background .12s;
+}
+.nav .it:hover{background:var(--surface-2);color:var(--ink)}
+.nav .it.active{background:var(--ink);color:#fff}
+.nav .it svg{width:18px;height:18px}
+.nav-label{font-size:9px;font-family:var(--sans);font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+
+/* App Spec header */
+.appspec-hdr{padding:10px 18px;align-items:center}
+
+/* Tabs */
+.appspec-tabs{display:inline-flex;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:var(--surface);height:26px}
+.as-tab{
+  padding:0 12px;
+  height:100%;
+  background:var(--surface);
+  border:0;
+  border-right:1px solid var(--border);
+  font-family:var(--sans);
+  font-size:11.5px;
+  font-weight:500;
+  color:var(--ink-3);
+  cursor:pointer;
+  transition:background .12s;
+}
+.as-tab:last-child{border-right:0}
+.as-tab:hover{background:var(--surface-2)}
+.as-tab.active{background:var(--ink);color:#fff}
+
+/* Body */
+.appspec-body{flex:1;overflow-y:auto;padding:18px 24px;background:var(--bg)}
+
+.as-panel{display:none}
+.as-panel.active{display:block}
+
+.as-intro{
+  padding:12px 14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  margin-bottom:18px;
+  font-size:12px;
+  color:var(--ink-2);
+  line-height:1.5;
+}
+
+.as-tbd{
+  display:inline-block;
+  padding:1px 5px;
+  background:#fff4e0;
+  color:#a35a00;
+  border:1px solid #ffd494;
+  border-radius:3px;
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  font-family:var(--mono);
+  margin:0 2px;
+  vertical-align:middle;
+}
+
+/* Lineage section */
+.lineage-section{margin-bottom:24px}
+.lineage-section h3{
+  font-size:13px;
+  font-weight:700;
+  color:var(--ink);
+  margin:0 0 8px 0;
+  padding:6px 12px;
+  background:var(--surface-2);
+  border-left:3px solid var(--accent);
+  border-radius:0 4px 4px 0;
+}
+
+/* Lineage table */
+.lineage-table{
+  width:100%;
+  border-collapse:collapse;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  overflow:hidden;
+  font-size:11.5px;
+  font-family:var(--sans);
+}
+.lineage-table th{
+  background:var(--surface-2);
+  padding:8px 10px;
+  text-align:left;
+  font-weight:600;
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ink-3);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.lineage-table td{
+  padding:7px 10px;
+  border-bottom:1px solid var(--border-2);
+  vertical-align:top;
+  color:var(--ink-2);
+}
+.lineage-table tr:last-child td{border-bottom:0}
+.lineage-table tr:hover td{background:#fafbfc}
+.lineage-table td:first-child{font-weight:600;color:var(--ink);white-space:nowrap}
+
+/* Editable cells */
+.lineage-table td[contenteditable="true"]{
+  cursor:text;
+  background:#fcfdff;
+  border-left:2px solid transparent;
+  transition:background .12s,border-color .12s;
+  font-family:var(--mono);
+  font-size:11px;
+}
+.lineage-table td[contenteditable="true"]:hover{background:#f0f7ff;border-left-color:#cfdcef}
+.lineage-table td[contenteditable="true"]:focus{
+  outline:none;
+  background:#fff;
+  border-left-color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent);
+}
+.lineage-table td[data-confirmed="true"]{
+  background:#f0fdf4;
+  font-weight:600;
+  color:#0a6e3b;
+  position:relative;
+}
+.lineage-table td[data-confirmed="true"]::after{
+  content:"✓";
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform:translateY(-50%);
+  color:#10b981;
+  font-weight:700;
+  font-size:11px;
+}
+
+/* Pipeline list (Status Pipeline tab) */
+.pipeline-list{display:flex;flex-direction:column;gap:8px}
+.pipe-step{
+  display:flex;
+  gap:14px;
+  padding:12px 14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+}
+.pipe-step.transit{
+  background:#fafbfc;
+  border-style:dashed;
+}
+.pipe-num{
+  flex:0 0 32px;
+  height:32px;
+  border-radius:50%;
+  background:var(--ink);
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:13px;
+  font-family:var(--mono);
+}
+.pipe-step.transit .pipe-num{background:var(--ink-3)}
+.pipe-content{flex:1}
+.pipe-name{font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pipe-name b{font-weight:700;color:var(--ink)}
+.pipe-name i{color:var(--ink-3);font-style:italic;font-size:11px}
+.pipe-meta{font-size:11px;color:var(--ink-3);margin-bottom:6px;line-height:1.5;font-family:var(--mono)}
+.pipe-meta b{color:var(--ink-2);font-weight:600}
+.pipe-desc{
+  font-size:12px;
+  color:var(--ink-2);
+  line-height:1.5;
+  padding:6px 10px;
+  background:#fcfdff;
+  border:1px solid var(--border-2);
+  border-radius:4px;
+  cursor:text;
+  transition:background .12s;
+}
+.pipe-desc:hover{background:#f0f7ff}
+.pipe-desc:focus{outline:none;background:#fff;border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+
+/* Add-row button row */
+.as-add-row{margin-top:12px}
+
+/* Utility: hidden via class (cross-browser-robust replacement for inline style.display:none) */
+.hidden{display:none !important}
+
+
+/* ===========================================================================
+   Phase 5.1 — final overrides & additions
+   ===========================================================================
+   The wireframe defined .as-panel as display:none (it used tab-style panels).
+   We use them as always-visible collapsible sections instead.
+*/
+
+/* Make every App Spec section visible by default */
+#appspecBody .as-panel{
+  display:block;
+  margin-bottom:14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  overflow:hidden;
+}
+#appspecBody .as-panel > .grp-hdr{
+  cursor:pointer;
+  user-select:none;
+  padding:10px 14px;
+  background:var(--surface-2);
+  border-bottom:1px solid var(--border-2);
+  display:flex;align-items:center;gap:8px;
+}
+#appspecBody .as-panel > .grp-hdr .caret{
+  width:14px;height:14px;
+  color:var(--ink-3);
+  transition:transform .12s;
+}
+#appspecBody .as-panel.collapsed > .grp-hdr .caret{
+  transform:rotate(-90deg);
+}
+#appspecBody .as-panel.collapsed > .grp-body{display:none}
+#appspecBody .as-panel > .grp-hdr .name{
+  flex:1;
+  font-size:13px;font-weight:700;color:var(--ink);
+}
+#appspecBody .as-panel > .grp-body{
+  padding:14px 18px;
+  background:var(--surface);
+}
+#appspecBody .as-panel > .grp-body.as-intro{
+  margin:0;
+  border:0;
+  border-radius:0;
+}
+
+/* Inline legend chips used in App Spec body text */
+#appspecBody .legend{
+  display:inline-block;
+  padding:1px 6px;
+  border-radius:3px;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  vertical-align:middle;
+}
+#appspecBody .legend.delivered{background:var(--green-soft);color:var(--green)}
+#appspecBody .legend.overdue{background:var(--red-soft);color:var(--red)}
+#appspecBody .legend.empty{background:var(--surface-2);color:var(--ink-3);border:1px solid var(--border-2)}
+#appspecBody .tm{
+  display:inline-block;
+  padding:1px 6px;
+  border-radius:3px;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  vertical-align:middle;
+}
+
+#appspecBody ul{margin:6px 0 6px 22px}
+#appspecBody li{margin:3px 0;line-height:1.5}
+#appspecBody code{
+  font-family:var(--mono);font-size:11px;
+  background:var(--surface-2);
+  padding:1px 4px;border-radius:2px;
+  color:var(--ink);
+}
+#appspecBody p{margin:6px 0;line-height:1.55}
+
+/* App Spec pipeline (now embedded inside an as-panel section) */
+#appspecBody .pipe-list{
+  display:flex;flex-direction:column;gap:6px;
+  margin-top:8px;
+}
+#appspecBody .pipe-step{
+  display:flex;gap:14px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:5px;
+  background:var(--surface);
+}
+#appspecBody .pipe-step.transit{opacity:.7}
+#appspecBody .pipe-step.unknown{
+  border-color:#f0c193;background:#fff7eb;
+}
+#appspecBody .pipe-step .pipe-num{
+  flex:0 0 28px;height:28px;width:28px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:#fff;
+  border-radius:5px;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+}
+#appspecBody .pipe-step.transit .pipe-num{background:var(--ink-3)}
+#appspecBody .pipe-step.unknown .pipe-num{background:var(--red)}
+#appspecBody .pipe-step .pipe-content{flex:1}
+#appspecBody .pipe-step .pipe-name{
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;color:var(--ink);
+}
+#appspecBody .pipe-step .pipe-stan{
+  font-family:var(--mono);font-size:10px;color:var(--ink-3);
+  background:var(--surface-2);padding:1px 6px;border-radius:3px;
+}
+#appspecBody .pipe-step .pipe-meta{
+  font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.5;
+}
+#appspecBody .pipe-step .pipe-count{
+  flex:0 0 auto;
+  font-family:var(--mono);font-size:18px;font-weight:700;
+  color:var(--ink);align-self:center;
+  min-width:50px;text-align:right;
+}
+#appspecBody .pipe-step .pipe-count.zero{color:var(--ink-4);font-weight:400}
+
+/* Group collapsed state — applies inside Orders too */
+.grp.collapsed > .grp-body,
+.wk-block.collapsed > .grp-body{display:none}
+.grp.collapsed > .grp-hdr .caret,
+.wk-block.collapsed > .grp-hdr .caret{transform:rotate(-90deg)}
+.grp > .grp-hdr .caret,
+.wk-block > .grp-hdr .caret{transition:transform .12s}
+
+/* Toggle-all caret rotation when "Expand all" mode */
+.toggle-all.collapsed svg{transform:rotate(180deg)}
+
+/* Orders empty state */
+.orders-empty{
+  padding:30px 24px;
+  text-align:center;color:var(--ink-3);
+}
+.orders-empty p{margin:6px 0;font-size:12px}
+.orders-empty .muted{color:var(--ink-4)}
+
+/* Soft-fail banner (already styled earlier in this file — re-set just to be sure) */
+.orders-banner{
+  margin:8px 14px 0 14px;
+  padding:8px 12px;
+  background:var(--amber-soft);
+  border:1px solid #f0c97a;
+  border-radius:4px;
+  font-size:12px;color:var(--amber);
+}
+
+/* Refresh button — uses .toggle-all base style, just add an icon margin */
+.orders-refresh-btn svg{width:12px;height:12px}
+.orders-refresh-btn:disabled{opacity:.5;cursor:wait}
+
+/* Search box "ic" — already styled — but ensure cursor */
+.search input{cursor:text}
+
+/* Group header that has no caret in week view — give it a default cursor */
+.grp-hdr{cursor:pointer;user-select:none}
+
+/* Within Orders body — collapsed wk-block inside a bucket */
+.wk-block.collapsed .wk-rows{display:none}
+
+
+/* ===========================================================================
+   Phase 5.5 — Classification filters in Orders header
+   =========================================================================== */
+.cls-filter{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 6px;height:28px;
+  border:1px solid var(--border);border-radius:4px;
+  background:var(--surface);
+  font-size:11px;
+}
+.cls-filter .cls-label{
+  font-family:var(--mono);font-size:9.5px;
+  color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.04em;
+  font-weight:600;
+  padding-right:2px;
+}
+.cls-filter .cls-chip{
+  border:1px solid var(--border-2);
+  background:#fff;
+  color:var(--ink-3);
+  padding:1px 7px;height:20px;
+  border-radius:3px;
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  cursor:pointer;
+  transition:background .12s,color .12s,border-color .12s;
+}
+.cls-filter .cls-chip:hover{background:var(--surface-2);color:var(--ink)}
+.cls-filter .cls-chip.active{
+  background:var(--ink);
+  color:#fff;
+  border-color:var(--ink);
+}
+
+/* ===========================================================================
+   Phase 5.6 — borderless status pills + per-status row tinting
+   ===========================================================================
+   - Drop all visible borders on .status-tag and .row .badge (keep BG + text).
+   - Tint the first cells of each row (status + cust badge + ord) with the
+     same color family as the status pill, so the row's status zone is
+     visually unified.
+   ============================================================================ */
+
+/* Phase 5.10 — flat continuous band, no pills, no rounded edges, no stripe.
+   The bucket color is applied inline (style="background:#hex") on each
+   .band-cell at render time. CSS here just removes legacy decoration so the
+   band reads as one continuous color across cells. */
+
+/* Status text cell (week view): plain text, no rounded background, no border.
+   Inherits the inline background from its own style attribute. */
+.row .band-cell{
+  display:flex;align-items:center;
+  align-self:stretch;
+  padding:0 6px;
+  min-width:0;
+  font-family:var(--mono);font-size:11px;
+  color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  border:0;border-radius:0;
+}
+.row .band-status{
+  font-size:9.5px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink);
+}
+.row .band-cust{
+  font-weight:700;font-size:10px;
+  letter-spacing:.02em;
+}
+.row .band-ord{
+  font-weight:600;font-size:11px;
+  color:var(--ink);
+}
+.row .band-num{
+  justify-content:flex-end;
+  font-weight:600;color:var(--ink);
+}
+.row .band-dt{
+  font-weight:500;color:var(--ink-2);
+}
+.row .band-dt .slip{color:var(--red);font-weight:700}
+.row .band-dt .empty-cell{color:var(--ink-4)}
+
+/* Group header band (status view): inline-style sets background; no border. */
+.grp > .grp-hdr{
+  border:0;
+}
+
+/* Phase 5.24 — week-view outer "All open orders" header: pin to exactly 30px
+   so the sticky .col-hdr-block (top:30px) butts flush against its bottom edge.
+   Previously the header rendered ~28px tall, leaving a ~2px sliver where the
+   underlying row's background bled through between the two sticky headers. */
+body.view-week #viewByWeek > .grp > .grp-hdr{
+  height:30px;
+  box-sizing:border-box;
+}
+
+
+/* ===========================================================================
+   Phase 5.7 — reset-filters button + non-default visual hint
+   =========================================================================== */
+.reset-filters-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  height:28px;padding:0 10px;
+  background:#fce6e6;color:#a4361b;
+  border:1px solid #fac1ad;border-radius:4px;
+  font-family:var(--sans);font-size:11px;font-weight:600;
+  cursor:pointer;
+  transition:background .12s;
+}
+.reset-filters-btn:hover{background:#fbd7d0}
+.reset-filters-btn svg{width:12px;height:12px}
+
+/* When a class-filter is in a non-default state, give it a subtle red outline
+   so it's obvious the filter is hiding rows. */
+.cls-filter.filter-active{
+  outline:2px solid #fac1ad;
+  outline-offset:-1px;
+  background:#fff7f4;
+}
+.cust-select.filter-active{
+  outline:2px solid #fac1ad;
+  outline-offset:-1px;
+  background:#fff7f4 !important;
+}
+
+/* ===========================================================================
+   Phase 5.8 — text selection on row cells
+   =========================================================================== */
+.row, .row > *{
+  user-select:text;
+  -webkit-user-select:text;
+}
+.row > span:not(.badge):not(.status-tag){
+  cursor:text;
+}
+/* Keep inputs and badges with their own cursors */
+.row .badge, .row .status-tag{cursor:default}
+.row input{cursor:text}
+
+
+/* ===========================================================================
+   Phase 5.8 — Multi-select dropdown (OrderType + orderTypeDetail filters)
+   =========================================================================== */
+.ms-filter{position:relative;display:inline-flex;align-items:stretch}
+.ms-toggle{
+  display:inline-flex;align-items:center;gap:6px;
+  height:28px;padding:0 10px;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:4px;
+  font-family:var(--sans);font-size:11px;color:var(--ink-2);
+  cursor:pointer;
+  transition:background .12s,border-color .12s;
+}
+.ms-toggle:hover{background:var(--surface-2);color:var(--ink);border-color:var(--ink-3)}
+.ms-toggle .ms-label{
+  font-family:var(--mono);font-size:9.5px;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.04em;font-weight:600;
+}
+.ms-toggle .ms-summary{
+  font-weight:600;color:var(--ink);
+  max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ms-toggle .ms-caret{width:11px;height:11px;color:var(--ink-3);transition:transform .12s}
+.ms-filter.open .ms-caret{transform:rotate(180deg)}
+.ms-filter.filter-active .ms-toggle{
+  outline:2px solid #fac1ad;outline-offset:-1px;background:#fff7f4;
+}
+.ms-panel{
+  position:absolute;top:32px;left:0;z-index:50;
+  min-width:180px;max-width:260px;max-height:280px;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:4px;
+  box-shadow:0 6px 16px rgba(0,0,0,.08);
+  padding:4px 0;
+  overflow-y:auto;
+}
+.ms-panel-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:4px 10px;border-bottom:1px solid var(--border-2);
+  font-size:10px;color:var(--ink-3);
+}
+.ms-panel-head a{
+  color:var(--ink-2);cursor:pointer;text-decoration:underline;
+  font-size:10px;
+}
+.ms-panel-head a:hover{color:var(--ink)}
+.ms-opt{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 10px;
+  font-size:11.5px;color:var(--ink);
+  cursor:pointer;
+  user-select:none;
+}
+.ms-opt:hover{background:var(--surface-2)}
+.ms-opt input[type="checkbox"]{
+  margin:0;width:13px;height:13px;cursor:pointer;
+}
+.ms-opt .ms-opt-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===========================================================================
+   Phase 5.9 — Status Mapping tab (bucket-first layout)
+   =========================================================================== */
+.sm-source-row{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px;
+  background:var(--surface-2);
+  border:1px solid var(--border);border-radius:4px;
+  margin:0 0 12px 0;
+  flex-wrap:wrap;
+}
+.sm-source-label{
+  font-family:var(--mono);font-size:9.5px;
+  color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.04em;font-weight:600;
+}
+.sm-source-row .cust-select{
+  height:26px;
+  min-width:140px;
+  font-size:11px;
+}
+.sm-source-note{
+  flex:1;color:var(--ink-3);font-size:11px;
+  margin-left:6px;
+}
+.sm-warning{
+  margin:0 0 10px 0;
+  padding:8px 12px;
+  background:#fff7eb;
+  border:1px solid #f0c193;border-radius:3px;
+  font-size:12px;color:#a35a00;
+}
+
+/* --- Buckets table (top section) --- */
+.sm-table-wrap{
+  border:1px solid var(--border);border-radius:4px;
+  background:var(--surface);
+  margin-bottom:18px;
+}
+.sm-table{
+  width:auto;border-collapse:collapse;
+  font-family:var(--sans);font-size:12px;
+  table-layout:fixed;
+}
+.sm-table thead th{
+  background:var(--surface-2);
+  text-align:left;
+  font-family:var(--mono);font-size:9.5px;
+  color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+  padding:8px 12px;
+  border-bottom:1px solid var(--border);
+}
+.sm-table .sm-col-flow{width:60px;text-align:center}
+.sm-table .sm-col-opt{width:200px}
+.sm-table .sm-col-erp{width:280px}
+.sm-table .sm-col-color{width:80px;text-align:center}
+.sm-table tbody td{
+  padding:8px 12px;
+  border-bottom:1px solid #f0f1f3;
+  vertical-align:top;
+}
+.sm-table tbody tr:last-child td{border-bottom:0}
+.sm-table .sm-flow{
+  text-align:center;
+  font-family:var(--mono);font-weight:700;font-size:14px;
+  color:var(--ink);
+}
+.sm-table .sm-opt-input{
+  width:100%;height:28px;
+  padding:0 8px;
+  border:1px solid var(--border);border-radius:3px;
+  background:#fff;
+  font-family:var(--sans);font-size:12px;
+  color:var(--ink);font-weight:600;
+}
+.sm-table .sm-opt-input:focus{
+  outline:none;border-color:var(--ink-3);
+}
+.sm-erp-cell{
+  display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;
+}
+.sm-chips{
+  display:flex;flex-wrap:wrap;gap:5px;
+  flex:1;min-width:0;
+}
+.sm-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 4px 2px 8px;
+  background:var(--surface-2);
+  border:1px solid var(--border-2);border-radius:3px;
+  font-family:var(--mono);font-size:11px;
+  color:var(--ink);
+  line-height:1.4;
+}
+.sm-chip-x{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;
+  background:transparent;border:0;
+  color:var(--ink-3);font-size:14px;line-height:1;
+  cursor:pointer;border-radius:2px;
+  padding:0;
+}
+.sm-chip-x:hover{background:#fce6e6;color:#a4361b}
+.sm-add-btn{
+  height:26px;padding:0 10px;
+  background:var(--surface);
+  border:1px dashed var(--border);border-radius:3px;
+  color:var(--ink-3);
+  font-family:var(--sans);font-size:11px;font-weight:600;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.sm-add-btn:hover{
+  background:var(--surface-2);color:var(--ink);border-color:var(--ink-3);border-style:solid;
+}
+
+/* --- Unassigned values list (bottom section) --- */
+.sm-unassigned-wrap{
+  border:1px solid var(--border);border-radius:4px;
+  background:var(--surface);
+  padding:12px 16px 16px 16px;
+}
+.sm-unassigned-h{
+  margin:0 0 4px 0;
+  font-size:13px;font-weight:700;color:var(--ink);
+}
+.sm-unassigned-wrap .muted{margin:0 0 10px 0}
+.sm-unassigned-list{
+  display:flex;flex-direction:column;gap:5px;
+  max-height:30vh;overflow-y:auto;
+}
+.sm-unassigned-row{
+  display:flex;align-items:center;gap:12px;
+  padding:6px 10px;
+  background:var(--surface-2);
+  border:1px solid var(--border-2);border-radius:3px;
+}
+.sm-unassigned-row .sm-val{
+  flex:1;min-width:0;
+  font-family:var(--mono);font-size:11.5px;
+  color:var(--ink);font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.sm-unassigned-row .sm-cnt{
+  width:50px;text-align:right;
+  font-family:var(--mono);font-size:11px;color:var(--ink-3);
+}
+.sm-unassigned-row .sm-send{
+  width:220px;height:26px;
+  font-size:11.5px;
+  border:1px solid var(--border);border-radius:3px;
+  background:#fff;
+  padding:0 6px;
+}
+.sm-empty{
+  padding:18px;text-align:center;color:var(--ink-3);
+  font-size:12px;
+}
+.sm-empty-ok{color:var(--green)}
+
+/* ===========================================================================
+   Phase 5.10 — non-band cell spacing
+   After removing row-grid gap (so band cells form a continuous color),
+   non-band cells need their own internal padding to breathe.
+   =========================================================================== */
+.row > .mat, .row > .mat-dates,
+.row > .tm, .row > .empty-cell,
+.row > .scan, .row > .addr,
+.row > .batch, .row > .rd, .row > .rd-simple,
+.row > .rt-cell, .row > .desc-cell,
+.row > input{
+  padding-left:6px;padding-right:6px;
+}
+.row > .num{padding-right:6px}
+
+/* Phase 5.20: Route + Description are READ-ONLY display cells.
+   They will be populated by a future logistic / route builder module. */
+.row > .rt-cell, .row > .desc-cell{
+  font-family:var(--mono);
+  font-size:10.5px;
+  color:var(--ink-2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+
+/* Column header still uses the gap-free row grid template, so do the same
+   inner padding so labels line up with cell content. */
+.col-hdr-cols{ gap:0 !important; }
+.col-hdr-cols > *{ padding-left:6px;padding-right:6px; }
+.col-hdr-cols .mat-hdr{padding:0}
+
+
+/* ===========================================================================
+   Phase 5.10 — Status Mapping table controls (simpler model)
+   =========================================================================== */
+.sm-table .sm-erp-sel{
+  width:100%;height:28px;
+  padding:0 6px;
+  border:1px solid var(--border);border-radius:3px;
+  background:#fff;
+  font-family:var(--sans);font-size:12px;
+  color:var(--ink);
+}
+.sm-table .sm-color{
+  width:48px;height:28px;
+  border:1px solid var(--border);border-radius:3px;
+  padding:1px;
+  cursor:pointer;
+  background:#fff;
+}
+
+
+/* ===========================================================================
+   Phase 5.14 — column resize handles
+   The column-header strip gets a thin invisible hitbox on each cell's right
+   edge. Hover shows a hairline; dragging changes the width CSS variable.
+   =========================================================================== */
+.col-hdr-cols{ position:relative; }
+.col-hdr-cell{
+  position:relative;
+  min-width:0;
+  display:flex;align-items:center;
+}
+.col-hdr-cell.num{justify-content:flex-end}
+.col-hdr-cell > .col-resize-handle{
+  position:absolute;
+  top:-5px;
+  right:-4px;            /* sits half on this cell, half on the next */
+  bottom:-5px;
+  width:8px;
+  cursor:col-resize;
+  z-index:5;
+  background:transparent;
+}
+.col-hdr-cell > .col-resize-handle:hover,
+.col-hdr-cell > .col-resize-handle.dragging{
+  background:linear-gradient(to right, transparent 3px, var(--ink-3) 3px, var(--ink-3) 5px, transparent 5px);
+}
+/* When any column is being dragged, lock the cursor + disable text selection
+   across the document so the user doesn't accidentally select things while
+   moving the pointer past header boundaries. */
+body.col-resizing,
+body.col-resizing *{
+  cursor:col-resize !important;
+  user-select:none !important;
+}
+
+/* Reset-cols button (sits in the Orders top header) */
+.reset-cols-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  height:26px;
+  padding:0 10px;
+  margin-left:8px;
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:3px;
+  color:var(--ink-3);
+  font-family:var(--mono);font-size:9.5px;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;
+  cursor:pointer;
+}
+.reset-cols-btn:hover{
+  background:var(--surface-2);
+  color:var(--ink);
+  border-color:var(--ink-3);
+}
+
+/* When the column-header text is too long for the cell, ellipsize. */
+.col-hdr-cell > span:not(.col-resize-handle){
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+}
+
+/* ===========================================================================
+   Phase 5.15 — sticky headers + materials-header fix
+   =========================================================================== */
+
+/* Materials header inside a column-header cell must stretch to fill its
+   container so the 7-column grid spreads properly. Without this it shrinks
+   to its intrinsic width and the letters mash together. */
+.col-hdr-cell > .mat-hdr{
+  flex:1 1 auto;
+  width:100%;
+  min-width:0;
+}
+.col-hdr-cell:has(> .mat-hdr){
+  padding:0;
+}
+/* Ensure the resize handle doesn't push the mat-hdr off the row */
+.col-hdr-cell:has(> .mat-hdr) > .col-resize-handle{
+  z-index:6;
+}
+
+/* Banner: opaque + above sticky headers so rows scrolling under it stay covered. */
+.orders-banner{
+  position:relative;
+  z-index:8;
+  background:#fff7eb;
+}
+
+/* Phase 5.34: keep the Orders Reset-cols + Refresh cluster pinned top-right of
+   the (wrapping) header so Refresh never jumps to a wrapped line. The header is
+   position:sticky (establishes a containing block); we anchor the cluster and
+   reserve right padding on the header so wrapping content never slides under it. */
+#screen-orders .hdr{ padding-right:210px; }
+#screen-orders .hdr-right-cluster{
+  position:absolute; top:10px; right:18px;
+  display:flex; align-items:center; gap:8px;
+}
+
+/* Phase 5.36: inline "Running…" indicator for Orders/Production refresh,
+   reusing the connection-test pulsing-dot pattern. */
+.run-indicator{display:inline-flex;align-items:center;gap:6px;color:var(--ink-3)}
+.run-indicator .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--amber);animation:pulse 1s infinite}
+
+/* Phase 5.41: unified Refresh button in the left ribbon, under the version
+   label. Single entry point that refreshes all mapping queries → updates both
+   Orders and Production. Styled to match the dark sidebar nav items. */
+.sb-refresh{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  width:calc(100% - 12px);margin:0 6px 10px 6px;padding:8px 6px;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);
+  border:1px solid rgba(255,255,255,.14);border-radius:6px;
+  cursor:pointer;transition:background .12s,color .12s;
+}
+.sb-refresh:hover{background:rgba(255,255,255,.16);color:#fff}
+.sb-refresh svg{width:16px;height:16px;transition:transform .6s ease}
+.sb-refresh-label{font-size:9px;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.sb-refresh:disabled{opacity:.6;cursor:wait}
+.sb-refresh.refreshing svg{animation:sb-spin 1s linear infinite}
+@keyframes sb-spin{to{transform:rotate(360deg)}}

@@ -1,0 +1,153 @@
+/* planner.css — Planner screen. Namespaced .plan-*; reuses :root vars from
+   style.css. Product/view tabs reuse the .prod-tab/.prod-view look. */
+
+#screen-planner .list-inner { padding: 14px 16px 40px; max-width: 1500px; }
+#planViewTabs .prod-view:disabled { opacity: .4; cursor: default; }
+
+/* KPI ribbon */
+.plan-kpis { display: flex; gap: 10px; margin-bottom: 14px; }
+.plan-kpi {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; min-width: 0;
+}
+.plan-kpi.warn { border-color: var(--red); background: var(--red-soft); }
+.plan-kpi-v { font: 700 26px/1 var(--sans); color: var(--ink); }
+.plan-kpi.warn .plan-kpi-v { color: var(--red); }
+.plan-kpi-k { font: 600 11px/1.4 var(--sans); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
+
+/* cards */
+.plan-grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; margin-bottom: 14px; }
+.plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.plan-card h2 { font: 700 13px/1 var(--sans); color: var(--ink-2); margin: 0 0 10px; text-transform: uppercase; letter-spacing: .03em; }
+.plan-count { display: inline-block; background: var(--surface-2); color: var(--ink-3); border-radius: 10px; padding: 1px 8px; font-size: 11px; margin-left: 6px; }
+
+/* actions */
+.plan-actions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.plan-act { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border-left: 3px solid var(--ink-4); }
+.plan-act-crit { border-left-color: var(--red); background: var(--red-soft); }
+.plan-act-act  { border-left-color: var(--amber); background: var(--amber-soft); }
+.plan-act-rev  { border-left-color: var(--ink-4); }
+.plan-sev { font: 700 9px/1.6 var(--mono); letter-spacing: .05em; color: var(--ink-3); flex: 0 0 56px; padding-top: 1px; }
+.plan-act-crit .plan-sev { color: var(--red); }
+.plan-act-act  .plan-sev { color: var(--amber); }
+.plan-act-title { font: 600 13px/1.4 var(--sans); color: var(--ink); }
+.plan-act-why { font: 400 12px/1.45 var(--sans); color: var(--ink-3); margin-top: 2px; }
+
+/* trucks */
+.plan-trucks { display: flex; flex-direction: column; gap: 10px; }
+.plan-truck { padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border-2); }
+.plan-truck-top { display: flex; justify-content: space-between; align-items: baseline; font: 600 13px/1.3 var(--sans); color: var(--ink); }
+.plan-truck-top span { font-size: 12px; color: var(--ink-3); }
+.plan-truck-bar { height: 7px; border-radius: 4px; background: var(--border); margin: 6px 0 4px; overflow: hidden; }
+.plan-truck-bar span { display: block; height: 100%; background: var(--ink-4); }
+.plan-truck-ready .plan-truck-bar span { background: var(--green); }
+.plan-truck-ready { border-color: var(--green); }
+.plan-truck-short .plan-truck-bar span { background: var(--amber); }
+.plan-truck-sub { font-size: 11px; }
+
+/* feasibility table */
+.plan-table { display: grid; }
+.plan-trow {
+  display: grid;
+  grid-template-columns: 150px 90px 50px 130px 110px 200px 70px 1fr;
+  align-items: center; gap: 8px; padding: 7px 10px;
+  border-bottom: 1px solid var(--border-2); font: 400 12.5px/1.3 var(--sans); color: var(--ink-2);
+}
+.plan-thead { position: sticky; top: 0; z-index: 4; background: var(--surface-2); font: 700 10.5px/1 var(--sans); color: var(--ink-3); text-transform: uppercase; letter-spacing: .03em; border-bottom: 1px solid var(--border); }
+.plan-trow .num { text-align: right; font-family: var(--mono); }
+.plan-ono { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+.plan-block { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+.plan-overdue { color: var(--red); font-weight: 600; }
+
+/* status pills */
+.plan-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font: 700 10px/1.4 var(--sans); letter-spacing: .03em; }
+.plan-st-ok      { background: var(--green-soft); color: var(--green); }
+.plan-st-risk    { background: var(--amber-soft); color: var(--amber); }
+.plan-st-blocked { background: #ece3fb; color: #5b3da8; }
+.plan-st-late    { background: var(--red-soft); color: var(--red); }
+
+@media (max-width: 1100px) { .plan-grid2 { grid-template-columns: 1fr; } }
+
+/* buttons */
+.plan-btn { font: 600 12px/1 var(--sans); padding: 7px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--ink); color: #fff; cursor: pointer; }
+.plan-btn:hover { opacity: .9; }
+.plan-btn-ghost { background: var(--surface); color: var(--ink-2); }
+
+/* WFL tab */
+.plan-wfl { display: grid; grid-template-columns: 1.1fr 1fr; gap: 14px; }
+.plan-wfl-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.plan-wfl-bar .muted { font-size: 11px; }
+.plan-wfl-src {
+  width: 100%; min-height: 460px; box-sizing: border-box; resize: vertical;
+  font: 12.5px/1.55 var(--mono); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 12px; tab-size: 2;
+}
+.plan-wfl-err { background: var(--red-soft); color: var(--red); border: 1px solid var(--red); border-radius: 8px; padding: 12px; font: 12.5px/1.5 var(--mono); }
+.plan-wfl-err b { display: block; margin-bottom: 4px; }
+@media (max-width: 1100px) { .plan-wfl { grid-template-columns: 1fr; } }
+
+/* Layout modeler */
+.plan-layout { display: grid; grid-template-columns: 1fr 300px; gap: 14px; }
+.plan-floor-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.plan-floor-bar .muted { font-size: 11px; }
+.plan-floor-scroll { overflow: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); max-height: 72vh; }
+.plan-floor { display: block; }
+.plan-obj { cursor: grab; }
+.plan-obj.sel { cursor: grabbing; }
+.plan-obj text { pointer-events: none; user-select: none; }
+.plan-layout-side { display: flex; flex-direction: column; gap: 12px; }
+.plan-f { display: flex; flex-direction: column; gap: 3px; font: 600 10.5px/1.3 var(--sans); color: var(--ink-3); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
+.plan-f input { font: 400 12.5px/1.3 var(--sans); padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; color: var(--ink); }
+.plan-f input[type=color] { padding: 2px; height: 30px; }
+.plan-f-row { display: flex; gap: 8px; }
+.plan-f-row .plan-f { flex: 1; }
+.plan-sum { font: 400 12.5px/1.5 var(--sans); color: var(--ink-2); }
+.plan-sum span { font-weight: 700; color: var(--ink); }
+@media (max-width: 1100px) { .plan-layout { grid-template-columns: 1fr; } }
+
+/* Flow grid */
+.plan-fg-legend { font-size: 11.5px; margin-bottom: 10px; }
+.plan-fg { display: inline-block; min-width: 100%; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.plan-fg-row { display: grid; grid-template-columns: 190px repeat(10, 46px) 78px; align-items: stretch; }
+.plan-fg-row:nth-child(even) { background: var(--surface-2); }
+.plan-fg-head { position: sticky; top: 0; z-index: 4; background: var(--ink); color: #fff; }
+.plan-fg-head .plan-fg-sec, .plan-fg-head .plan-fg-cell { color: #fff; font-weight: 700; }
+.plan-fg-sec { padding: 6px 10px; font: 600 11.5px/1.3 var(--sans); color: var(--ink-2); border-right: 1px solid var(--border); display: flex; align-items: center; }
+.plan-fg-cell { font: 600 12px/1 var(--mono); display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--border-2); border-bottom: 1px solid var(--border-2); min-height: 30px; }
+.plan-fg-cell.today { box-shadow: inset 2px 0 0 var(--accent); }
+.plan-fg-now { font-weight: 700; border-left: 1px solid var(--border); }
+.plan-fg-head .plan-fg-now { border-left-color: rgba(255,255,255,.3); }
+
+/* Capacity */
+.plan-cap-top { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 10px; }
+.plan-cap-summary { display: flex; gap: 18px; }
+.plan-cap-summary div { display: flex; flex-direction: column; }
+.plan-cap-summary b { font: 700 18px/1.1 var(--sans); color: var(--ink); }
+.plan-cap-summary .muted { font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; }
+.plan-cap-over { color: var(--red) !important; }
+.plan-cap-legend { font-size: 11.5px; margin-bottom: 10px; }
+.plan-cap-tbl { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.plan-cap-row { display: grid; grid-template-columns: 240px 64px 64px 64px 110px 1fr 56px; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border-2); }
+.plan-cap-row:last-child { border-bottom: none; }
+.plan-cap-row.bind { background: var(--amber-soft); }
+.plan-cap-name { font: 600 12.5px/1.3 var(--sans); color: var(--ink); display: flex; flex-direction: column; }
+.plan-cap-cyc { font-weight: 400; font-size: 10.5px; }
+.plan-bind-tag { font: 700 9px/1 var(--sans); color: var(--amber); }
+.plan-cap-num { font: 600 10px/1 var(--sans); color: var(--ink-3); display: flex; align-items: center; gap: 4px; }
+.plan-cap-num input { width: 44px; font: 400 12px/1 var(--mono); padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; }
+.plan-cap-mins { font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-align: right; }
+.plan-cap-bar { height: 9px; background: var(--border); border-radius: 5px; overflow: hidden; }
+.plan-cap-fill { display: block; height: 100%; }
+.plan-cap-ok { background: var(--green); color: var(--green); }
+.plan-cap-tight { background: var(--amber); color: var(--amber); }
+.plan-cap-over { background: var(--red); }
+.plan-cap-load { font-family: var(--mono); font-weight: 700; text-align: right; }
+span.plan-cap-ok { color: var(--green); } span.plan-cap-tight { color: var(--amber); } span.plan-cap-load.plan-cap-over { color: var(--red); }
+
+/* Learning (own wrapper so the 6-col grid never touches Capacity's 7-col) */
+.plan-lrn .plan-cap-row { grid-template-columns: 240px 90px 90px 70px 1fr 56px; }
+.plan-lrn .plan-cap-row .num { font-family: var(--mono); font-size: 11.5px; text-align: right; color: var(--ink-2); }
+.plan-cap-head { background: var(--ink); color: #fff; font: 700 10.5px/1 var(--sans); text-transform: uppercase; letter-spacing: .03em; border-radius: 8px 8px 0 0; }
+.plan-cap-head .plan-cap-name, .plan-cap-head .num, .plan-cap-head span { color: #fff; }
+.plan-fc-card { background: var(--amber-soft); border: 1px solid var(--amber); border-radius: 8px; padding: 12px 14px; font: 400 13.5px/1.5 var(--sans); color: var(--ink); margin-bottom: 12px; }
+.plan-fc-card b { color: var(--ink); }
