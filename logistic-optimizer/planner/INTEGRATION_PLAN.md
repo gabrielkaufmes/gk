@@ -1,0 +1,85 @@
+# Production Planner — Integration Plan
+
+Tracks how the `@courtyard/production-planner` module (vendored under
+`logistic-optimizer/planner/`) is being folded into the existing **Logistic
+Optimizer** Electron app. Read alongside `HANDOFF.md` (the module's own
+hand-off) and the app's `../HANDOFF_v5.41.md`.
+
+## Aligned decisions (2026-06-03, with Gabriel)
+
+- **Engine first, then UI.** Bring in the pure `.mjs` engine, prove it on real
+  data, *then* build the views.
+- **Screens become additional tabs inside the existing app.** No separate React
+  app. The React `.jsx` components are kept only as **visual/logic reference**;
+  each view is re-implemented in the app's existing **vanilla-JS, no-build**
+  style (the `window.Production` module pattern).
+- **Integrate all capabilities, in this order:**
+  1. **Orchestrator** — feasibility (LATE/BLOCKED/RISK/OK), trucks, ranked
+     actions (`why`), EDF work schedule.
+  2. **Flow grid** — station×day backlog heatmap, deadline-driven shift solving.
+  3. **Capacity / OEE + costed what-if** — finite capacity, overbooked, €-levers.
+  4. Then **WFL**, **Layout modeler**, **Learning** (L4 calibration/forecast).
+- **Golden rule still applies.** Orders / Production / Mapping must not change
+  behaviour. The planner lives in isolated new modules + new tabs only.
+
+## Architecture of the integration
+
+```
+planner/src/engine/*.mjs      ← vendored, UNMODIFIED. Source of truth. 52 tests.
+planner/src/components/*.jsx  ← React reference only (NOT mounted).
+planner/test/e2e.mjs          ← engine regression suite (npm run test:planner).
+public/vendor/planner-engine.js  ← esbuild IIFE bundle → window.PlannerEngine.
+                                    Committed; rebuilt via npm run build:planner-engine.
+public/planner.js  (Step 2)   ← NEW vanilla module: window.Planner, renders
+                                 engine output as DOM. Mirrors production.js style.
+public/planner.css (Step 2)   ← NEW styles, loaded after style.css.
+public/planner-adapter.js (Step 2) ← maps lastResultRows (Aluplast+WHNet) →
+                                      engine row/flow contracts.
+```
+
+The engine never imports DOM/React, so it is bundled once and consumed as a
+global, exactly like the existing `vendor/codemirror-sql.js` / `vendor/sheetjs.js`.
+
+## Status
+
+### Step 1 — engine wired in ✅ (this commit)
+- Vendored engine + docs + tests + reference components under `planner/`.
+- `npm run test:planner` → **52/52 pass** (baseline intact).
+- Bundled to `public/vendor/planner-engine.js` (IIFE → `window.PlannerEngine`,
+  49 exports). Smoke-tested: orchestrator regression baseline reproduced from the
+  bundle — KPIs `{orders:6, offTrack:4, critical:2, trucksReady:1}`, Lyon 84/80,
+  Paris 62/80.
+- `<script src="vendor/planner-engine.js">` added to `index.html` (inert global).
+- App still boots clean; no existing screen touched.
+
+### Step 2 — the adapter + the tabs ⏳ (next)
+Blocked on confirming the **data mapping** below before writing the adapter.
+
+## Open: data-mapping decisions for the adapter (Step 2)
+
+The engine wants generic rows; the app has Gabriel's real Aluplast/WHNet shapes.
+Proposed mapping for the **orchestrator row** (to confirm):
+
+| Engine field | Proposed source (app data) | Note / question |
+|---|---|---|
+| `id` | `orderNo` | — |
+| `dest` | `deliveryCity` (sql_01) | groups trucks; address-aware later |
+| `pcs` | real piece count (`pcsT`, v5.42 rule: frame else sash) | or order `pcs`? |
+| `stage_index` | from WHNet `Last_No` vs the 18-step PVC / 12-step ALU flow | how to collapse element-grain → one order stage? min/avg/slowest? |
+| `stages_total` | 18 (PVC) / 12 (ALU) — the real WorkstationsTable | engine default is 5; needs real line |
+| `materials_in` (h) | derived from materials P/F/A/G/R/D/O promised/actual dates | hours vs the app's working-DAY model — reconcile |
+| `loading_in` (h) | from `Loading` / Friday-of-DD-week deadline | hours vs working-days |
+
+Key reconciliations:
+- **Units:** engine = hours; app = working-days + holidays + ISO prod-week. Decide
+  whether to convert (×8h/working-day) or extend the engine cfg.
+- **Line definition:** replace the engine's seed `LINE_ORDER`
+  `[cut,weld,clean,fitting,glaze,qc,pack]` with the real 18/12-step flow already
+  encoded in `production.js`.
+- **Scans:** WHNet scan events → `gridFlow.scans` (per-station daily counts) and
+  `orderFlow.scans` (`[{id,station,day}]`) for re-adjustment.
+
+## Build/verify commands
+- `npm run test:planner` — engine regression (must stay 52/52).
+- `npm run build:planner-engine` — rebuild the renderer bundle after any engine edit.
+- Bundle compile sanity: see `HANDOFF.md` §11.

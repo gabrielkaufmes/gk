@@ -9,14 +9,17 @@
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
-    "dist:win": "electron-builder --win"
+    "dist:win": "electron-builder --win",
+    "test:planner": "node planner/test/e2e.mjs",
+    "build:planner-engine": "esbuild planner/src/engine/index.js --bundle --format=iife --global-name=PlannerEngine --outfile=public/vendor/planner-engine.js"
   },
   "dependencies": {
     "mssql": "^11.0.1"
   },
   "devDependencies": {
     "electron": "^34.0.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.0"
   },
   "build": {
     "appId": "com.elwiz.logisticoptimizer",
