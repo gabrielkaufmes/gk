@@ -67,7 +67,46 @@
     if (activeTab === 'orchestrator') return renderOrchestrator(inner);
     if (activeTab === 'wfl')          return renderWfl(inner);
     if (activeTab === 'layout')       return renderLayout(inner);
+    if (activeTab === 'flow')         return renderFlow(inner);
     inner.innerHTML = `<div class="orders-empty"><p>${esc(activeTab)} — coming next.</p></div>`;
+  }
+
+  // ---- Tab: Flow grid (station × day, scan-driven) -------------------------
+  function renderFlow(inner) {
+    const A = window.PlannerAdapter;
+    const g = A.flowGrid({ product: activeProduct, pastDays: 10 });
+    if (!g.ok) {
+      const msg = (g.reason === 'no-spine-rows' || g.reason === 'no-cache') ? 'No data loaded — click Refresh in the ribbon.' : 'Could not build flow grid: ' + g.reason;
+      banner(msg); inner.innerHTML = `<div class="orders-empty"><p>${esc(msg)}</p></div>`; return;
+    }
+    banner('');
+    // peak for heat scaling (over scan cells)
+    let peak = 1;
+    for (const r of g.scans) for (const v of r) if (v > peak) peak = v;
+    let peakBacklog = 1; for (const b of g.backlog) if (b > peakBacklog) peakBacklog = b;
+    const totalBacklog = g.backlog.reduce((a,b)=>a+b,0);
+    const totalDone = g.doneTotal.reduce((a,b)=>a+b,0);
+
+    const heat = (v, mx) => v <= 0 ? '' : `background:rgba(11,92,255,${(0.10 + 0.6 * Math.min(1, v/mx)).toFixed(3)});color:${v/mx>0.6?'#fff':'var(--ink)'}`;
+    const heatB = (v, mx) => v <= 0 ? '' : `background:rgba(163,90,0,${(0.12 + 0.6 * Math.min(1, v/mx)).toFixed(3)});color:${v/mx>0.6?'#fff':'var(--ink)'}`;
+
+    const head = `<div class="plan-fg-row plan-fg-head"><span class="plan-fg-sec">Section</span>` +
+      g.dayLabels.map((d,i)=>`<span class="plan-fg-cell${i===g.todayIdx?' today':''}">${esc(d)}</span>`).join('') +
+      `<span class="plan-fg-cell plan-fg-now">Queue now</span></div>`;
+    const body = g.sections.map((s, si) => {
+      const cells = g.scans[si].map((v,i)=>`<span class="plan-fg-cell${i===g.todayIdx?' today':''}" style="${heat(v,peak)}">${v||''}</span>`).join('');
+      const bk = g.backlog[si];
+      return `<div class="plan-fg-row"><span class="plan-fg-sec" title="${esc(s.key)}">${esc(s.label)}</span>${cells}` +
+        `<span class="plan-fg-cell plan-fg-now" style="${heatB(bk,peakBacklog)}">${bk||''}</span></div>`;
+    }).join('');
+
+    const totals = $('#planTotals');
+    if (totals) totals.innerHTML = `<b>${totalBacklog}</b> in queue · <b>${totalDone}</b> scans (last ${g.dayLabels.length}d) · ${esc(activeProduct)} line`;
+
+    inner.innerHTML =
+      `<div class="plan-fg-legend muted">Completed pieces per section per day (from scans) · last column = elements queued now. Future projection is intentionally omitted — past is real scan data.</div>` +
+      `<div class="plan-fg">${head}${body}</div>`;
+    lastFetchAt = new Date(); setInfo();
   }
 
   // ---- Tab: Layout modeler -------------------------------------------------

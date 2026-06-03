@@ -90,8 +90,18 @@
   };
   const MAX_NO = { PVC: 0, ALU: 0 };
   const FLOW_BY_NO = { PVC: {}, ALU: {} };
+  const PIPELINE = { PVC: [], ALU: [] };
   for (const p of ['PVC','ALU']) for (const s of FLOW[p]) {
-    FLOW_BY_NO[p][s.no] = s; if (s.no > MAX_NO[p]) MAX_NO[p] = s.no;
+    FLOW_BY_NO[p][s.no] = s; PIPELINE[p].push(s.no); if (s.no > MAX_NO[p]) MAX_NO[p] = s.no;
+  }
+  // Ordered distinct sections (PROD_Status) per product — the flow-grid rows.
+  function sectionsFor(product){
+    const seen = new Set(), list = [];
+    for (const s of (FLOW[product]||[])) if (!seen.has(s.prodStatus)) {
+      seen.add(s.prodStatus);
+      list.push({ key:s.prodStatus, no:s.no, label:s.prodStatus.replace(/^\d+_/,'').replace(/_/g,' ') });
+    }
+    return list;
   }
 
   // ---- working-day engine (mirror of production.js) -------------------------
@@ -297,6 +307,74 @@
     return { ok:true, result, built, rows };
   }
 
+  /**
+   * Real station×day flow grid from the scan trail.
+   * Past columns = completed pieces per section per day (from sql_05 scan events:
+   * a scan at station No means that element cleared No that day). "Queue now" =
+   * current backlog per section (elements waiting to enter it). 100% live data;
+   * no simulation. @returns { ok, product, sections, dayLabels, scans[][],
+   * backlog[], doneTotal[], todayIdx }
+   */
+  function flowGrid(opts){
+    opts = opts || {};
+    const product = (opts.product === 'ALU') ? 'ALU' : 'PVC';
+    const pastDays = opts.pastDays || 10;
+    const now = opts.now ? new Date(opts.now) : new Date();
+    const origin = new Date(now); origin.setHours(0,0,0,0); origin.setDate(origin.getDate() - (pastDays - 1));
+    if (typeof lastResultRows !== 'object' || !lastResultRows) return { ok:false, reason:'no-cache' };
+    const sp = spineId();
+    const rows = (sp && lastResultRows[sp]) ? lastResultRows[sp] : [];
+    if (!rows.length) return { ok:false, reason:'no-spine-rows' };
+
+    const cKeyEl = colFor('keyElement'), cProduct = colFor('product'), cLastNo = colFor('lastNo');
+    const cZ = colFor('zakonczone'), cScanNo = colFor('scanNo'), cScanData = colFor('scanData');
+
+    const sections = sectionsFor(product);
+    const secIdx = new Map(sections.map((s,i)=>[s.key,i]));
+    const scans = sections.map(()=> new Array(pastDays).fill(0));
+    const doneTotal = sections.map(()=>0);
+    const backlog = sections.map(()=>0);
+    const pipe = PIPELINE[product];
+    const seen = new Set();
+
+    for (const r of rows){
+      if (((String(r[cProduct]).toUpperCase()==='ALU')?'ALU':'PVC') !== product) continue;
+      // scans: completed-per-section/day (every row that is a scan event)
+      const noRaw = r[cScanNo];
+      const no = (noRaw==null||noRaw==='') ? null : Number(noRaw);
+      const sd = parseDate(r[cScanData]);
+      if (no!=null && sd){
+        const st = FLOW_BY_NO[product][no];
+        if (st){
+          const si = secIdx.get(st.prodStatus);
+          if (si!=null){
+            doneTotal[si]++;
+            const dayIdx = Math.floor((new Date(sd.getFullYear(),sd.getMonth(),sd.getDate()) - origin)/86400000);
+            if (dayIdx>=0 && dayIdx<pastDays) scans[si][dayIdx]++;
+          }
+        }
+      }
+      // backlog: one count per element (first row), by the section it waits to enter
+      const key = r[cKeyEl]; if (key==null||key==='' || seen.has(key)) continue; seen.add(key);
+      const lastRaw = r[cLastNo];
+      const lastNo = (lastRaw==null||lastRaw==='') ? null : Number(lastRaw);
+      const zak = String(r[cZ])==='1' || r[cZ]===1 || r[cZ]===true;
+      const isDone = zak || (lastNo!=null && lastNo>=MAX_NO[product]);
+      if (isDone) continue;
+      let queueNo;
+      if (lastNo==null) queueNo = pipe[0];
+      else { const ix = pipe.indexOf(lastNo); queueNo = (ix>=0 && ix+1<pipe.length) ? pipe[ix+1] : null; }
+      if (queueNo==null) continue;
+      const st = FLOW_BY_NO[product][queueNo];
+      const si = st ? secIdx.get(st.prodStatus) : null;
+      if (si!=null) backlog[si]++;
+    }
+
+    const dayLabels = [];
+    for (let i=0;i<pastDays;i++){ const d=new Date(origin); d.setDate(origin.getDate()+i); dayLabels.push(String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')); }
+    return { ok:true, product, sections, dayLabels, scans, backlog, doneTotal, todayIdx: pastDays-1 };
+  }
+
   // Self-test against the engine's regression baseline (no live data needed).
   function __baseline(){
     const E = window.PlannerEngine; if(!E) return 'engine-missing';
@@ -312,7 +390,7 @@
   }
 
   window.PlannerAdapter = {
-    build, orchestrateLive, deadlineParts, fridayOfProdWeek,
-    FLOW, FLOW_BY_NO, MAX_NO, MATERIAL_LETTERS, __baseline,
+    build, orchestrateLive, flowGrid, deadlineParts, fridayOfProdWeek,
+    FLOW, FLOW_BY_NO, MAX_NO, PIPELINE, MATERIAL_LETTERS, sectionsFor, __baseline,
   };
 })();
