@@ -1,0 +1,321 @@
+/* ===========================================================================
+ * production.css — Production module styles (Phase 5.17)
+ * Namespaced with .prod-* so nothing collides with the rest of the app.
+ * Reuses host .list / .orders-banner / .hdr / .screen layout classes.
+ * =========================================================================== */
+
+/* version under the sidebar logo (sidebar is dark) */
+.app-version{
+  text-align:center;
+  font-family:var(--mono, monospace);
+  font-size:9px;
+  color:rgba(255,255,255,.5);
+  margin-top:-12px;
+  margin-bottom:16px;
+  letter-spacing:.02em;
+}
+
+/* ---- top-bar tabs -------------------------------------------------------- */
+.prod-tabs, .prod-views{
+  display:flex;gap:4px;align-items:center;
+}
+.prod-tab, .prod-view{
+  height:30px;padding:0 12px;
+  border:1px solid var(--border, #d8dce1);border-radius:4px;
+  background:var(--surface, #fff);
+  font-family:var(--sans, sans-serif);font-size:12px;font-weight:600;
+  color:var(--ink-2, #4a5560);
+  cursor:pointer;
+}
+.prod-tab.active{
+  background:var(--ink, #1d2530);color:#fff;border-color:var(--ink, #1d2530);
+}
+.prod-view.active{
+  background:var(--ink, #1d2530);color:#fff;border-color:var(--ink, #1d2530);
+}
+.prod-settings-btn{
+  height:30px;padding:0 12px;
+  border:1px solid var(--border, #d8dce1);border-radius:4px;
+  background:var(--surface, #fff);
+  font-size:12px;font-weight:600;color:var(--ink-2, #4a5560);
+  cursor:pointer;
+}
+.prod-settings-btn:hover{background:var(--surface-2, #f4f6f8)}
+
+.prod-stuck-num{color:#d23030}
+
+/* ---- prod-week group (By order) ----------------------------------------- */
+.prod-grp{
+  background:var(--surface, #fff);
+  border:1px solid var(--border, #d8dce1);
+  margin-bottom:8px;
+}
+.prod-grp-hdr{
+  display:flex;align-items:center;gap:10px;
+  padding:7px 14px;
+  height:30px;box-sizing:border-box;
+  background:var(--surface-2, #f4f6f8);
+  border-bottom:1px solid var(--border-2, #e6e9ec);
+  cursor:pointer;
+  position:sticky;top:0;z-index:6;
+}
+.prod-grp-hdr .caret{width:14px;height:14px;transition:transform .15s;flex-shrink:0;color:var(--ink-3,#7a828c)}
+.prod-grp.collapsed .prod-grp-hdr .caret{transform:rotate(-90deg)}
+.prod-grp.collapsed .prod-grp-body{display:none}
+.prod-grp-name{font-family:var(--mono,monospace);font-weight:700;font-size:13px;color:var(--ink,#1d2530)}
+.prod-grp-meta{font-size:11px;color:var(--ink-3,#7a828c)}
+
+/* ---- order rows ---------------------------------------------------------- */
+.prod-orow{
+  display:grid;
+  align-items:center;
+  gap:8px;
+  padding:5px 14px;
+  border-top:1px solid #f0f1f3;
+  font-size:11.5px;
+  cursor:pointer;
+}
+.prod-orow .num{text-align:right;font-variant-numeric:tabular-nums}
+.prod-orow-hdr{
+  cursor:default;
+  font-family:var(--mono,monospace);font-size:9px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4,#9aa3ad);
+  background:#fafbfc;
+  position:sticky;top:30px;z-index:5;
+}
+.prod-orow-hdr span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-ocaret{display:flex;align-items:center}
+.prod-ocaret svg{width:13px;height:13px;transition:transform .15s;color:var(--ink-3,#7a828c)}
+.prod-orow.open .prod-ocaret svg{transform:rotate(90deg)}
+/* Phase 5.34: when an order is expanded, keep its summary row pinned below the
+   group band (top:0, ~30px) + the column-header row (top:30px, ~22px) so it
+   stays visible while scrolling through its element strip. */
+.prod-orow.open{
+  position:sticky; top:52px; z-index:4;
+  box-shadow:0 1px 0 rgba(0,0,0,.06);
+}
+.prod-ono{font-weight:700;font-family:var(--mono,monospace);font-size:11px}
+.prod-otag{
+  display:inline-block;padding:1px 7px;border-radius:3px;
+  background:var(--surface-2,#eef1f4);
+  font-size:10px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.prod-oslow{font-size:11px;color:var(--ink-2,#4a5560);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-odate{font-family:var(--mono,monospace);font-size:10.5px;color:var(--ink-2,#4a5560);white-space:nowrap}
+.prod-obar{
+  display:block;height:10px;border-radius:5px;
+  background:var(--surface-3,#e6e9ec);overflow:hidden;
+}
+.prod-obar-fill{display:block;height:100%;border-radius:5px}
+
+/* ---- expanded element strips inside an order ---------------------------- */
+.prod-oelements{
+  padding:4px 14px 10px 40px;
+  background:#fafbfc;
+  border-top:1px solid #f0f1f3;
+}
+.prod-erow{
+  display:grid;
+  grid-template-columns:220px 30px 70px 90px 1fr;
+  align-items:center;gap:8px;
+  padding:3px 0;
+  font-size:11px;
+  border-top:1px solid #f0f1f3;
+}
+.prod-erow-hdr{
+  font-family:var(--mono,monospace);font-size:8.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4,#9aa3ad);
+  border-top:0;
+}
+.prod-erow-stuck{background:#fce6e6}
+.prod-erow-amber{background:#fff4e0}
+.prod-erow-done{opacity:.5}
+.prod-ekey{font-family:var(--mono,monospace);font-size:10px;color:var(--ink-2,#4a5560);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- pipeline strip ------------------------------------------------------ */
+.pstrip{display:flex;gap:1px;flex-wrap:nowrap;overflow:hidden}
+.pchip{
+  display:flex;align-items:center;justify-content:center;
+  min-width:26px;height:18px;padding:0 2px;
+  font-family:var(--mono,monospace);font-size:8px;font-weight:600;
+  color:var(--ink,#1d2530);
+  border:1px solid var(--border-2,#e6e9ec);border-radius:2px;
+  white-space:nowrap;
+}
+.pchip-todo{background:#fff;color:var(--ink-4,#c2c8cf);border-style:dashed}
+.pchip-current{border:2px solid var(--ink,#1d2530);font-weight:700}
+.pchip-stuck{border-color:#d23030 !important;background:#fce6e6 !important;color:#a4361b}
+
+/* ---- By element view ----------------------------------------------------- */
+.prod-elhdr-bar{
+  display:flex;align-items:center;gap:14px;
+  padding:8px 14px;
+  border-bottom:1px solid var(--border-2,#e6e9ec);
+  position:sticky;top:0;background:#fff;z-index:6;
+}
+.prod-onlystuck{font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer}
+.prod-eltable{padding:0 14px 40px}
+.prod-elrow{
+  display:grid;
+  grid-template-columns:60px 220px 110px 50px 180px 70px 36px 90px 80px;
+  align-items:center;gap:8px;
+  padding:4px 0;
+  border-top:1px solid #f0f1f3;
+  font-size:11px;
+}
+.prod-elrow-hdr{
+  font-family:var(--mono,monospace);font-size:8.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4,#9aa3ad);
+  border-top:0;position:sticky;top:41px;background:#fafbfc;z-index:5;
+}
+.prod-elrow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-elstuck{font-weight:700;font-family:var(--mono,monospace);font-size:10px}
+
+/* ---- By section view ----------------------------------------------------- */
+/* Phase 5.28 — By section restructured to mirror Orders · By status:
+   section band (reuses .prod-grp/.prod-grp-hdr) → sticky order-header
+   (.prod-orow-hdr) → order rows (.prod-orow) → element rows (.prod-secerow). */
+.prod-sechdr .prod-sechdr-bar{
+  margin-left:auto;
+  flex:0 0 160px;
+  height:12px;border-radius:6px;
+  background:var(--surface-3,#e6e9ec);overflow:hidden;
+}
+.prod-sechdr .prod-secbar-fill{display:block;height:100%;border-radius:6px}
+
+.prod-secempty{
+  padding:8px 14px 8px 50px;
+  font-size:11px;color:var(--ink-4,#9aa3ad);
+}
+
+/* element rows inside an expanded section-order */
+.prod-secerow{
+  display:grid;
+  grid-template-columns:220px 36px 90px 90px 90px 60px;
+  align-items:center;gap:8px;
+  padding:3px 0;
+  font-size:11px;
+  border-top:1px solid #f0f1f3;
+}
+.prod-secerow .num{text-align:right;font-variant-numeric:tabular-nums}
+.prod-secerow-hdr{
+  font-family:var(--mono,monospace);font-size:8.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--ink-4,#9aa3ad);
+  border-top:0;
+}
+.prod-secerow span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* legacy flat section view (pre-5.28) — kept harmless */
+.prod-secrow{
+  display:grid;
+  grid-template-columns:28px 240px 120px 100px 1fr;
+  align-items:center;gap:10px;
+  padding:8px 14px;
+  border-bottom:1px solid var(--border-2,#e6e9ec);
+  cursor:pointer;
+  font-size:12px;
+}
+.prod-seccaret svg{width:13px;height:13px;transition:transform .15s;color:var(--ink-3,#7a828c)}
+.prod-secrow.open .prod-seccaret svg{transform:rotate(90deg)}
+.prod-secname{font-family:var(--mono,monospace);font-weight:700;font-size:12px}
+.prod-secbar{display:block;height:14px;border-radius:7px;background:var(--surface-3,#e6e9ec);overflow:hidden}
+.prod-secbar-fill{display:block;height:100%;border-radius:7px}
+.prod-secqueued{font-size:12px;color:var(--ink-2,#4a5560)}
+.prod-secstuck{font-size:12px}
+.prod-secdrill{padding:4px 14px 10px 50px;background:#fafbfc}
+.prod-secdrill-row{
+  display:grid;grid-template-columns:240px 140px 60px 140px 50px;
+  align-items:center;gap:10px;
+  padding:3px 0;border-top:1px solid #f0f1f3;font-size:11px;
+}
+.prod-secdrill-row span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- settings modal ------------------------------------------------------ */
+.prod-modal-overlay{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(20,26,33,.45);
+  display:flex;align-items:center;justify-content:center;
+}
+.prod-modal{
+  width:460px;max-width:92vw;
+  background:#fff;border-radius:8px;
+  box-shadow:0 20px 60px -15px rgba(0,0,0,.5);
+  overflow:hidden;
+}
+.prod-modal-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border-2,#e6e9ec);
+}
+.prod-modal-hdr h2{font-size:15px;margin:0;font-weight:700}
+.prod-modal-x{background:none;border:0;font-size:20px;cursor:pointer;color:var(--ink-3,#7a828c);line-height:1}
+.prod-modal-body{padding:18px}
+.prod-set-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.prod-set-row label{font-size:12px;color:var(--ink-2,#4a5560)}
+.prod-set-row input{width:80px;height:30px;border:1px solid var(--border,#d8dce1);border-radius:4px;padding:0 8px;font-size:13px}
+.prod-set-holidays{margin-top:8px;border-top:1px solid var(--border-2,#e6e9ec);padding-top:14px}
+.prod-set-holidays > label{display:block;font-size:12px;color:var(--ink-2,#4a5560);margin-bottom:8px;font-weight:600}
+.prod-hol-add{display:flex;gap:8px;margin-bottom:10px}
+.prod-hol-add input{flex:1;height:30px;border:1px solid var(--border,#d8dce1);border-radius:4px;padding:0 8px;font-size:13px}
+.prod-hol-list{display:flex;flex-wrap:wrap;gap:6px}
+.prod-hol-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 4px 2px 8px;
+  background:var(--surface-2,#eef1f4);border:1px solid var(--border-2,#e6e9ec);border-radius:3px;
+  font-family:var(--mono,monospace);font-size:11px;
+}
+.prod-hol-chip button{background:none;border:0;cursor:pointer;color:var(--ink-3,#7a828c);font-size:13px;line-height:1;padding:0 2px}
+.prod-hol-chip button:hover{color:#d23030}
+.prod-modal-foot{padding:12px 18px;border-top:1px solid var(--border-2,#e6e9ec);text-align:right}
+
+/* ---- Variable Mapping sub-tabs (Phase 5.19) ---- */
+.vm-subtabs{
+  display:flex;gap:2px;margin:14px 0 10px;
+  border-bottom:1px solid var(--border,#e3e6ea);
+}
+.vm-subtab{
+  appearance:none;background:transparent;border:0;border-bottom:2px solid transparent;
+  padding:8px 18px;cursor:pointer;
+  font-family:var(--sans);font-size:12.5px;font-weight:600;
+  color:var(--ink-3,#6b727a);
+  transition:color .12s, border-color .12s;
+}
+.vm-subtab:hover{color:var(--ink-2,#2e3338)}
+.vm-subtab.active{
+  color:var(--ink,#0f1419);
+  border-bottom-color:var(--ink,#0f1419);
+}
+
+/* ============================================================
+   Phase 5.30 (S3): permanent order-grain columns
+   ============================================================ */
+
+/* Optional columns are emitted into the grid only when toggled on, and the
+   grid-template-columns is built to match (in JS) — so cells and tracks always
+   align. No display:none track desync. */
+.opt-col{ overflow:hidden; min-width:0; }
+
+/* Materials chips (mirror Orders styling, compact for Production rows) */
+.prod-mat, .prod-mat-dates{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.prod-mat > span, .prod-mat-dates > span{
+  font-family:var(--mono,monospace); font-size:8.5px; text-align:center;
+  padding:1px 0; border-radius:2px; white-space:nowrap; overflow:hidden;
+}
+.prod-mat-hdr{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.prod-mat-hdr > span{ text-align:center; }
+
+/* letter-chip states */
+.prod-mat > span.x    { background:#d4f0df; color:#1f7a47; }   /* delivered */
+.prod-mat > span.wk   { background:#fff0c2; color:#8a6d1a; }   /* ordered (week) */
+.prod-mat > span.miss { background:#fcd8cc; color:#b23b1a; font-weight:700; } /* overdue */
+.prod-mat > span.blank{ background:#f1f3f5; color:#b5bcc4; }   /* nothing */
+
+/* date-chip states */
+.prod-mat-dates > span.delivered{ background:#d4f0df; color:#1f7a47; }
+.prod-mat-dates > span.promised { background:#fff0c2; color:#8a6d1a; }
+.prod-mat-dates > span.overdue  { background:#fcd8cc; color:#b23b1a; font-weight:700; }
+.prod-mat-dates > span.blank    { background:transparent; color:#b5bcc4; }
+
+.prod-loading{ font-family:var(--mono,monospace); font-size:10.5px; color:var(--ink,#2a2f36); }
+.prod-empty{ color:var(--ink-4,#b5bcc4); }
