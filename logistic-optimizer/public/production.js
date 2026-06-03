@@ -792,8 +792,11 @@
     if (!model) { t.innerHTML = '<span class="muted">No data loaded</span>'; return; }
     const els = model.elements.filter(e => e.product === activeProduct);
     const stuck = els.filter(e => e.isStuck).length;
-    const orders = new Set(els.map(e => e.orderNo)).size;
-    t.innerHTML = `<b>${orders}</b> ord · <b>${els.length}</b> elements · <b class="${stuck ? 'prod-stuck-num' : ''}">${stuck}</b> pcs`;
+    const orders = model.orders.filter(o => o.product === activeProduct);
+    // pcs = real piece count: one frame = one piece; sash-only orders count sashes
+    // (per-order pcsT already encodes that rule). Sum across the active product.
+    const pcs = orders.reduce((s, o) => s + o.pcsT, 0);
+    t.innerHTML = `<b>${orders.length}</b> ord · <b>${els.length}</b> elements · <b>${pcs}</b> pcs${stuck ? ` · <b class="prod-stuck-num">${stuck}</b> stuck` : ''}`;
   }
 
   // ---- pipeline strip (shared by order-expand + element views) ------------
@@ -851,13 +854,14 @@
       const list = byWeek.get(wk).sort((a, b) => a.orderNo.localeCompare(b.orderNo));
       const friday = fridayOfProdWeek(wk);
       const stuckSum = list.reduce((s, o) => s + o.stuckCount, 0);
+      const pcsSum = list.reduce((s, o) => s + o.pcsT, 0);   // real piece count for the week
       const wkKey = 'pwk:' + wk;
       const wkCollapsed = collapsed.has(wkKey);
       html += `<section class="prod-grp${wkCollapsed ? ' collapsed' : ''}" data-collapse="${escapeAttr(wkKey)}">
         <div class="prod-grp-hdr">
           <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           <span class="prod-grp-name">${escapeHTML(wk)}</span>
-          <span class="prod-grp-meta">${friday ? 'Fri ' + fmtDM(friday) + ' · ' : ''}<b>${list.length}</b> ord${stuckSum ? ` · <b class="prod-stuck-num">${stuckSum}</b> pcs` : ''}</span>
+          <span class="prod-grp-meta">${friday ? 'Fri ' + fmtDM(friday) + ' · ' : ''}<b>${list.length}</b> ord · <b>${pcsSum}</b> pcs${stuckSum ? ` · <b class="prod-stuck-num">${stuckSum}</b> stuck` : ''}</span>
         </div>
         <div class="prod-grp-body">
           ${renderOrderHeaderRow()}
