@@ -48,6 +48,13 @@
   const SEV = { 0:{ k:'crit', t:'CRITICAL' }, 1:{ k:'act', t:'ACTION' }, 2:{ k:'rev', t:'REVIEW' } };
 
   // ---- render ---------------------------------------------------------------
+  function pset() {
+    if (typeof currentMapping !== 'object' || !currentMapping) return {};
+    if (!currentMapping.planner) currentMapping.planner = {};
+    return currentMapping.planner;
+  }
+  function saveSettings() { if (typeof scheduleAutoSave === 'function') try { scheduleAutoSave(); } catch (e) {} }
+
   function render() {
     const now = new Date();
     const td = $('#planTodayDate'); if (td) td.textContent = fmtDate(now);
@@ -58,8 +65,79 @@
     if (!A) { banner('Planner adapter not loaded.'); return; }
 
     if (activeTab === 'orchestrator') return renderOrchestrator(inner);
+    if (activeTab === 'wfl')          return renderWfl(inner);
     inner.innerHTML = `<div class="orders-empty"><p>${esc(activeTab)} — coming next.</p></div>`;
   }
+
+  // ---- Tab: WFL (Window Flow Language) -------------------------------------
+  const WFL_DEFAULT =
+`# WFL — editable planning rules over the active product's orders.
+# Columns available per order: id, dest, pcs, stage_index, stages_total,
+# materials_in (h), loading_in (h), product, prodWeek, elementCount, doneCount.
+const truck_cap = 80
+
+let remaining = stages_total - stage_index
+let mat_ready = max(0, materials_in)
+let earliest  = mat_ready + remaining
+let slack     = loading_in - earliest
+
+kpi "Orders"        = @count()
+kpi "Avg slack (h)" = round(@avg(slack))
+kpi "At risk (<8h)" = @count(where slack < 8)
+kpi "Pieces"        = @sum(pcs)
+kpi "Blocked"       = @count(where materials_in > 0)
+
+rule "late"    when slack < 0        => action(critical, id + " late by " + abs(slack) + "h")
+rule "blocked" when materials_in > 0 => action(critical, "Expedite materials for " + id)
+rule "push"    when slack >= 0 and slack < 8 and materials_in <= 0 => action(action, "Push " + id + " — " + slack + "h slack")
+`;
+
+  function renderWfl(inner) {
+    const prog = (typeof pset().wfl === 'string') ? pset().wfl : WFL_DEFAULT;
+    inner.innerHTML =
+      `<div class="plan-wfl">
+        <div class="plan-wfl-edit">
+          <div class="plan-wfl-bar">
+            <button class="plan-btn" id="planWflRun">▶ Run</button>
+            <button class="plan-btn plan-btn-ghost" id="planWflReset">Reset to default</button>
+            <span class="muted" id="planWflHint">⌘/Ctrl+Enter to run · saved automatically</span>
+          </div>
+          <textarea class="plan-wfl-src" id="planWflSrc" spellcheck="false">${esc(prog)}</textarea>
+        </div>
+        <div class="plan-wfl-out" id="planWflOut"><p class="muted">Run to see KPIs and calls to action.</p></div>
+      </div>`;
+    const src = $('#planWflSrc');
+    const runIt = () => { pset().wfl = src.value; saveSettings(); runWfl(src.value, $('#planWflOut')); };
+    $('#planWflRun').addEventListener('click', runIt);
+    $('#planWflReset').addEventListener('click', () => { src.value = WFL_DEFAULT; pset().wfl = WFL_DEFAULT; saveSettings(); runWfl(WFL_DEFAULT, $('#planWflOut')); });
+    src.addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); runIt(); } });
+    src.addEventListener('change', () => { pset().wfl = src.value; saveSettings(); });
+    // auto-run once if data present
+    const built = window.PlannerAdapter.build();
+    if (built.ok) runWfl(prog, $('#planWflOut'));
+    setInfo();
+  }
+
+  function runWfl(text, out) {
+    const E = window.PlannerEngine, A = window.PlannerAdapter;
+    if (!out) return;
+    let rows = [];
+    try { const b = A.build(); rows = b.ok ? b.orders.filter(o => o.product === activeProduct) : []; } catch (e) {}
+    if (!rows.length) { out.innerHTML = `<p class="muted">No ${esc(activeProduct)} orders loaded — click Refresh.</p>`; return; }
+    let res;
+    try { res = E.run(E.parse(text), rows); }
+    catch (err) { out.innerHTML = `<div class="plan-wfl-err"><b>WFL error</b><div>${esc(err && err.message || err)}</div></div>`; return; }
+    const kpis = res.kpis || [], ctas = res.ctas || [];
+    const kpiHTML = `<div class="plan-kpis">${kpis.map(c =>
+      `<div class="plan-kpi"><div class="plan-kpi-v">${esc(fmtNum(c.value))}</div><div class="plan-kpi-k">${esc(c.label)}</div></div>`).join('')}</div>`;
+    const ctaHTML = `<section class="plan-card"><h2>Rule output <span class="plan-count">${ctas.length}</span></h2>` +
+      (ctas.length ? `<ul class="plan-actions">${ctas.map(a => {
+        const s = SEV[a.sev] || SEV[2];
+        return `<li class="plan-act plan-act-${s.k}"><span class="plan-sev">${s.t}</span><div class="plan-act-body"><div class="plan-act-title">${esc(a.msg)}</div></div></li>`;
+      }).join('')}</ul>` : `<p class="muted">No rules fired.</p>`) + `</section>`;
+    out.innerHTML = kpiHTML + ctaHTML;
+  }
+  function fmtNum(v) { return (typeof v === 'number' && !Number.isInteger(v)) ? Math.round(v * 100) / 100 : v; }
 
   function renderOrchestrator(inner) {
     const A = window.PlannerAdapter;
