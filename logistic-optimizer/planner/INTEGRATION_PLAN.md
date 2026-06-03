@@ -52,8 +52,34 @@ global, exactly like the existing `vendor/codemirror-sql.js` / `vendor/sheetjs.j
 - `<script src="vendor/planner-engine.js">` added to `index.html` (inert global).
 - App still boots clean; no existing screen touched.
 
-### Step 2 — the adapter + the tabs ⏳ (next)
-Blocked on confirming the **data mapping** below before writing the adapter.
+### Step 2 — adapter ✅ + Step 3 shell & Tab 1 (Orchestrator) ✅ (v5.43)
+- `public/planner-adapter.js` (`window.PlannerAdapter`): maps the live cache
+  (spine `sql_05` + order-join `sql_01`) → engine order rows. Element-grain →
+  order aggregation at the **slowest element** (min `Last_No`); `pcs = pcsT`;
+  deadline from **Friday-of-DD-week** surfaced as `{workingDays}d {hours}h`;
+  materials → engine `components[]` (working-hours-to-promised). Mirrors the
+  stable production.js helpers (FLOW, working-day engine, COL map) — intentional
+  isolated copy; Production untouched. Unit-tested with a synthetic cache; engine
+  regression baseline reproduced via `__baseline()`.
+- Planner screen wired: sidebar nav item, `#screen-planner`, `planner.js`
+  (`window.Planner`), `planner.css`; `app.js` hooks (`boot` init, `switchScreen`
+  onShow, `refreshOrders` → `Planner.refreshFromCache` so the **one ribbon
+  Refresh** drives Planner too). Golden rule held; Orders/Production/Mapping
+  unchanged.
+- **Tab 1 Orchestrator** live: KPI ribbon, ranked actions (with `why`), truck
+  consolidation, feasibility table (LATE/BLOCKED/RISK/OK, deadline `Nd Hh`,
+  slowest station, blocking material). Render path verified end-to-end via a DOM
+  shim on the synthetic cache.
+
+**Decided data mapping (resolved with Gabriel):** units — keep working-days +
+Friday deadline, hours for scans, countdown = full working days + partial-day
+hours; granularity — element-grain, aggregated at slowest element.
+
+### Remaining tabs ⏳
+2 Flow grid → 3 Capacity/OEE + what-if → 4 WFL → 5 Layout → 6 Learning.
+Tabs 2/3/6 need a WHNet per-station scan-count aggregation query (add to Mapping)
++ station capacity defs persisted under `currentMapping.planner` (seed from
+`EXAMPLE_LINE`). Tab 1 already runs on real order/element data.
 
 ## Open: data-mapping decisions for the adapter (Step 2)
 

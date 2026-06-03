@@ -182,6 +182,9 @@ function switchScreen(target) {
   if (target === 'production' && window.Production && typeof window.Production.onShow === 'function') {
     try { window.Production.onShow(); } catch (e) { console.error('Production.onShow failed:', e); }
   }
+  if (target === 'planner' && window.Planner && typeof window.Planner.onShow === 'function') {
+    try { window.Planner.onShow(); } catch (e) { console.error('Planner.onShow failed:', e); }
+  }
 }
 
 $$('.nav .it').forEach(it => {
@@ -2649,6 +2652,10 @@ async function refreshOrders() {
   if (window.Production && typeof window.Production.refreshFromCache === 'function') {
     try { window.Production.refreshFromCache(); } catch (e) { console.error(e); }
   }
+  // Same fresh cache also drives the Planner tabs (single refresh, all screens).
+  if (window.Planner && typeof window.Planner.refreshFromCache === 'function') {
+    try { window.Planner.refreshFromCache(); } catch (e) { console.error(e); }
+  }
 
   btn.disabled = false; btn.classList.remove('refreshing');
 }
@@ -4335,6 +4342,9 @@ async function boot() {
   // The host only calls init() once; the module wires its own DOM + refresh.
   if (window.Production && typeof window.Production.init === 'function') {
     try { window.Production.init(); } catch (e) { console.error('Production.init failed:', e); }
+  }
+  if (window.Planner && typeof window.Planner.init === 'function') {
+    try { window.Planner.init(); } catch (e) { console.error('Planner.init failed:', e); }
   }
 }
 

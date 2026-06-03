@@ -1,0 +1,69 @@
+/* planner.css — Planner screen. Namespaced .plan-*; reuses :root vars from
+   style.css. Product/view tabs reuse the .prod-tab/.prod-view look. */
+
+#screen-planner .list-inner { padding: 14px 16px 40px; max-width: 1500px; }
+#planViewTabs .prod-view:disabled { opacity: .4; cursor: default; }
+
+/* KPI ribbon */
+.plan-kpis { display: flex; gap: 10px; margin-bottom: 14px; }
+.plan-kpi {
+  flex: 1; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; min-width: 0;
+}
+.plan-kpi.warn { border-color: var(--red); background: var(--red-soft); }
+.plan-kpi-v { font: 700 26px/1 var(--sans); color: var(--ink); }
+.plan-kpi.warn .plan-kpi-v { color: var(--red); }
+.plan-kpi-k { font: 600 11px/1.4 var(--sans); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin-top: 6px; }
+
+/* cards */
+.plan-grid2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; margin-bottom: 14px; }
+.plan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.plan-card h2 { font: 700 13px/1 var(--sans); color: var(--ink-2); margin: 0 0 10px; text-transform: uppercase; letter-spacing: .03em; }
+.plan-count { display: inline-block; background: var(--surface-2); color: var(--ink-3); border-radius: 10px; padding: 1px 8px; font-size: 11px; margin-left: 6px; }
+
+/* actions */
+.plan-actions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.plan-act { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border-left: 3px solid var(--ink-4); }
+.plan-act-crit { border-left-color: var(--red); background: var(--red-soft); }
+.plan-act-act  { border-left-color: var(--amber); background: var(--amber-soft); }
+.plan-act-rev  { border-left-color: var(--ink-4); }
+.plan-sev { font: 700 9px/1.6 var(--mono); letter-spacing: .05em; color: var(--ink-3); flex: 0 0 56px; padding-top: 1px; }
+.plan-act-crit .plan-sev { color: var(--red); }
+.plan-act-act  .plan-sev { color: var(--amber); }
+.plan-act-title { font: 600 13px/1.4 var(--sans); color: var(--ink); }
+.plan-act-why { font: 400 12px/1.45 var(--sans); color: var(--ink-3); margin-top: 2px; }
+
+/* trucks */
+.plan-trucks { display: flex; flex-direction: column; gap: 10px; }
+.plan-truck { padding: 8px 10px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border-2); }
+.plan-truck-top { display: flex; justify-content: space-between; align-items: baseline; font: 600 13px/1.3 var(--sans); color: var(--ink); }
+.plan-truck-top span { font-size: 12px; color: var(--ink-3); }
+.plan-truck-bar { height: 7px; border-radius: 4px; background: var(--border); margin: 6px 0 4px; overflow: hidden; }
+.plan-truck-bar span { display: block; height: 100%; background: var(--ink-4); }
+.plan-truck-ready .plan-truck-bar span { background: var(--green); }
+.plan-truck-ready { border-color: var(--green); }
+.plan-truck-short .plan-truck-bar span { background: var(--amber); }
+.plan-truck-sub { font-size: 11px; }
+
+/* feasibility table */
+.plan-table { display: grid; }
+.plan-trow {
+  display: grid;
+  grid-template-columns: 150px 90px 50px 130px 110px 200px 70px 1fr;
+  align-items: center; gap: 8px; padding: 7px 10px;
+  border-bottom: 1px solid var(--border-2); font: 400 12.5px/1.3 var(--sans); color: var(--ink-2);
+}
+.plan-thead { position: sticky; top: 0; z-index: 4; background: var(--surface-2); font: 700 10.5px/1 var(--sans); color: var(--ink-3); text-transform: uppercase; letter-spacing: .03em; border-bottom: 1px solid var(--border); }
+.plan-trow .num { text-align: right; font-family: var(--mono); }
+.plan-ono { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+.plan-block { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+.plan-overdue { color: var(--red); font-weight: 600; }
+
+/* status pills */
+.plan-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font: 700 10px/1.4 var(--sans); letter-spacing: .03em; }
+.plan-st-ok      { background: var(--green-soft); color: var(--green); }
+.plan-st-risk    { background: var(--amber-soft); color: var(--amber); }
+.plan-st-blocked { background: #ece3fb; color: #5b3da8; }
+.plan-st-late    { background: var(--red-soft); color: var(--red); }
+
+@media (max-width: 1100px) { .plan-grid2 { grid-template-columns: 1fr; } }

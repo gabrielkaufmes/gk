@@ -6,6 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="production.css">
+<link rel="stylesheet" href="planner.css">
 </head>
 <body>
 
@@ -14,7 +15,7 @@
   <!-- ===== Sidebar ===== -->
   <aside class="sb">
     <div class="logo">L</div>
-    <div class="app-version" id="appVersion">v5.42</div>
+    <div class="app-version" id="appVersion">v5.43</div>
     <button class="sb-refresh" id="sbRefreshBtn" title="Refresh all queries (Orders + Production)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       <span class="sb-refresh-label">Refresh</span>
@@ -27,6 +28,10 @@
       <div class="it" data-screen="production" title="Production">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M4 20V8l5 3V8l5 3V8l5 3v9"/></svg>
         <span class="nav-label">Production</span>
+      </div>
+      <div class="it" data-screen="planner" title="Planner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        <span class="nav-label">Planner</span>
       </div>
       <div class="it" data-screen="mapping" title="Mapping">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h12"/><circle cx="19" cy="18" r="2"/></svg>
@@ -196,6 +201,54 @@
         <div class="list-inner" id="prodListInner">
           <div class="orders-empty">
             <p>No production data loaded.</p>
+            <p class="muted">Click <b>Refresh</b> to load.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PLANNER SCREEN — self-contained module (planner.js + planner-adapter)-->
+    <!-- Forward-planning brain (engine: planner/src/engine, bundled global).  -->
+    <!-- =================================================================== -->
+    <section id="screen-planner" class="screen">
+      <header class="hdr">
+        <div class="header-left">
+          <div class="info">
+            <div class="cell"><div class="k">Today</div><div class="v" id="planTodayDate">—</div></div>
+            <div class="cell prod"><div class="k">Prod week</div><div class="v" id="planTodayWeek">—</div></div>
+          </div>
+          <div class="totals" id="planTotals"><span class="muted">No data loaded</span></div>
+        </div>
+
+        <div class="title-block">
+          <h1>Planner</h1>
+          <span class="sub" id="planRefreshInfo">Not loaded yet.</span>
+        </div>
+
+        <div class="prod-tabs" id="planProductTabs">
+          <button class="prod-tab active" data-product="PVC">PVC</button>
+          <button class="prod-tab" data-product="ALU">ALU</button>
+        </div>
+
+        <div class="prod-views" id="planViewTabs">
+          <button class="prod-view active" data-tab="orchestrator">Orchestrator</button>
+          <button class="prod-view" data-tab="flow" disabled title="Coming next">Flow grid</button>
+          <button class="prod-view" data-tab="capacity" disabled title="Coming next">Capacity</button>
+          <button class="prod-view" data-tab="wfl" disabled title="Coming next">WFL</button>
+          <button class="prod-view" data-tab="layout" disabled title="Coming next">Layout</button>
+          <button class="prod-view" data-tab="learning" disabled title="Coming next">Learning</button>
+        </div>
+
+        <div class="spacer"></div>
+      </header>
+
+      <div class="orders-banner" id="planBanner" hidden></div>
+
+      <div class="list" id="planList">
+        <div class="list-inner" id="planListInner">
+          <div class="orders-empty">
+            <p>No planning data loaded.</p>
             <p class="muted">Click <b>Refresh</b> to load.</p>
           </div>
         </div>
@@ -520,5 +573,7 @@
 <script src="vendor/planner-engine.js"></script>
 <script src="app.js"></script>
 <script src="production.js"></script>
+<script src="planner-adapter.js"></script>
+<script src="planner.js"></script>
 </body>
 </html>
