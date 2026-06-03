@@ -285,6 +285,12 @@
   let wired = false;
   let elementOnlyStuck = false;        // "show only stuck" toggle in By element
 
+  // Phase 5.50: shared filters across all three views (self-contained — own
+  // state, reuses the host's generic multi-select helpers for the dropdown).
+  let statusFilter = new Set();        // empty = all statuses
+  let searchText = '';                 // lower-cased order-number search
+  let lastStatusSig = null;            // cache so the panel only rebuilds on change
+
   // ====== SETTINGS (currentMapping.production) ==============================
   function settings() {
     if (!currentMapping) return { stuckThresholdPVC: 1, stuckThresholdALU: 1, holidays: [] };
@@ -760,6 +766,54 @@
     if (svg) svg.setAttribute('points', allCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15');
   }
 
+  // ---- filters (status multi-select + order search) — all three views ------
+  function statusKey(v) { return (v == null || String(v).trim() === '') ? '__null__' : String(v); }
+  function matchStatus(orderStatus) { return statusFilter.size === 0 || statusFilter.has(statusKey(orderStatus)); }
+  function matchOrderSearch(o) { return !searchText || String(o.orderNo || '').toLowerCase().includes(searchText); }
+  function matchElemSearch(e) { return !searchText || String(e.orderNo || '').toLowerCase().includes(searchText) || String(e.key || '').toLowerCase().includes(searchText); }
+  function filteredOrders() { return model.orders.filter(o => o.product === activeProduct && matchStatus(o.orderStatus) && matchOrderSearch(o)); }
+  function filteredEls()    { return model.elements.filter(e => e.product === activeProduct && matchStatus(e.orderStatus) && matchElemSearch(e)); }
+  function anyFilterActive() { return statusFilter.size > 0 || !!searchText; }
+
+  // Distinct statuses for the active product (independent of the current filter).
+  function distinctStatuses() {
+    const s = new Set(); let hasNull = false;
+    if (model) for (const o of model.orders) {
+      if (o.product !== activeProduct) continue;
+      const v = o.orderStatus;
+      if (v == null || String(v).trim() === '') hasNull = true; else s.add(String(v));
+    }
+    return { sorted: [...s].sort(), hasNull };
+  }
+  function updateStatusSummary() {
+    const sum = $('#prodStatusSummary'), root = $('#prodStatusFilter');
+    if (sum) {
+      if (statusFilter.size === 0) sum.textContent = 'all';
+      else if (statusFilter.size <= 2) sum.textContent = [...statusFilter].map(v => v === '__null__' ? '(NULL)' : v).join(', ');
+      else sum.textContent = statusFilter.size + ' selected';
+    }
+    if (root) root.classList.toggle('filter-active', statusFilter.size > 0);
+  }
+  // Rebuild the dropdown options only when the set of statuses changes (so
+  // typing in search / toggling boxes doesn't churn the open panel).
+  function syncStatusFilterUI() {
+    if (!model) return;
+    const { sorted, hasNull } = distinctStatuses();
+    const sig = activeProduct + '::' + sorted.join('|') + (hasNull ? '|__null__' : '');
+    if (sig !== lastStatusSig) {
+      lastStatusSig = sig;
+      for (const v of [...statusFilter]) {
+        if (v === '__null__') { if (!hasNull) statusFilter.delete(v); }
+        else if (!sorted.includes(v)) statusFilter.delete(v);
+      }
+      if (typeof renderMultiSelectPanel === 'function') {
+        renderMultiSelectPanel('#prodStatusPanel', sorted, hasNull, statusFilter,
+          () => { updateStatusSummary(); render(); });
+      }
+    }
+    updateStatusSummary();
+  }
+
   function render() {
     const inner = $('#prodListInner');
     if (!inner) return;
@@ -769,18 +823,27 @@
       updateTotals();
       return;
     }
-    const productEls = model.elements.filter(e => e.product === activeProduct);
-    const productOrders = model.orders.filter(o => o.product === activeProduct);
+    syncStatusFilterUI();
 
+    const productEls = model.elements.filter(e => e.product === activeProduct);
     if (productEls.length === 0) {
       inner.innerHTML = `<div class="orders-empty"><p>No ${activeProduct} elements in the current data.</p></div>`;
       updateTotals();
       return;
     }
 
-    if (activeView === 'order')        renderByOrder(inner, productOrders);
-    else if (activeView === 'element') renderByElement(inner, productEls);
-    else                               renderBySection(inner, productEls);
+    const orders = filteredOrders();
+    const els = filteredEls();
+    if (els.length === 0) {
+      inner.innerHTML = `<div class="orders-empty"><p>No ${activeProduct} orders match the filter.</p>
+        <p class="muted">Adjust the status filter or search above.</p></div>`;
+      updateTotals();
+      return;
+    }
+
+    if (activeView === 'order')        renderByOrder(inner, orders);
+    else if (activeView === 'element') renderByElement(inner, els);
+    else                               renderBySection(inner, els);
 
     updateTotals();
     updateToggleAllLabel();
@@ -790,13 +853,14 @@
     const t = $('#prodTotals');
     if (!t) return;
     if (!model) { t.innerHTML = '<span class="muted">No data loaded</span>'; return; }
-    const els = model.elements.filter(e => e.product === activeProduct);
+    const els = filteredEls();
     const stuck = els.filter(e => e.isStuck).length;
-    const orders = model.orders.filter(o => o.product === activeProduct);
+    const orders = filteredOrders();
     // pcs = real piece count: one frame = one piece; sash-only orders count sashes
-    // (per-order pcsT already encodes that rule). Sum across the active product.
+    // (per-order pcsT already encodes that rule). Sum across the filtered set.
     const pcs = orders.reduce((s, o) => s + o.pcsT, 0);
-    t.innerHTML = `<b>${orders.length}</b> ord · <b>${els.length}</b> elements · <b>${pcs}</b> pcs${stuck ? ` · <b class="prod-stuck-num">${stuck}</b> stuck` : ''}`;
+    const note = anyFilterActive() ? ' <span class="muted">(filtered)</span>' : '';
+    t.innerHTML = `<b>${orders.length}</b> ord · <b>${els.length}</b> elements · <b>${pcs}</b> pcs${stuck ? ` · <b class="prod-stuck-num">${stuck}</b> stuck` : ''}${note}`;
   }
 
   // ---- pipeline strip (shared by order-expand + element views) ------------
@@ -1377,6 +1441,15 @@
     });
     // Refresh moved to the left ribbon (#sbRefreshBtn) — a single unified
     // refresh for both screens. No per-screen refresh button anymore.
+
+    // Phase 5.50: status multi-select dropdown (reuses the host's generic
+    // open/close helper) + order search box. Both apply to all three views.
+    if (typeof setupMultiSelect === 'function') {
+      setupMultiSelect({ rootSel: '#prodStatusFilter', toggleSel: '#prodStatusToggle', panelSel: '#prodStatusPanel' });
+    }
+    const search = $('#prodSearchInput');
+    if (search) search.addEventListener('input', (e) => { searchText = e.target.value.trim().toLowerCase(); render(); });
+
     // settings
     const sb = $('#prodSettingsBtn');
     if (sb) sb.addEventListener('click', openSettings);

@@ -15,7 +15,7 @@
   <!-- ===== Sidebar ===== -->
   <aside class="sb">
     <div class="logo">L</div>
-    <div class="app-version" id="appVersion">v5.49</div>
+    <div class="app-version" id="appVersion">v5.50</div>
     <button class="sb-refresh" id="sbRefreshBtn" title="Refresh all queries (Orders + Production)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       <span class="sb-refresh-label">Refresh</span>
@@ -183,6 +183,20 @@
           <button class="prod-view active" data-view="order">By order</button>
           <button class="prod-view" data-view="element">By element</button>
           <button class="prod-view" data-view="section">By section</button>
+        </div>
+
+        <div class="search">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="prodSearchInput" placeholder="Search order…">
+        </div>
+
+        <div class="ms-filter" id="prodStatusFilter">
+          <button class="ms-toggle" id="prodStatusToggle" type="button">
+            <span class="ms-label">Status</span>
+            <span class="ms-summary" id="prodStatusSummary">all</span>
+            <svg class="ms-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="ms-panel" id="prodStatusPanel" hidden></div>
         </div>
 
         <div class="spacer"></div>
