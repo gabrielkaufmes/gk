@@ -117,3 +117,29 @@
 .plan-fg-cell.today { box-shadow: inset 2px 0 0 var(--accent); }
 .plan-fg-now { font-weight: 700; border-left: 1px solid var(--border); }
 .plan-fg-head .plan-fg-now { border-left-color: rgba(255,255,255,.3); }
+
+/* Capacity */
+.plan-cap-top { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 10px; }
+.plan-cap-summary { display: flex; gap: 18px; }
+.plan-cap-summary div { display: flex; flex-direction: column; }
+.plan-cap-summary b { font: 700 18px/1.1 var(--sans); color: var(--ink); }
+.plan-cap-summary .muted { font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; }
+.plan-cap-over { color: var(--red) !important; }
+.plan-cap-legend { font-size: 11.5px; margin-bottom: 10px; }
+.plan-cap-tbl { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.plan-cap-row { display: grid; grid-template-columns: 240px 64px 64px 64px 110px 1fr 56px; align-items: center; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border-2); }
+.plan-cap-row:last-child { border-bottom: none; }
+.plan-cap-row.bind { background: var(--amber-soft); }
+.plan-cap-name { font: 600 12.5px/1.3 var(--sans); color: var(--ink); display: flex; flex-direction: column; }
+.plan-cap-cyc { font-weight: 400; font-size: 10.5px; }
+.plan-bind-tag { font: 700 9px/1 var(--sans); color: var(--amber); }
+.plan-cap-num { font: 600 10px/1 var(--sans); color: var(--ink-3); display: flex; align-items: center; gap: 4px; }
+.plan-cap-num input { width: 44px; font: 400 12px/1 var(--mono); padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; }
+.plan-cap-mins { font-family: var(--mono); font-size: 11px; color: var(--ink-3); text-align: right; }
+.plan-cap-bar { height: 9px; background: var(--border); border-radius: 5px; overflow: hidden; }
+.plan-cap-fill { display: block; height: 100%; }
+.plan-cap-ok { background: var(--green); color: var(--green); }
+.plan-cap-tight { background: var(--amber); color: var(--amber); }
+.plan-cap-over { background: var(--red); }
+.plan-cap-load { font-family: var(--mono); font-weight: 700; text-align: right; }
+span.plan-cap-ok { color: var(--green); } span.plan-cap-tight { color: var(--amber); } span.plan-cap-load.plan-cap-over { color: var(--red); }

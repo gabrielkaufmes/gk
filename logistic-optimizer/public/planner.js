@@ -68,7 +68,90 @@
     if (activeTab === 'wfl')          return renderWfl(inner);
     if (activeTab === 'layout')       return renderLayout(inner);
     if (activeTab === 'flow')         return renderFlow(inner);
+    if (activeTab === 'capacity')     return renderCapacity(inner);
     inner.innerHTML = `<div class="orders-empty"><p>${esc(activeTab)} — coming next.</p></div>`;
+  }
+
+  // ---- Tab: Capacity / load (editable line, live what-if) ------------------
+  function getLine() {
+    const p = pset();
+    if (!Array.isArray(p.line) || !p.line.length) {
+      const seed = window.PlannerEngine && window.PlannerEngine.EXAMPLE_LINE;
+      p.line = seed ? JSON.parse(JSON.stringify(seed)) : [];
+    }
+    return p.line;
+  }
+  function cycleLabel(t) {
+    if (!t) return '—';
+    if (t.model === 'per_piece') return t.seconds + 's/pc';
+    if (t.model === 'per_batch_of') return t.secondsPerBatch + 's/' + t.batch;
+    if (t.model === 'manual') return (t.minutes || 0) + 'm/pc';
+    if (t.model === 'optimization') return 'optim';
+    return t.model;
+  }
+  function renderCapacity(inner) {
+    const E = window.PlannerEngine, A = window.PlannerAdapter;
+    if (!E || !E.lineReport) { banner('Planner engine missing.'); return; }
+    banner('');
+    const line = getLine();
+    // demand: pieces to plan (editable; defaults to the active product's piece sum)
+    let pcsSum = 0;
+    try { const b = A.build(); if (b.ok) pcsSum = b.orders.filter(o => o.product === activeProduct).reduce((a, o) => a + o.pcs, 0); } catch (e) {}
+    if (pset().planPieces == null) pset().planPieces = pcsSum || 100;
+    const planPieces = pset().planPieces;
+    const items = [{ code: 'all', type: 'frame', pieces: planPieces, units: planPieces }];
+    const rep = E.lineReport(E.defineLine(line), items);
+
+    const maxLoad = Math.max(100, ...rep.stations.map(s => isFinite(s.load_pct) ? s.load_pct : 0));
+    const rowsHTML = rep.stations.map((s, i) => {
+      const st = line[i];
+      const loadStr = isFinite(s.load_pct) ? s.load_pct + '%' : '∞';
+      const barW = Math.min(100, isFinite(s.load_pct) ? (s.load_pct / maxLoad) * 100 : 100);
+      const cls = s.overbooked ? 'over' : (s.load_pct >= 85 ? 'tight' : 'ok');
+      const isBind = s.id === rep.binding;
+      return `<div class="plan-cap-row${isBind ? ' bind' : ''}" data-i="${i}">
+        <span class="plan-cap-name">${esc(s.label)}${isBind ? ' <span class="plan-bind-tag">binding</span>' : ''}<span class="plan-cap-cyc muted">${esc(cycleLabel(st.time))}${st.codeFilter ? ' · ' + esc((Array.isArray(st.codeFilter) ? st.codeFilter.join(',') : 'filtered')) : ''}</span></span>
+        <label class="plan-cap-num">P <input type="number" min="0" step="1" value="${st.people ?? 1}" data-f="people" data-i="${i}"></label>
+        <label class="plan-cap-num">M <input type="number" min="0" step="1" value="${st.machines ?? 0}" data-f="machines" data-i="${i}"></label>
+        <label class="plan-cap-num">Sh <input type="number" min="1" max="3" step="1" value="${st.shifts ?? 1}" data-f="shifts" data-i="${i}"></label>
+        <span class="plan-cap-mins num">${s.required_min}/${s.capacity_min}m</span>
+        <span class="plan-cap-bar"><span class="plan-cap-fill plan-cap-${cls}" style="width:${barW}%"></span></span>
+        <span class="plan-cap-load num plan-cap-${cls}">${loadStr}</span>
+      </div>`;
+    }).join('');
+
+    const bindStation = rep.stations.find(s => s.id === rep.binding);
+    inner.innerHTML =
+      `<div class="plan-cap-top">
+        <label class="plan-f" style="max-width:160px">Pieces to plan (per day)
+          <input type="number" min="0" step="10" id="planCapPcs" value="${planPieces}">
+        </label>
+        <div class="plan-cap-summary">
+          <div><b>${bindStation ? esc(bindStation.label) : '—'}</b><span class="muted">binding station</span></div>
+          <div><b class="${rep.bindingLoadPct > 100 ? 'plan-cap-over' : ''}">${isFinite(rep.bindingLoadPct) ? rep.bindingLoadPct + '%' : '∞'}</b><span class="muted">peak load</span></div>
+          <div><b class="${rep.overbooked.length ? 'plan-cap-over' : ''}">${rep.overbooked.length}</b><span class="muted">overbooked</span></div>
+        </div>
+        <span class="spacer" style="flex:1"></span>
+        <button class="plan-btn plan-btn-ghost" id="planCapReset">Reset line to default</button>
+      </div>
+      <div class="plan-cap-legend muted">Edit People / Machines / Shifts to run a live what-if. Code-filtered stations (specialty saws / fittings) need per-order BOM codes to load — wire those with the order book. OEE needs machine run-time data (later).</div>
+      <div class="plan-cap-tbl">${rowsHTML}</div>`;
+
+    const totals = $('#planTotals');
+    if (totals) totals.innerHTML = `Binding <b>${bindStation ? esc(bindStation.label) : '—'}</b> @ <b class="${rep.bindingLoadPct>100?'prod-stuck-num':''}">${isFinite(rep.bindingLoadPct)?rep.bindingLoadPct+'%':'∞'}</b> · <b>${rep.overbooked.length}</b> overbooked`;
+
+    const pcsInput = $('#planCapPcs');
+    if (pcsInput) pcsInput.onchange = () => { pset().planPieces = Math.max(0, Number(pcsInput.value) || 0); saveSettings(); render(); };
+    inner.querySelectorAll('input[data-f]').forEach(el => {
+      el.onchange = () => {
+        const i = Number(el.dataset.i), f = el.dataset.f;
+        line[i][f] = Math.max(0, Number(el.value) || 0);
+        saveSettings(); render();
+      };
+    });
+    const rb = $('#planCapReset');
+    if (rb) rb.onclick = () => { const seed = window.PlannerEngine.EXAMPLE_LINE; pset().line = JSON.parse(JSON.stringify(seed)); saveSettings(); render(); };
+    lastFetchAt = new Date(); setInfo();
   }
 
   // ---- Tab: Flow grid (station × day, scan-driven) -------------------------
