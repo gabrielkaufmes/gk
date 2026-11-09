@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Read-only audit of a web project's UI setup. Prints what exists and the next commands.
+# Read-only audit of a web project's UI setup. Prints what exists, names the stack branch (A/B/C) and the next commands.
 # Usage: check-ui-setup.sh [project-dir]
 set -u
 dir="${1:-.}"
@@ -25,6 +25,8 @@ if ! have package.json; then
 fi
 
 # Framework
+react=0; dep react && react=1
+tw=0; dep tailwindcss && tw=1
 fw="unknown"
 dep next && fw="Next.js"
 dep vite && fw="Vite"
@@ -127,15 +129,32 @@ done
 have .mcp.json && grep -q shadcn .mcp.json && say "mcp (Claude Code): shadcn server configured in .mcp.json"
 have .mcp.json && grep -q magicui .mcp.json && say "mcp (Claude Code): Magic UI server configured"
 have .mcp.json && grep -q 21st .mcp.json && say "mcp (Claude Code): 21st server configured"
-have .mcp.json || say "mcp: no .mcp.json. Optional: npx shadcn@latest mcp init --client claude"
-have CLAUDE.md && grep -qi 'ui rules\|ui-components' CLAUDE.md && say "CLAUDE.md: has UI rules"
-have AGENTS.md && grep -qi 'ui rules\|ui-components' AGENTS.md && say "AGENTS.md: has UI rules"
+have .mcp.json || [ "$react" = 1 ] && [ "$tw" = 1 ] && say "mcp: no .mcp.json. Optional: npx shadcn@latest mcp init --client claude"
+have CLAUDE.md && grep -qi 'ui rules\|prebuilt-controls\|ui-components' CLAUDE.md && say "CLAUDE.md: has UI rules"
+have AGENTS.md && grep -qi 'ui rules\|prebuilt-controls\|ui-components' AGENTS.md && say "AGENTS.md: has UI rules"
+
+# Branch
+branch="A (React + Tailwind: shadcn/ui + registries)"
+electron=0; dep electron && electron=1
+classic=0
+for h in index.html src/renderer/index.html public/index.html; do
+  if [ -f "$h" ] && grep -q '<script src=' "$h" && ! grep -q 'type="module"' "$h"; then classic=1; fi
+  if [ -f "$h" ] && grep -qi 'Content-Security-Policy' "$h"; then say "csp: meta CSP present in $h (vendor libraries locally; no CDN)"; fi
+done
+if [ "$react" = 1 ] && [ "$tw" = 0 ]; then branch="B (React without Tailwind: Base UI + unstyled specialists, styled with your tokens)"; fi
+if [ "$react" = 0 ]; then branch="C (no React: Web Awesome Core + vanilla libraries, vendored)"; fi
+[ "$electron" = 1 ] && say "electron: yes (renderer runs in Chromium; web components fine)"
+[ "$classic" = 1 ] && say "scripts: classic <script src> tags, no bundler detected"
+grep -rqi 'no new UI framework\|no UI framework' README.md HANDOFF.md docs 2>/dev/null && say "rule: a 'no new UI framework' note exists in the docs; prefer branch B or C"
+say "branch: $branch   (see references/stack-branches.md)"
 
 say ""
 say "== Suggested next commands"
-if ! have components.json && [ -z "${found[*]:-}" ]; then
-  say "npx shadcn@latest init            # foundation (base: base | radix | aria)"
-fi
+case "$branch" in
+  A*) if ! have components.json; then say "npx shadcn@latest init            # foundation (base: base | radix | aria)"; fi ;;
+  B*) say "$pm add @base-ui/react sonner @number-flow/react @tanstack/react-table @tanstack/react-virtual" ;;
+  C*) say "$pm add @awesome.me/webawesome notyf tom-select air-datepicker @floating-ui/dom number-flow ninja-keys chart.js   # then vendor dist/ files" ;;
+esac
 if have components.json; then
   dep sonner || say "npx shadcn@latest add sonner      # toasts"
   dep vaul   || say "npx shadcn@latest add drawer      # Vaul drawer"

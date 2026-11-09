@@ -148,3 +148,34 @@ One family per product. Never use emoji as icons.
 - **Vue**: shadcn-vue, `@vue-bits`. **Svelte**: shadcn-svelte, `@svelte-bits`. **Solid**: `@audiocn-solid`, `@gc-solid`.
 - **React Native / Expo**: React Native Reusables (shadcn for RN), `@glassyui-native`.
 - **Plain HTML/CSS**: Tailwind UI (paid), `@motion-menu` (HTML/CSS/JS motion patterns).
+
+---
+
+## Framework-agnostic and vanilla (web components, single-file libraries)
+
+For projects without React or without a bundler (Electron renderers with classic scripts,
+strict CSP, server-rendered apps). Vendor the files; no CDN. Full picker in `stack-branches.md`.
+
+| Library | What | Package | Licence |
+|---|---|---|---|
+| **Web Awesome Core** | ~70 Lit web components (dialog, drawer, tabs, dropdown, tooltip, select, inputs, buttons, badge, progress, tree, split panel, icons), CSS-variable theming, official dark theme. Successor to **Shoelace** (sunset 2026). Ships `dist/skills/webawesome/SKILL.md` for agents. Toasts, combobox, date picker, data grid are Pro. | `@awesome.me/webawesome` 3.14 | MIT (Core) |
+| **Notyf** | Toasts, 3 KB | `notyf` 3.10 | MIT |
+| **Tom Select** | Searchable select, tags, remote options | `tom-select` 2.7 | Apache-2.0 |
+| **Air Datepicker**, **flatpickr** | Date, range, time pickers | `air-datepicker` 3.6, `flatpickr` 4.6 | MIT |
+| **Floating UI** | Positioning for popups and menus | `@floating-ui/dom` 1.8 | MIT |
+| **Tabulator** | Full data table: header filters, sort, resize, grouping, export | `tabulator-tables` 6.7 | MIT |
+| **AG Grid Community** | Large grids; enterprise tier paid | `ag-grid-community` 36 | MIT |
+| **Chart.js**, **Apache ECharts** | Charts | `chart.js` 4.6, `echarts` 6.1 | MIT, Apache-2.0 |
+| **NumberFlow** (web component) | Animated numbers, framework-free | `number-flow` 0.6 | MIT |
+| **ninja-keys** | Command palette web component | `ninja-keys` 1.2 | MIT |
+| **Sortable** | Drag and drop lists | `sortablejs` 1.15 | MIT |
+| **a11y-dialog** | Accessible dialog, no framework | `a11y-dialog` 8.1 | MIT |
+| **@zxing/browser**, **html5-qrcode** | Camera barcode and QR | `@zxing/browser` 0.2, `html5-qrcode` 2.3 | Apache-2.0 |
+| **Lit** | Base class if you must author your own web component | `lit` 3.3 | BSD-3 |
+
+## Headless React without Tailwind
+
+`@base-ui/react` 1.9 (unstyled; style via data attributes), `cmdk`, `vaul`, `sonner`,
+`@number-flow/react`, `@tanstack/react-table` 9, `@tanstack/react-virtual` 3,
+`react-day-picker` 9, `react-hook-form` + `zod`, `@dnd-kit/*`, Recharts or ECharts. See
+branch B in `stack-branches.md`.

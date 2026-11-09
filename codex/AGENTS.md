@@ -1,4 +1,4 @@
-# AGENTS.md — UI from component libraries, no AI look
+# AGENTS.md — prebuilt controls first, no AI look
 
 <!--
 Full prompt for ChatGPT Codex (CLI, IDE extension or cloud). Use it one of three ways:
@@ -11,7 +11,8 @@ Edit the "Project settings" block; everything else can stay as is.
 ## Project settings (edit me)
 
 - Stack: <Next.js 16 / Vite + React 19 / TanStack Start>, Tailwind CSS v4, TypeScript.
-- Foundation: shadcn/ui with base **base** (Base UI). Alternatives: radix, aria.
+- Branch: **A** shadcn/ui + registries (React + Tailwind) | **B** headless Base UI + unstyled specialists (React, no Tailwind, or a "no UI framework" rule) | **C** Web Awesome Core + vanilla libraries, vendored (no React, classic scripts, strict CSP). Pick from the stack; never add Tailwind or React to a project that forbids them.
+- Foundation (branch A): shadcn/ui with base **base** (Base UI). Alternatives: radix, aria.
 - Design brief: `DESIGN.md` at the repo root. If missing, write it first (template below).
 - Package manager: <pnpm | npm | bun>.
 - MCP: shadcn MCP configured in `~/.codex/config.toml` (see "Tooling"). Optional: 21st MCP.
@@ -26,10 +27,11 @@ the default tells.
 
 ## Hard rules
 
-1. **Never hand-write a standard component.** Button, input, select, combobox, dialog,
-   sheet, drawer, dropdown, tabs, toast, tooltip, table, pagination, calendar, date
-   picker, command menu, avatar, badge, skeleton, carousel, accordion, chart, sidebar:
-   install them. If a component exists in `components/ui`, use it.
+1. **Never hand-write a standard control.** Button, input, select, combobox, dialog,
+   sheet, drawer, dropdown, context menu, tabs, segmented control, toast, tooltip, table,
+   pagination, calendar, date picker, number field, OTP field, command menu, avatar, badge,
+   skeleton, carousel, accordion, progress, chart, sidebar: install them from the branch's
+   table. If a component exists in `components/ui`, use it.
 2. **Never hand-write AI interface patterns.** Message lists, streaming text, reasoning
    traces, tool-call cards, approval cards, prompt inputs with attachments come from
    Beautiful UI, AI Elements (shadcn/ui), prompt-kit, assistant-ui or Kibo UI.
@@ -51,7 +53,20 @@ the default tells.
 10. **Keep `DESIGN.md` current.** Any token, source or rule you add during the task is
     written back into it.
 
-## The library stack
+## Stack branches (pick one before anything else)
+
+| Project | Branch | Install |
+|---|---|---|
+| React + Tailwind | **A.** shadcn/ui + registries (tables below) | `npx shadcn@latest init` |
+| React, no Tailwind, or "no new UI framework" | **B.** `@base-ui/react` 1.9 (unstyled: dialog, alert-dialog, drawer, toast, menu, context-menu, menubar, select, combobox, autocomplete, number-field, otp-field, tabs, toggle-group, tooltip, popover, progress, meter, slider, switch, scroll-area, field, form) + `sonner`, `cmdk`, `vaul`, `@number-flow/react`, `@tanstack/react-table`, `@tanstack/react-virtual`, `react-day-picker`, `react-hook-form` + `zod`, `@dnd-kit/*`. Style through data attributes (`[data-open]`, `[data-selected]`) with the project's tokens. | `npm i @base-ui/react sonner @number-flow/react @tanstack/react-table @tanstack/react-virtual` |
+| No React (vanilla JS, Electron classic scripts, strict CSP, server-rendered) | **C.** Web Awesome Core (`@awesome.me/webawesome` 3.14, MIT, ~70 Lit web components; Shoelace's successor; toasts/combobox/date picker/data grid are Pro) + `notyf` (toasts), `tom-select`, `air-datepicker` or `flatpickr`, `@floating-ui/dom`, `tabulator-tables` or `ag-grid-community`, `chart.js` or `echarts`, `number-flow` (web component), `ninja-keys` (command palette), `sortablejs`, `a11y-dialog`, `@zxing/browser`. Vendor `dist` files into the renderer; no CDN. | `npm i @awesome.me/webawesome notyf tom-select air-datepicker @floating-ui/dom number-flow ninja-keys chart.js` |
+
+Wrap each primitive once (`components/ui/<Name>` or a small helper) so screens call one API.
+Migrate in slices: global toast and dialog first, then the heaviest screen, then menus, then
+tables. Keep domain renderers (canvas, PDF) untouched. Record choices in
+`docs/component-decisions.md` (need, current, candidate, licence, accessibility, effort, rollback).
+
+## The library stack (branch A)
 
 ### Foundations (behaviour and accessibility; the code is yours)
 - **shadcn/ui** (`npx shadcn@latest init`, `add <item>`). Base UI is the default base;
@@ -142,8 +157,10 @@ Magic UI MCP (stdio): command `npx`, args `["-y", "@magicuidesign/mcp@latest"]`.
 
 ## Workflow for any UI task
 
-1. **Audit**: read `package.json`, `components.json`, `components/ui`, `DESIGN.md`.
-   Note the foundation, base, installed components, icon family, fonts.
+1. **Audit**: read `package.json`, `components.json`, `index.html`, the stylesheet,
+   `components/ui`, `DESIGN.md`. Note React or not, Tailwind or not, bundler or classic
+   scripts, CSP, any "no UI framework" rule, installed components, icon family, fonts.
+   Pick the branch.
 2. **Brief**: read or write `DESIGN.md`. Check every line: would I produce this for a
    different product with a similar prompt? If yes, it is a default; change it and say why.
 3. **Sources**: name the foundation items, the specialists, and the one designed component
