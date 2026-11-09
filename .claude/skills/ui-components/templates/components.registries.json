@@ -1,0 +1,19 @@
+{
+  "$comment": "Merge the `registries` object into components.json. Directory namespaces (@magicui, @aceternity, @cult-ui, @kibo-ui, @tailark, @coss, @ai-elements, @prompt-kit, ...) need no entry; the CLI resolves them. These are the sources outside the directory, plus pinned alternates.",
+  "registries": {
+    "@beautifului": "https://www.beautifului.dev/r/{name}.json",
+    "@tailark-oss": "https://oss-tailark.com/r/{name}",
+    "@tailark-oss-radix": "https://oss-tailark.com/r/radix/{name}",
+    "@magicui": "https://magicui.design/r/{name}",
+    "@aceternity": "https://ui.aceternity.com/registry/{name}.json",
+    "@cult-ui": "https://cult-ui.com/r/{name}.json",
+    "@kibo-ui": "https://www.kibo-ui.com/r/{name}.json",
+    "@animate-ui": "https://animate-ui.com/r/{name}.json",
+    "@motion-primitives": "https://motion-primitives.com/c/{name}.json",
+    "@prompt-kit": "https://www.prompt-kit.com/c/{name}.json",
+    "@private-example": {
+      "url": "https://registry.example.com/{name}.json",
+      "headers": { "Authorization": "Bearer ${REGISTRY_TOKEN}" }
+    }
+  }
+}
